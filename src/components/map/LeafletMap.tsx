@@ -61,7 +61,7 @@ export default function LeafletMap({ stations, onSelect }: LeafletMapProps) {
       bounds.extend([s.lat, s.lng]);
     });
 
-    if (!bounds.isEmpty()) {
+    if (bounds.isValid()) {
       map.fitBounds(bounds.pad(0.2));
     }
   }, [stations, onSelect]);
