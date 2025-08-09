@@ -2,10 +2,11 @@ import { useEffect, useRef } from 'react';
 import L, { Map as LeafletMapType } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Station } from '@/components/StationCard';
-
+import { cn } from '@/lib/utils';
 export interface LeafletMapProps {
   stations: Station[];
   onSelect?: (s: Station) => void;
+  className?: string;
 }
 
 function colorFor(status: Station['status']) {
@@ -14,10 +15,9 @@ function colorFor(status: Station['status']) {
   return 'hsl(var(--destructive))';
 }
 
-export default function LeafletMap({ stations, onSelect }: LeafletMapProps) {
+export default function LeafletMap({ stations, onSelect, className }: LeafletMapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<LeafletMapType | null>(null);
-
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
 
@@ -66,5 +66,5 @@ export default function LeafletMap({ stations, onSelect }: LeafletMapProps) {
     }
   }, [stations, onSelect]);
 
-  return <div ref={containerRef} className="w-full h-[60vh] rounded-lg elevated overflow-hidden" />;
+  return <div ref={containerRef} className={cn("w-full rounded-lg elevated overflow-hidden", className ?? "h-[60vh]")} />;
 }
