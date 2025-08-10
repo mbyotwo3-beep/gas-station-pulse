@@ -41,12 +41,12 @@ const Index = () => {
         </section>
 
         <section className="container p-0 md:py-10 relative">
-          <div className="absolute inset-x-4 top-4 z-40">
+          <div className="absolute inset-x-4 top-4 md:top-6 z-[1000]">
             <LocationSearch onSelectLocation={(loc) => setFocusPoint(loc)} />
           </div>
           <LeafletMap className="h-[calc(100dvh-120px)] md:h-[60vh]" stations={sampleStations} onSelect={setSelected} focusPoint={focusPoint} />
           {selected ? (
-            <div className="fixed inset-x-4 bottom-[calc(64px+16px)] z-40 md:static md:inset-auto md:bottom-auto md:mt-6">
+            <div className="fixed inset-x-4 bottom-[calc(64px+16px)] z-[1000] md:static md:inset-auto md:bottom-auto md:mt-6">
               <StationCard station={selected} />
             </div>
           ) : (

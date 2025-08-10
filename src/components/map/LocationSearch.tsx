@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
+import { Search as SearchIcon, LocateFixed, X } from "lucide-react";
 
 export interface LocationSearchProps {
   onSelectLocation: (loc: { lat: number; lng: number; label?: string }) => void;
@@ -24,7 +25,7 @@ export default function LocationSearch({ onSelectLocation, className }: Location
     if (!query.trim()) return;
     setLoading(true);
     try {
-      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&q=${encodeURIComponent(query)}`, {
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&q=${encodeURIComponent(query)}`, {
         headers: { Accept: "application/json" },
       });
       const data: NominatimResult[] = await res.json();
@@ -46,26 +47,56 @@ export default function LocationSearch({ onSelectLocation, className }: Location
       (pos) => {
         const { latitude, longitude } = pos.coords;
         onSelectLocation({ lat: latitude, lng: longitude, label: "My location" });
+        setResults([]);
       },
       () => toast({ title: "Location error", description: "Could not get your location." }),
       { enableHighAccuracy: true, timeout: 10000 }
     );
   };
 
+  useEffect(() => {
+    // Close results when clicking outside
+    const onDocClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest?.("[data-loc-search]")) setResults([]);
+    };
+    document.addEventListener("click", onDocClick);
+    return () => document.removeEventListener("click", onDocClick);
+  }, []);
+
   return (
-    <div className={`w-full max-w-xl ${className ?? ""}`}>
-      <form onSubmit={search} className="flex gap-2">
+    <div data-loc-search className={`relative w-full ${className ?? ""}`}>
+      <form onSubmit={search} className="relative">
+        <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden />
+        {query && (
+          <button
+            type="button"
+            aria-label="Clear"
+            className="absolute right-12 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-accent"
+            onClick={() => setQuery("")}
+          >
+            <X className="h-4 w-4" />
+          </button>
+        )}
         <Input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search a place, address, or city"
           aria-label="Search location"
+          className="pl-9 pr-28 rounded-full shadow-md"
         />
-        <Button type="submit" variant="default" disabled={loading}>{loading ? "Searching" : "Search"}</Button>
-        <Button type="button" variant="outline" onClick={useMyLocation}>Use my location</Button>
+        <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-1">
+          <Button type="submit" size="sm" variant="secondary" className="hidden md:inline-flex rounded-full">
+            {loading ? "Searching" : "Search"}
+          </Button>
+          <Button type="button" size="icon" variant="secondary" className="rounded-full" onClick={useMyLocation} aria-label="Use my location">
+            <LocateFixed className="h-4 w-4" />
+          </Button>
+        </div>
       </form>
+
       {results.length > 0 && (
-        <div className="mt-2 rounded-md border bg-card p-2 max-h-64 overflow-auto">
+        <div className="absolute left-0 right-0 mt-2 rounded-lg border bg-popover p-2 max-h-72 overflow-auto z-[1100] shadow-xl">
           {results.map((r, idx) => (
             <button
               key={idx}
