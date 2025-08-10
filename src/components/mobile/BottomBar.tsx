@@ -1,5 +1,6 @@
-import ManagerLogin from "@/components/ManagerLogin";
+import { Button } from "@/components/ui/button";
 import ThemeToggle from "@/components/ThemeToggle";
+import { Link } from "react-router-dom";
 
 export default function BottomBar() {
   return (
@@ -7,7 +8,7 @@ export default function BottomBar() {
       <div className="container px-4 py-3 flex items-center justify-between">
         <div className="text-sm font-medium">FuelFinder</div>
         <div className="flex items-center gap-2">
-          <ManagerLogin />
+          <Link to="/auth"><Button variant="hero">Login</Button></Link>
           <ThemeToggle />
         </div>
       </div>

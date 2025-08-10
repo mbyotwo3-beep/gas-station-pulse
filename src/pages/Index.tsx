@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import ThemeToggle from '@/components/ThemeToggle';
 import LeafletMap from '@/components/map/LeafletMap';
 import StationCard, { Station } from '@/components/StationCard';
-import ManagerLogin from '@/components/ManagerLogin';
+
 import { Button } from '@/components/ui/button';
 import BottomBar from '@/components/mobile/BottomBar';
 const sampleStations: Station[] = [
@@ -22,7 +22,7 @@ const Index = () => {
           <Link to="/" className="font-semibold tracking-tight text-lg">FuelFinder</Link>
           <h1 className="sr-only md:hidden">FuelFinder – Real-Time Fuel Availability</h1>
           <div className="hidden md:flex items-center gap-2">
-            <ManagerLogin />
+            <Link to="/auth"><Button variant="hero">Login</Button></Link>
             <ThemeToggle />
           </div>
         </div>
