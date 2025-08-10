@@ -7,6 +7,7 @@ export interface LeafletMapProps {
   stations: Station[];
   onSelect?: (s: Station) => void;
   className?: string;
+  focusPoint?: { lat: number; lng: number; label?: string } | null;
 }
 
 function colorFor(status: Station['status']) {
@@ -15,9 +16,11 @@ function colorFor(status: Station['status']) {
   return 'hsl(var(--destructive))';
 }
 
-export default function LeafletMap({ stations, onSelect, className }: LeafletMapProps) {
+export default function LeafletMap({ stations, onSelect, className, focusPoint }: LeafletMapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<LeafletMapType | null>(null);
+  const stationLayerRef = useRef<L.LayerGroup | null>(null);
+  const focusMarkerRef = useRef<L.CircleMarker | null>(null);
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
 
@@ -31,40 +34,66 @@ export default function LeafletMap({ stations, onSelect, className }: LeafletMap
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap contributors',
     }).addTo(mapRef.current);
+
+    // layer for station markers
+    stationLayerRef.current = L.layerGroup().addTo(mapRef.current);
   }, []);
 
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
+useEffect(() => {
+  const map = mapRef.current;
+  const stationLayer = stationLayerRef.current;
+  if (!map || !stationLayer) return;
 
-    // Clear existing markers layer if any
-    map.eachLayer((layer) => {
-      // keep tile layer
-      if (layer instanceof L.CircleMarker) {
-        map.removeLayer(layer);
-      }
-    });
+  // Clear existing station markers
+  stationLayer.clearLayers();
 
-    const bounds = L.latLngBounds([]);
+  const bounds = L.latLngBounds([]);
 
-    stations.forEach((s) => {
-      const marker = L.circleMarker([s.lat, s.lng], {
-        radius: 10,
-        color: colorFor(s.status),
-        fillColor: colorFor(s.status),
-        fillOpacity: 0.85,
-        weight: 2,
-      }).addTo(map);
+  stations.forEach((s) => {
+    const marker = L.circleMarker([s.lat, s.lng], {
+      radius: 10,
+      color: colorFor(s.status),
+      fillColor: colorFor(s.status),
+      fillOpacity: 0.85,
+      weight: 2,
+    }).addTo(stationLayer);
 
-      marker.bindTooltip(`<strong>${s.name}</strong>`, { permanent: false, opacity: 1 });
-      marker.on('click', () => onSelect?.(s));
-      bounds.extend([s.lat, s.lng]);
-    });
+    marker.bindTooltip(`<strong>${s.name}</strong>`, { permanent: false, opacity: 1 });
+    marker.on('click', () => onSelect?.(s));
+    bounds.extend([s.lat, s.lng]);
+  });
 
-    if (bounds.isValid()) {
-      map.fitBounds(bounds.pad(0.2));
-    }
-  }, [stations, onSelect]);
+  if (bounds.isValid() && !focusPoint) {
+    map.fitBounds(bounds.pad(0.2));
+  }
+}, [stations, onSelect, focusPoint]);
+
+useEffect(() => {
+  const map = mapRef.current;
+  if (!map || !focusPoint) return;
+
+  // Remove previous focus marker
+  if (focusMarkerRef.current) {
+    map.removeLayer(focusMarkerRef.current);
+    focusMarkerRef.current = null;
+  }
+
+  const marker = L.circleMarker([focusPoint.lat, focusPoint.lng], {
+    radius: 12,
+    color: 'hsl(var(--primary))',
+    fillColor: 'hsl(var(--primary))',
+    fillOpacity: 0.9,
+    weight: 2,
+  }).addTo(map);
+
+  marker.bindTooltip(`<strong>${focusPoint.label ?? 'Selected location'}</strong>`, { permanent: false, opacity: 1 });
+  focusMarkerRef.current = marker;
+
+  // Zoom in but don't reduce if user is already closer
+  const targetZoom = 14;
+  const currentZoom = map.getZoom();
+  map.setView([focusPoint.lat, focusPoint.lng], Math.max(currentZoom, targetZoom), { animate: true });
+}, [focusPoint]);
 
   return <div ref={containerRef} className={cn("w-full rounded-lg elevated overflow-hidden", className ?? "h-[60vh]")} />;
 }

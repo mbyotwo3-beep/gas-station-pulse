@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import ThemeToggle from '@/components/ThemeToggle';
 import LeafletMap from '@/components/map/LeafletMap';
 import StationCard, { Station } from '@/components/StationCard';
-
+import LocationSearch from '@/components/map/LocationSearch';
 import { Button } from '@/components/ui/button';
 import BottomBar from '@/components/mobile/BottomBar';
 const sampleStations: Station[] = [
@@ -14,6 +14,7 @@ const sampleStations: Station[] = [
 
 const Index = () => {
   const [selected, setSelected] = useState<Station | null>(null);
+  const [focusPoint, setFocusPoint] = useState<{ lat: number; lng: number; label?: string } | null>(null);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -22,7 +23,6 @@ const Index = () => {
           <Link to="/" className="font-semibold tracking-tight text-lg">FuelFinder</Link>
           <h1 className="sr-only md:hidden">FuelFinder – Real-Time Fuel Availability</h1>
           <div className="hidden md:flex items-center gap-2">
-            <Link to="/auth"><Button variant="hero">Login</Button></Link>
             <ThemeToggle />
           </div>
         </div>
@@ -40,8 +40,11 @@ const Index = () => {
           </div>
         </section>
 
-        <section className="container p-0 md:py-10">
-          <LeafletMap className="h-[calc(100dvh-120px)] md:h-[60vh]" stations={sampleStations} onSelect={setSelected} />
+        <section className="container p-0 md:py-10 relative">
+          <div className="absolute inset-x-4 top-4 z-40">
+            <LocationSearch onSelectLocation={(loc) => setFocusPoint(loc)} />
+          </div>
+          <LeafletMap className="h-[calc(100dvh-120px)] md:h-[60vh]" stations={sampleStations} onSelect={setSelected} focusPoint={focusPoint} />
           {selected ? (
             <div className="fixed inset-x-4 bottom-[calc(64px+16px)] z-40 md:static md:inset-auto md:bottom-auto md:mt-6">
               <StationCard station={selected} />
