@@ -8,13 +8,14 @@ import { Button } from '@/components/ui/button';
 import BottomBar from '@/components/mobile/BottomBar';
 import { toast } from '@/hooks/use-toast';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { Fuel, PlugZap } from 'lucide-react';
+import { Fuel, PlugZap, LocateFixed } from 'lucide-react';
 
 const Index = () => {
   const [selected, setSelected] = useState<Station | null>(null);
   const [focusPoint, setFocusPoint] = useState<{ lat: number; lng: number; label?: string } | null>(null);
   const [stations, setStations] = useState<Station[]>([]);
   const [typeFilters, setTypeFilters] = useState<string[]>(['fuel', 'ev']);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
 
   // Set initial location to Lusaka, Zambia after mount so the map centers correctly
   useEffect(() => {
@@ -93,6 +94,25 @@ const Index = () => {
     return () => controller.abort();
   }, [focusPoint, typeFilters]);
 
+  const handleUseMyLocation = () => {
+    if (!navigator.geolocation) {
+      toast({ title: 'Geolocation not supported', description: 'Your browser does not support location access.' });
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        setUserLocation(coords);
+        setFocusPoint({ ...coords, label: 'Your location' });
+        toast({ title: 'Location set', description: 'Using your current location.' });
+      },
+      () => {
+        toast({ title: 'Permission denied', description: 'We could not access your location.' });
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       <header className="border-b h-14">
@@ -121,6 +141,11 @@ const Index = () => {
           <div className="absolute inset-x-4 top-4 md:top-6 z-[1000]">
             <div className="space-y-2">
               <LocationSearch onSelectLocation={(loc) => setFocusPoint(loc)} />
+              <div className="flex gap-2">
+                <Button size="sm" variant="secondary" onClick={handleUseMyLocation} aria-label="Use my current location">
+                  <LocateFixed className="h-4 w-4 mr-1" /> Use my location
+                </Button>
+              </div>
               <div className="rounded-full bg-background/90 backdrop-blur border shadow-md w-fit px-2 py-1">
                 <ToggleGroup
                   type="multiple"
@@ -141,11 +166,11 @@ const Index = () => {
           <LeafletMap className="h-[calc(100dvh-120px)] md:h-[60vh]" stations={stations} onSelect={setSelected} focusPoint={focusPoint} />
           {selected ? (
             <div className="fixed inset-x-4 bottom-[calc(64px+16px)] z-[1000] md:static md:inset-auto md:bottom-auto md:mt-6">
-              <StationCard station={selected} userLocation={focusPoint ? { lat: focusPoint.lat, lng: focusPoint.lng } : undefined} />
+              <StationCard station={selected} userLocation={userLocation ?? (focusPoint ? { lat: focusPoint.lat, lng: focusPoint.lng } : undefined)} />
             </div>
           ) : (
             <div className="hidden md:block mt-6">
-              <StationCard station={selected} userLocation={focusPoint ? { lat: focusPoint.lat, lng: focusPoint.lng } : undefined} />
+              <StationCard station={selected} userLocation={userLocation ?? (focusPoint ? { lat: focusPoint.lat, lng: focusPoint.lng } : undefined)} />
             </div>
           )}
         </section>
