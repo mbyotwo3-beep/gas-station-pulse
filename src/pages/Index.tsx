@@ -7,11 +7,14 @@ import LocationSearch from '@/components/map/LocationSearch';
 import { Button } from '@/components/ui/button';
 import BottomBar from '@/components/mobile/BottomBar';
 import { toast } from '@/hooks/use-toast';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { Fuel, PlugZap } from 'lucide-react';
 
 const Index = () => {
   const [selected, setSelected] = useState<Station | null>(null);
   const [focusPoint, setFocusPoint] = useState<{ lat: number; lng: number; label?: string } | null>(null);
   const [stations, setStations] = useState<Station[]>([]);
+  const [typeFilters, setTypeFilters] = useState<string[]>(['fuel', 'ev']);
 
   // Set initial location to Lusaka, Zambia after mount so the map centers correctly
   useEffect(() => {
@@ -26,15 +29,19 @@ const Index = () => {
 
     const fetchStations = async () => {
       const radius = 8000; // meters
-      const query = `
-[out:json][timeout:25];
-(
-  node["amenity"="fuel"](around:${radius},${focusPoint.lat},${focusPoint.lng});
-  way["amenity"="fuel"](around:${radius},${focusPoint.lat},${focusPoint.lng});
-  node["amenity"="charging_station"](around:${radius},${focusPoint.lat},${focusPoint.lng});
-  way["amenity"="charging_station"](around:${radius},${focusPoint.lat},${focusPoint.lng});
-);
-out center tags;`;
+      const wantFuel = typeFilters.includes('fuel');
+      const wantEV = typeFilters.includes('ev');
+      if (!wantFuel && !wantEV) {
+        setStations([]);
+        return;
+      }
+      const parts: string[] = [];
+      const base = (amenity: string) => `
+  node["amenity"="${amenity}"](around:${radius},${focusPoint.lat},${focusPoint.lng});
+  way["amenity"="${amenity}"](around:${radius},${focusPoint.lat},${focusPoint.lng});`;
+      if (wantFuel) parts.push(base('fuel'));
+      if (wantEV) parts.push(base('charging_station'));
+      const query = `[out:json][timeout:25];\n(\n${parts.join('\n')}\n);\nout center tags;`;
 
       try {
         const res = await fetch('https://overpass-api.de/api/interpreter', {
@@ -84,7 +91,7 @@ out center tags;`;
 
     fetchStations();
     return () => controller.abort();
-  }, [focusPoint]);
+  }, [focusPoint, typeFilters]);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -112,16 +119,33 @@ out center tags;`;
 
         <section className="container p-0 md:py-10 relative">
           <div className="absolute inset-x-4 top-4 md:top-6 z-[1000]">
-            <LocationSearch onSelectLocation={(loc) => setFocusPoint(loc)} />
+            <div className="space-y-2">
+              <LocationSearch onSelectLocation={(loc) => setFocusPoint(loc)} />
+              <div className="rounded-full bg-background/90 backdrop-blur border shadow-md w-fit px-2 py-1">
+                <ToggleGroup
+                  type="multiple"
+                  value={typeFilters}
+                  onValueChange={(v) => setTypeFilters(v.length ? v : ['fuel', 'ev'])}
+                  className="gap-1"
+                >
+                  <ToggleGroupItem value="fuel" aria-label="Show fuel stations" className="px-3 py-1 rounded-full">
+                    <span className="inline-flex items-center gap-1"><Fuel className="h-4 w-4" /> <span className="hidden sm:inline">Fuel</span></span>
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="ev" aria-label="Show EV charging stations" className="px-3 py-1 rounded-full">
+                    <span className="inline-flex items-center gap-1"><PlugZap className="h-4 w-4" /> <span className="hidden sm:inline">EV</span></span>
+                  </ToggleGroupItem>
+                </ToggleGroup>
+              </div>
+            </div>
           </div>
           <LeafletMap className="h-[calc(100dvh-120px)] md:h-[60vh]" stations={stations} onSelect={setSelected} focusPoint={focusPoint} />
           {selected ? (
             <div className="fixed inset-x-4 bottom-[calc(64px+16px)] z-[1000] md:static md:inset-auto md:bottom-auto md:mt-6">
-              <StationCard station={selected} />
+              <StationCard station={selected} userLocation={focusPoint ? { lat: focusPoint.lat, lng: focusPoint.lng } : undefined} />
             </div>
           ) : (
             <div className="hidden md:block mt-6">
-              <StationCard station={selected} />
+              <StationCard station={selected} userLocation={focusPoint ? { lat: focusPoint.lat, lng: focusPoint.lng } : undefined} />
             </div>
           )}
         </section>
