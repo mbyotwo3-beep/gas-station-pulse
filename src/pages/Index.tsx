@@ -3,12 +3,13 @@ import { Link } from 'react-router-dom';
 import ThemeToggle from '@/components/ThemeToggle';
 import LeafletMap from '@/components/map/LeafletMap';
 import StationCard, { Station } from '@/components/StationCard';
+import StationList from '@/components/StationList';
 import LocationSearch from '@/components/map/LocationSearch';
 import { Button } from '@/components/ui/button';
 import BottomBar from '@/components/mobile/BottomBar';
 import { toast } from '@/hooks/use-toast';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { Fuel, PlugZap, LocateFixed } from 'lucide-react';
+import { Fuel, PlugZap, LocateFixed, List } from 'lucide-react';
 
 const Index = () => {
   const [selected, setSelected] = useState<Station | null>(null);
@@ -16,6 +17,20 @@ const Index = () => {
   const [stations, setStations] = useState<Station[]>([]);
   const [typeFilters, setTypeFilters] = useState<string[]>(['fuel', 'ev']);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [listOpen, setListOpen] = useState(false);
+  const [favorites, setFavorites] = useState<Set<string>>(() => {
+    try { return new Set(JSON.parse(localStorage.getItem('ff_favorites') || '[]')); } catch { return new Set(); }
+  });
+
+  useEffect(() => {
+    localStorage.setItem('ff_favorites', JSON.stringify([...favorites]));
+  }, [favorites]);
+
+  const toggleFavorite = (id: string) => setFavorites((prev) => {
+    const next = new Set(prev);
+    next.has(id) ? next.delete(id) : next.add(id);
+    return next;
+  });
 
   // Set initial location to Lusaka, Zambia after mount so the map centers correctly
   useEffect(() => {
@@ -145,6 +160,9 @@ const Index = () => {
                 <Button size="sm" variant="secondary" onClick={handleUseMyLocation} aria-label="Use my current location">
                   <LocateFixed className="h-4 w-4 mr-1" /> Use my location
                 </Button>
+                <Button size="sm" variant="secondary" onClick={() => setListOpen((v) => !v)} aria-label="Toggle stations list">
+                  <List className="h-4 w-4 mr-1" /> {listOpen ? 'Hide list' : 'Show list'}
+                </Button>
               </div>
               <div className="rounded-full bg-background/90 backdrop-blur border shadow-md w-fit px-2 py-1">
                 <ToggleGroup
@@ -164,13 +182,38 @@ const Index = () => {
             </div>
           </div>
           <LeafletMap className="h-[calc(100dvh-120px)] md:h-[60vh]" stations={stations} onSelect={setSelected} focusPoint={focusPoint} />
+          {listOpen && (
+            <div className="mt-4">
+              <StationList
+                stations={stations}
+                origin={userLocation ?? (focusPoint ? { lat: focusPoint.lat, lng: focusPoint.lng } : undefined)}
+                selectedId={selected?.id ?? null}
+                onSelect={(s) => {
+                  setSelected(s);
+                  setFocusPoint({ lat: s.lat, lng: s.lng, label: s.name });
+                }}
+                favorites={favorites}
+                onToggleFavorite={toggleFavorite}
+              />
+            </div>
+          )}
           {selected ? (
             <div className="fixed inset-x-4 bottom-[calc(64px+16px)] z-[1000] md:static md:inset-auto md:bottom-auto md:mt-6">
-              <StationCard station={selected} userLocation={userLocation ?? (focusPoint ? { lat: focusPoint.lat, lng: focusPoint.lng } : undefined)} />
+              <StationCard
+                station={selected}
+                userLocation={userLocation ?? (focusPoint ? { lat: focusPoint.lat, lng: focusPoint.lng } : undefined)}
+                isFavorite={selected ? favorites.has(selected.id) : false}
+                onToggleFavorite={toggleFavorite}
+              />
             </div>
           ) : (
             <div className="hidden md:block mt-6">
-              <StationCard station={selected} userLocation={userLocation ?? (focusPoint ? { lat: focusPoint.lat, lng: focusPoint.lng } : undefined)} />
+              <StationCard
+                station={selected}
+                userLocation={userLocation ?? (focusPoint ? { lat: focusPoint.lat, lng: focusPoint.lng } : undefined)}
+                isFavorite={false}
+                onToggleFavorite={undefined}
+              />
             </div>
           )}
         </section>
