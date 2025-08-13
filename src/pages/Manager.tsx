@@ -55,13 +55,15 @@ export default function Manager() {
 
   const onSubmitReport = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!stationId.trim() || !stationName.trim()) {
-      toast({ title: "Missing details", description: "Please provide Station ID and Station Name." });
+    if (!stationName.trim()) {
+      toast({ title: "Station name required", description: "Please enter your station name." });
       return;
     }
     setSubmitting(true);
+    // Use station name as ID if no specific ID provided (simplified for managers)
+    const stationIdentifier = stationId.trim() || stationName.trim().toLowerCase().replace(/\s+/g, '-');
     const { error } = await (supabase as any).from('station_reports').insert({
-      station_id: stationId.trim(),
+      station_id: stationIdentifier,
       station_name: stationName.trim(),
       status,
       note: note.trim() || null,
@@ -70,7 +72,7 @@ export default function Manager() {
     if (error) {
       toast({ title: "Update failed", description: error.message });
     } else {
-      toast({ title: "Status reported", description: "Your update was submitted." });
+      toast({ title: "✅ Status updated!", description: "Your station update was submitted successfully." });
       setNote("");
     }
   };
@@ -103,38 +105,71 @@ export default function Manager() {
         ) : (
           <Card>
             <CardHeader>
-              <CardTitle>Update Station Status</CardTitle>
+              <CardTitle>Quick Station Update</CardTitle>
             </CardHeader>
             <CardContent>
-              <form onSubmit={onSubmitReport} className="grid gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="stationName">Station Name</Label>
-                  <Input id="stationName" value={stationName} onChange={(e) => setStationName(e.target.value)} required />
+              <form onSubmit={onSubmitReport} className="grid gap-6">
+                <div className="grid gap-3">
+                  <Label htmlFor="stationName" className="text-base font-semibold">Your Station Name</Label>
+                  <Input 
+                    id="stationName" 
+                    value={stationName} 
+                    onChange={(e) => setStationName(e.target.value)} 
+                    placeholder="Enter your station name"
+                    className="text-lg p-4"
+                    required 
+                  />
                 </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="stationId">Station ID</Label>
-                  <Input id="stationId" value={stationId} onChange={(e) => setStationId(e.target.value)} placeholder="e.g. way-123456 or your internal ID" required />
+                
+                <div className="grid gap-3">
+                  <Label className="text-base font-semibold">Current Fuel Status</Label>
+                  <div className="grid grid-cols-3 gap-3">
+                    <Button
+                      type="button"
+                      variant={status === "available" ? "default" : "outline"}
+                      className="h-16 text-lg"
+                      onClick={() => setStatus("available")}
+                    >
+                      ✅ Available
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={status === "low" ? "default" : "outline"}
+                      className="h-16 text-lg"
+                      onClick={() => setStatus("low")}
+                    >
+                      ⚠️ Low
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={status === "out" ? "default" : "outline"}
+                      className="h-16 text-lg"
+                      onClick={() => setStatus("out")}
+                    >
+                      ❌ Out
+                    </Button>
+                  </div>
                 </div>
-                <div className="grid gap-2">
-                  <Label>Status</Label>
-                  <Select value={status} onValueChange={(v) => setStatus(v as FuelStatus)}>
-                    <SelectTrigger aria-label="Select fuel status">
-                      <SelectValue placeholder="Select status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="available">Fuel Available</SelectItem>
-                      <SelectItem value="low">Low Supply</SelectItem>
-                      <SelectItem value="out">Out of Fuel</SelectItem>
-                    </SelectContent>
-                  </Select>
+
+                <div className="grid gap-3">
+                  <Label htmlFor="note" className="text-base font-semibold">Quick Note (optional)</Label>
+                  <Textarea 
+                    id="note" 
+                    value={note} 
+                    onChange={(e) => setNote(e.target.value)} 
+                    placeholder="e.g. Long queue, Open until 10pm, Cash only"
+                    className="text-lg"
+                    rows={2}
+                  />
                 </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="note">Note (optional)</Label>
-                  <Textarea id="note" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Additional info for drivers (hours, queues, etc.)" />
-                </div>
-                <div className="flex gap-2 justify-between">
-                  <Button type="button" variant="outline" onClick={onLogout}>Sign out</Button>
-                  <Button type="submit" disabled={submitting}>{submitting ? 'Submitting...' : 'Submit update'}</Button>
+
+                <div className="flex gap-3 pt-4">
+                  <Button type="button" variant="ghost" onClick={onLogout} className="flex-1">
+                    Sign Out
+                  </Button>
+                  <Button type="submit" disabled={submitting} className="flex-2 h-12 text-lg">
+                    {submitting ? 'Updating...' : 'Update Status'}
+                  </Button>
                 </div>
               </form>
             </CardContent>
