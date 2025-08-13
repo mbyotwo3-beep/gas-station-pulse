@@ -11,10 +11,8 @@ export default function ManagerLogin() {
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    toast({
-      title: 'Login placeholder',
-      description: 'Authentication will be connected to Supabase in the next step.',
-    });
+    // Redirect to manager page for authentication
+    window.location.href = '/manager';
   };
 
   return (
