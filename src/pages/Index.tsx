@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import ThemeToggle from '@/components/ThemeToggle';
 import LeafletMap from '@/components/map/LeafletMap';
 import StationCard, { Station } from '@/components/StationCard';
@@ -9,9 +11,10 @@ import { Button } from '@/components/ui/button';
 import BottomBar from '@/components/mobile/BottomBar';
 import { toast } from '@/hooks/use-toast';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { Fuel, PlugZap, LocateFixed, List } from 'lucide-react';
+import { Fuel, PlugZap, LocateFixed, List, User, LogOut } from 'lucide-react';
 
 const Index = () => {
+  const { user, signOut } = useAuth();
   const [selected, setSelected] = useState<Station | null>(null);
   const [focusPoint, setFocusPoint] = useState<{ lat: number; lng: number; label?: string } | null>(null);
   const [stations, setStations] = useState<Station[]>([]);
@@ -37,13 +40,13 @@ const Index = () => {
     setFocusPoint({ lat: -15.3875, lng: 28.3228, label: 'Lusaka, Zambia' });
   }, []);
 
-  // Fetch nearby fuel and EV charging stations from OpenStreetMap when location changes
+  // Fetch nearby fuel and EV charging stations from OpenStreetMap and merge with real-time reports
   useEffect(() => {
     if (!focusPoint) return;
     setSelected(null);
     const controller = new AbortController();
 
-    const fetchStations = async () => {
+    const fetchStationsWithReports = async () => {
       const radius = 8000; // meters
       const wantFuel = typeFilters.includes('fuel');
       const wantEV = typeFilters.includes('ev');
@@ -51,24 +54,47 @@ const Index = () => {
         setStations([]);
         return;
       }
-      const parts: string[] = [];
-      const base = (amenity: string) => `
-  node["amenity"="${amenity}"](around:${radius},${focusPoint.lat},${focusPoint.lng});
-  way["amenity"="${amenity}"](around:${radius},${focusPoint.lat},${focusPoint.lng});`;
-      if (wantFuel) parts.push(base('fuel'));
-      if (wantEV) parts.push(base('charging_station'));
-      const query = `[out:json][timeout:25];\n(\n${parts.join('\n')}\n);\nout center tags;`;
 
       try {
-        const res = await fetch('https://overpass-api.de/api/interpreter', {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
-          body: query,
-          signal: controller.signal,
-        });
-        if (!res.ok) throw new Error('Overpass error');
-        const data = await res.json();
-        const elements = Array.isArray(data?.elements) ? data.elements : [];
+        // Fetch from OpenStreetMap
+        const parts: string[] = [];
+        const base = (amenity: string) => `
+  node["amenity"="${amenity}"](around:${radius},${focusPoint.lat},${focusPoint.lng});
+  way["amenity"="${amenity}"](around:${radius},${focusPoint.lat},${focusPoint.lng});`;
+        if (wantFuel) parts.push(base('fuel'));
+        if (wantEV) parts.push(base('charging_station'));
+        const query = `[out:json][timeout:25];\n(\n${parts.join('\n')}\n);\nout center tags;`;
+
+        const [osmResponse, reportsResponse] = await Promise.all([
+          fetch('https://overpass-api.de/api/interpreter', {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
+            body: query,
+            signal: controller.signal,
+          }),
+          // Fetch recent station reports (last 24 hours)
+          supabase
+            .from('station_reports')
+            .select('station_id, station_name, status, note, created_at')
+            .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+            .order('created_at', { ascending: false })
+        ]);
+
+        if (!osmResponse.ok) throw new Error('Overpass error');
+        
+        const osmData = await osmResponse.json();
+        const elements = Array.isArray(osmData?.elements) ? osmData.elements : [];
+        
+        // Create a map of latest reports by station
+        const latestReports = new Map();
+        if (reportsResponse.data) {
+          reportsResponse.data.forEach(report => {
+            if (!latestReports.has(report.station_id)) {
+              latestReports.set(report.station_id, report);
+            }
+          });
+        }
+
         const mapped: Station[] = elements
           .map((el: any) => {
             const lat = el.lat ?? el.center?.lat;
@@ -77,9 +103,12 @@ const Index = () => {
 
             const amenity = el.tags?.amenity;
             const isEV = amenity === 'charging_station';
-            const name =
-              el.tags?.name ||
-              (isEV ? 'Charging Station' : 'Fuel Station');
+            const stationId = `${el.type}-${el.id}`;
+            
+            // Check for manager reports for this station
+            const report = latestReports.get(stationId) || latestReports.get(el.tags?.name);
+            
+            const name = report?.station_name || el.tags?.name || (isEV ? 'Charging Station' : 'Fuel Station');
             const label = isEV ? `${name} (EV)` : name;
 
             const street = el.tags?.['addr:street'] ?? '';
@@ -88,15 +117,18 @@ const Index = () => {
             const addr = [street && `${street} ${housenumber}`.trim(), city].filter(Boolean).join(', ');
 
             return {
-              id: `${el.type}-${el.id}`,
+              id: stationId,
               name: label,
               address: addr || (isEV ? 'EV charging location' : 'Fuel station'),
               lat,
               lng,
-              status: 'available' as const,
-            } satisfies Station;
+              status: report?.status || 'available',
+              note: report?.note || undefined,
+              lastUpdated: report?.created_at || undefined,
+            } satisfies Station & { note?: string; lastUpdated?: string };
           })
           .filter(Boolean);
+          
         setStations(mapped);
       } catch (e) {
         if ((e as any)?.name !== 'AbortError') {
@@ -105,9 +137,48 @@ const Index = () => {
       }
     };
 
-    fetchStations();
+    fetchStationsWithReports();
     return () => controller.abort();
   }, [focusPoint, typeFilters]);
+
+  // Listen for real-time station report updates
+  useEffect(() => {
+    const channel = supabase
+      .channel('station-reports-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'station_reports'
+        },
+        (payload) => {
+          const newReport = payload.new as any;
+          // Update existing stations with new status
+          setStations(prev => prev.map(station => {
+            if (station.id === newReport.station_id || station.name.includes(newReport.station_name)) {
+              return {
+                ...station,
+                status: newReport.status,
+                note: newReport.note,
+                lastUpdated: newReport.created_at
+              };
+            }
+            return station;
+          }));
+          
+          toast({ 
+            title: "Station updated", 
+            description: `${newReport.station_name} status changed to ${newReport.status}` 
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   const handleUseMyLocation = () => {
     if (!navigator.geolocation) {
@@ -135,6 +206,21 @@ const Index = () => {
           <Link to="/" className="font-semibold tracking-tight text-lg">FuelFinder</Link>
           <h1 className="sr-only md:hidden">FuelFinder – Real-Time Fuel Availability</h1>
           <div className="hidden md:flex items-center gap-2">
+            {user ? (
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" size="sm" onClick={signOut}>
+                  <LogOut className="h-4 w-4 mr-1" />
+                  Sign Out
+                </Button>
+              </div>
+            ) : (
+              <Button asChild variant="ghost" size="sm">
+                <Link to="/auth">
+                  <User className="h-4 w-4 mr-1" />
+                  Sign In
+                </Link>
+              </Button>
+            )}
             <ThemeToggle />
           </div>
         </div>
@@ -146,8 +232,21 @@ const Index = () => {
             <h1 className="text-3xl md:text-5xl font-bold mb-3">FuelFinder – Real-Time Fuel Availability</h1>
             <p className="text-muted-foreground max-w-2xl">Find nearby stations with up-to-the-minute fuel status. Station managers update instantly so you never waste a trip.</p>
             <div className="mt-6 flex gap-3">
-              <Button variant="hero">Open Map</Button>
-              <Button variant="outline">How it works</Button>
+              {user ? (
+                <Button variant="hero" onClick={() => {
+                  const searchInput = document.querySelector('input[placeholder="Search for places..."]') as HTMLInputElement;
+                  searchInput?.focus();
+                }}>
+                  Find Stations
+                </Button>
+              ) : (
+                <Button asChild variant="hero">
+                  <Link to="/auth">Sign In to Save Favorites</Link>
+                </Button>
+              )}
+              <Button asChild variant="outline">
+                <Link to="/manager">Manager Login</Link>
+              </Button>
             </div>
           </div>
         </section>

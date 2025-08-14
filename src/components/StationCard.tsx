@@ -3,7 +3,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Star } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { Star, Clock } from "lucide-react";
 
 export type FuelStatus = "available" | "low" | "out";
 
@@ -14,6 +15,8 @@ export interface Station {
   lat: number;
   lng: number;
   status: FuelStatus;
+  note?: string;
+  lastUpdated?: string;
 }
 
 function badgeVariant(status: FuelStatus) {
@@ -55,6 +58,7 @@ function formatDistance(km: number) {
 }
 
 export const StationCard = ({ station, userLocation, isFavorite, onToggleFavorite }: { station: Station | null; userLocation?: { lat: number; lng: number }; isFavorite?: boolean; onToggleFavorite?: (id: string) => void }) => {
+  const { user } = useAuth();
   if (!station) {
     return (
       <Card className="surface-gradient">
@@ -79,27 +83,41 @@ export const StationCard = ({ station, userLocation, isFavorite, onToggleFavorit
   const handleToggleFavorite = () => onToggleFavorite?.(station.id);
 
   const reportStatus = async (newStatus: FuelStatus) => {
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData?.user) {
-      toast({ title: "Please sign in", description: "You need to log in to report station status." });
+    if (!user) {
+      toast({ 
+        title: "Sign in required", 
+        description: "Please sign in to report station status.",
+        action: <Button variant="outline" size="sm" onClick={() => window.location.href = '/auth'}>Sign In</Button>
+      });
       return;
     }
+    
     const { error } = await (supabase as any).from('station_reports').insert({
       station_id: station.id,
       station_name: station.name,
       status: newStatus,
     } as any);
+    
     if (error) {
       toast({ title: "Update failed", description: error.message });
     } else {
-      toast({ title: "Status reported", description: `${statusLabel(newStatus)} submitted.` });
+      toast({ title: "Status reported", description: `${statusLabel(newStatus)} submitted successfully.` });
     }
   };
   return (
     <Card className="surface-gradient">
       <CardHeader>
         <CardTitle>{station.name}</CardTitle>
-        <CardDescription>{station.address}</CardDescription>
+        <CardDescription className="space-y-1">
+          <div>{station.address}</div>
+          {station.note && <div className="text-sm italic">"{station.note}"</div>}
+          {station.lastUpdated && (
+            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              <Clock className="h-3 w-3" />
+              Updated {new Date(station.lastUpdated).toLocaleString()}
+            </div>
+          )}
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="flex flex-wrap items-center gap-3">
@@ -122,11 +140,13 @@ export const StationCard = ({ station, userLocation, isFavorite, onToggleFavorit
             </Button>
           </div>
         </div>
-        <div className="mt-4 flex flex-wrap gap-2">
-          <Button size="sm" variant="outline" onClick={() => reportStatus("available")}>Mark Available</Button>
-          <Button size="sm" variant="outline" onClick={() => reportStatus("low")}>Mark Low</Button>
-          <Button size="sm" variant="destructive" onClick={() => reportStatus("out")}>Mark Out</Button>
-        </div>
+        {user && (
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Button size="sm" variant="outline" onClick={() => reportStatus("available")}>Mark Available</Button>
+            <Button size="sm" variant="outline" onClick={() => reportStatus("low")}>Mark Low</Button>
+            <Button size="sm" variant="destructive" onClick={() => reportStatus("out")}>Mark Out</Button>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
