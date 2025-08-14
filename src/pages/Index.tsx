@@ -1,39 +1,146 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNotifications } from '@/hooks/useNotifications';
+import { useTouchGestures } from '@/hooks/useTouchGestures';
 import ThemeToggle from '@/components/ThemeToggle';
 import LeafletMap from '@/components/map/LeafletMap';
-import StationCard, { Station } from '@/components/StationCard';
+import StationCard, { Station, FuelStatus } from '@/components/StationCard';
 import StationList from '@/components/StationList';
-import LocationSearch from '@/components/map/LocationSearch';
+import EnhancedLocationSearch from '@/components/map/EnhancedLocationSearch';
+import AdvancedFilters from '@/components/AdvancedFilters';
 import { Button } from '@/components/ui/button';
 import BottomBar from '@/components/mobile/BottomBar';
 import { toast } from '@/hooks/use-toast';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { Fuel, PlugZap, LocateFixed, List, User, LogOut } from 'lucide-react';
+import { Fuel, PlugZap, LocateFixed, List, User, LogOut, Filter, Bell, Settings } from 'lucide-react';
 
 const Index = () => {
   const { user, signOut } = useAuth();
+  const { requestNotificationPermission } = useNotifications();
   const [selected, setSelected] = useState<Station | null>(null);
   const [focusPoint, setFocusPoint] = useState<{ lat: number; lng: number; label?: string } | null>(null);
   const [stations, setStations] = useState<Station[]>([]);
+  const [filteredStations, setFilteredStations] = useState<Station[]>([]);
   const [typeFilters, setTypeFilters] = useState<string[]>(['fuel', 'ev']);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [listOpen, setListOpen] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+  const [filterOptions, setFilterOptions] = useState<{
+    status: FuelStatus[];
+    maxDistance: number;
+    priceRange: [number, number];
+    amenities: string[];
+    brands: string[];
+    operatingHours: 'any' | '24h' | 'open_now';
+    sortBy: 'distance' | 'price' | 'rating' | 'updated';
+  }>({
+    status: ['available', 'low'],
+    maxDistance: 10,
+    priceRange: [0, 200],
+    amenities: [],
+    brands: [],
+    operatingHours: 'any',
+    sortBy: 'distance'
+  });
+  const mapContainerRef = useRef<HTMLDivElement>(null);
   const [favorites, setFavorites] = useState<Set<string>>(() => {
     try { return new Set(JSON.parse(localStorage.getItem('ff_favorites') || '[]')); } catch { return new Set(); }
+  });
+
+  // Touch gestures for mobile
+  useTouchGestures(mapContainerRef, {
+    onSwipeUp: () => setListOpen(true),
+    onSwipeDown: () => setListOpen(false),
+    onSwipeLeft: () => {
+      if (selected) {
+        const currentIndex = stations.findIndex(s => s.id === selected.id);
+        const nextStation = stations[currentIndex + 1];
+        if (nextStation) {
+          setSelected(nextStation);
+          setFocusPoint({ lat: nextStation.lat, lng: nextStation.lng, label: nextStation.name });
+        }
+      }
+    },
+    onSwipeRight: () => {
+      if (selected) {
+        const currentIndex = stations.findIndex(s => s.id === selected.id);
+        const prevStation = stations[currentIndex - 1];
+        if (prevStation) {
+          setSelected(prevStation);
+          setFocusPoint({ lat: prevStation.lat, lng: prevStation.lng, label: prevStation.name });
+        }
+      }
+    }
   });
 
   useEffect(() => {
     localStorage.setItem('ff_favorites', JSON.stringify([...favorites]));
   }, [favorites]);
 
+  // Apply filters to stations
+  useEffect(() => {
+    let filtered = [...stations];
+
+    // Filter by status
+    if (filterOptions.status.length > 0) {
+      filtered = filtered.filter(station => filterOptions.status.includes(station.status));
+    }
+
+    // Filter by distance
+    if (userLocation && filterOptions.maxDistance > 0) {
+      filtered = filtered.filter(station => {
+        const distance = haversineKm(userLocation, { lat: station.lat, lng: station.lng });
+        return distance <= filterOptions.maxDistance;
+      });
+    }
+
+    // Sort stations
+    if (userLocation && filterOptions.sortBy === 'distance') {
+      filtered.sort((a, b) => {
+        const distA = haversineKm(userLocation, { lat: a.lat, lng: a.lng });
+        const distB = haversineKm(userLocation, { lat: b.lat, lng: b.lng });
+        return distA - distB;
+      });
+    } else if (filterOptions.sortBy === 'updated') {
+      filtered.sort((a, b) => {
+        const timeA = (a as any).lastUpdated ? new Date((a as any).lastUpdated).getTime() : 0;
+        const timeB = (b as any).lastUpdated ? new Date((b as any).lastUpdated).getTime() : 0;
+        return timeB - timeA;
+      });
+    }
+
+    setFilteredStations(filtered);
+  }, [stations, filterOptions, userLocation]);
+
+  const haversineKm = (a: { lat: number; lng: number }, b: { lat: number; lng: number }) => {
+    const R = 6371;
+    const dLat = ((b.lat - a.lat) * Math.PI) / 180;
+    const dLon = ((b.lng - a.lng) * Math.PI) / 180;
+    const lat1 = (a.lat * Math.PI) / 180;
+    const lat2 = (b.lat * Math.PI) / 180;
+    const sinDLat = Math.sin(dLat / 2);
+    const sinDLon = Math.sin(dLon / 2);
+    const c = 2 * Math.asin(Math.sqrt(sinDLat * sinDLat + Math.cos(lat1) * Math.cos(lat2) * sinDLon * sinDLon));
+    return R * c;
+  };
+
   const toggleFavorite = (id: string) => setFavorites((prev) => {
     const next = new Set(prev);
     next.has(id) ? next.delete(id) : next.add(id);
     return next;
   });
+
+  // Enable notifications for signed-in users
+  useEffect(() => {
+    if (user) {
+      const timer = setTimeout(() => {
+        requestNotificationPermission();
+      }, 2000); // Show after 2 seconds to not be intrusive
+      return () => clearTimeout(timer);
+    }
+  }, [user, requestNotificationPermission]);
 
   // Set initial location to Lusaka, Zambia after mount so the map centers correctly
   useEffect(() => {
@@ -251,17 +358,25 @@ const Index = () => {
           </div>
         </section>
 
-        <section className="container p-0 md:py-10 relative">
+        <section className="container p-0 md:py-10 relative" ref={mapContainerRef}>
           <div className="absolute inset-x-4 top-4 md:top-6 z-[1000]">
             <div className="space-y-2">
-              <LocationSearch onSelectLocation={(loc) => setFocusPoint(loc)} />
-              <div className="flex gap-2">
+              <EnhancedLocationSearch onSelectLocation={(loc) => setFocusPoint(loc)} />
+              <div className="flex gap-2 flex-wrap">
                 <Button size="sm" variant="secondary" onClick={handleUseMyLocation} aria-label="Use my current location">
                   <LocateFixed className="h-4 w-4 mr-1" /> Use my location
                 </Button>
                 <Button size="sm" variant="secondary" onClick={() => setListOpen((v) => !v)} aria-label="Toggle stations list">
                   <List className="h-4 w-4 mr-1" /> {listOpen ? 'Hide list' : 'Show list'}
                 </Button>
+                <Button size="sm" variant="secondary" onClick={() => setShowFilters(true)} aria-label="Open filters">
+                  <Filter className="h-4 w-4 mr-1" /> Filters
+                </Button>
+                {user && (
+                  <Button size="sm" variant="secondary" onClick={requestNotificationPermission} aria-label="Enable notifications">
+                    <Bell className="h-4 w-4 mr-1" /> Alerts
+                  </Button>
+                )}
               </div>
               <div className="rounded-full bg-background/90 backdrop-blur border shadow-md w-fit px-2 py-1">
                 <ToggleGroup
@@ -280,11 +395,11 @@ const Index = () => {
               </div>
             </div>
           </div>
-          <LeafletMap className="h-[calc(100dvh-120px)] md:h-[60vh]" stations={stations} onSelect={setSelected} focusPoint={focusPoint} />
+          <LeafletMap className="h-[calc(100dvh-120px)] md:h-[60vh]" stations={filteredStations} onSelect={setSelected} focusPoint={focusPoint} />
           {listOpen && (
             <div className="mt-4">
               <StationList
-                stations={stations}
+                stations={filteredStations}
                 origin={userLocation ?? (focusPoint ? { lat: focusPoint.lat, lng: focusPoint.lng } : undefined)}
                 selectedId={selected?.id ?? null}
                 onSelect={(s) => {
@@ -317,6 +432,24 @@ const Index = () => {
           )}
         </section>
       </main>
+      
+      <AdvancedFilters
+        isOpen={showFilters}
+        onClose={() => setShowFilters(false)}
+        filters={filterOptions}
+        onFiltersChange={(filters) => setFilterOptions(filters)}
+        onApplyFilters={() => {}}
+        onClearFilters={() => setFilterOptions({
+          status: ['available', 'low'] as FuelStatus[],
+          maxDistance: 10,
+          priceRange: [0, 200],
+          amenities: [],
+          brands: [],
+          operatingHours: 'any',
+          sortBy: 'distance'
+        })}
+      />
+      
       <BottomBar />
  
       <footer className="border-t">
