@@ -91,7 +91,7 @@ export default function StationList({
                           onToggleFavorite(station.id);
                         }}
                       >
-                        <Star className={"h-4 w-4 " + (isFav ? 'text-yellow-500' : 'text-muted-foreground')} fill={isFav ? "currentColor" : "none"} />
+                        <Star className={"h-4 w-4 " + (isFav ? 'text-warning' : 'text-muted-foreground')} fill={isFav ? "currentColor" : "none"} />
                       </Button>
                     </div>
                   </div>
