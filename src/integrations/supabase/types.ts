@@ -14,6 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      driver_profiles: {
+        Row: {
+          created_at: string
+          current_location: Json | null
+          id: string
+          is_active: boolean
+          license_plate: string | null
+          rating: number | null
+          total_rides: number | null
+          updated_at: string
+          user_id: string
+          vehicle_make: string | null
+          vehicle_model: string | null
+          vehicle_type: string
+        }
+        Insert: {
+          created_at?: string
+          current_location?: Json | null
+          id?: string
+          is_active?: boolean
+          license_plate?: string | null
+          rating?: number | null
+          total_rides?: number | null
+          updated_at?: string
+          user_id: string
+          vehicle_make?: string | null
+          vehicle_model?: string | null
+          vehicle_type: string
+        }
+        Update: {
+          created_at?: string
+          current_location?: Json | null
+          id?: string
+          is_active?: boolean
+          license_plate?: string | null
+          rating?: number | null
+          total_rides?: number | null
+          updated_at?: string
+          user_id?: string
+          vehicle_make?: string | null
+          vehicle_model?: string | null
+          vehicle_type?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -40,6 +85,96 @@ export type Database = {
           email?: string | null
           id?: string
           preferences?: Json | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ride_requests: {
+        Row: {
+          created_at: string
+          destination_location: Json
+          expires_at: string
+          id: string
+          max_fare: number | null
+          notes: string | null
+          passenger_count: number
+          passenger_id: string
+          pickup_location: Json
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          destination_location: Json
+          expires_at?: string
+          id?: string
+          max_fare?: number | null
+          notes?: string | null
+          passenger_count?: number
+          passenger_id: string
+          pickup_location: Json
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          destination_location?: Json
+          expires_at?: string
+          id?: string
+          max_fare?: number | null
+          notes?: string | null
+          passenger_count?: number
+          passenger_id?: string
+          pickup_location?: Json
+          status?: string
+        }
+        Relationships: []
+      }
+      rides: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          destination_location: Json
+          driver_id: string | null
+          driver_notes: string | null
+          estimated_distance: number | null
+          estimated_duration: number | null
+          fare_amount: number | null
+          id: string
+          passenger_id: string | null
+          passenger_notes: string | null
+          pickup_location: Json
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          destination_location: Json
+          driver_id?: string | null
+          driver_notes?: string | null
+          estimated_distance?: number | null
+          estimated_duration?: number | null
+          fare_amount?: number | null
+          id?: string
+          passenger_id?: string | null
+          passenger_notes?: string | null
+          pickup_location: Json
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          destination_location?: Json
+          driver_id?: string | null
+          driver_notes?: string | null
+          estimated_distance?: number | null
+          estimated_duration?: number | null
+          fare_amount?: number | null
+          id?: string
+          passenger_id?: string | null
+          passenger_notes?: string | null
+          pickup_location?: Json
+          status?: string
           updated_at?: string
         }
         Relationships: []
