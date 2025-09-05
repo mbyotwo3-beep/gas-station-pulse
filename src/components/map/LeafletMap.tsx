@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import L, { Map as LeafletMapType } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Station } from '@/components/StationCard';
+import { Station } from '@/hooks/useStations';
 import { cn } from '@/lib/utils';
 export interface LeafletMapProps {
   stations: Station[];

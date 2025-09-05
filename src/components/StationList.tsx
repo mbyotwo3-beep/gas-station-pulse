@@ -2,7 +2,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import type { Station } from "@/components/StationCard";
+import type { Station } from "@/hooks/useStations";
 import { Star } from "lucide-react";
 import React, { useMemo } from "react";
 

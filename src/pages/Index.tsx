@@ -9,7 +9,11 @@ import ThemeToggle from "@/components/ThemeToggle";
 import DriverDashboard from "@/components/rideshare/DriverDashboard";
 import PassengerDashboard from "@/components/rideshare/PassengerDashboard";
 import BottomBar from "@/components/mobile/BottomBar";
+import ProfileDialog from "@/components/ProfileDialog";
 import { useAuth } from "@/contexts/AuthContext";
+import { useStations } from "@/hooks/useStations";
+import { useProfile } from "@/hooks/useProfile";
+import { useGeolocation } from "@/hooks/useGeolocation";
 import { Button } from "@/components/ui/button";
 import { 
   Fuel, 
@@ -22,61 +26,34 @@ import {
   Navigation,
   Star,
   Filter,
-  Plus
+  Plus,
+  LocateFixed
 } from "lucide-react";
-import type { Station, FuelStatus } from "@/components/StationCard";
+import type { Station } from "@/hooks/useStations";
 
 export default function Index() {
   const { user, signOut } = useAuth();
+  const { stations, loading: stationsLoading } = useStations();
+  const { profile, toggleFavoriteStation, isFavorite } = useProfile();
+  const { position, requestLocation, getLocationOrDefault } = useGeolocation();
   
   const [mode, setMode] = useState<'fuel' | 'rideshare'>('fuel');
   const [rideShareMode, setRideShareMode] = useState<'passenger' | 'driver'>('passenger');
-  const [stations, setStations] = useState<Station[]>([]);
   const [selectedStation, setSelectedStation] = useState<Station | null>(null);
   const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number; label?: string } | null>(null);
-  const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [showSearch, setShowSearch] = useState(false);
   const [activeTab, setActiveTab] = useState<'map' | 'list'>('map');
 
-  const filteredStations = stations.filter(station => {
-    return true; // Simplified for mobile experience
-  });
-
+  // Initialize with default location (Lusaka)
   useEffect(() => {
-    if (mode === 'fuel') {
-      loadMockStations();
+    if (!selectedLocation) {
+      setSelectedLocation(getLocationOrDefault());
     }
-  }, [mode]);
+  }, [getLocationOrDefault, selectedLocation]);
 
-  const loadMockStations = () => {
-    const mockStations: Station[] = [
-      {
-        id: "1",
-        name: "Shell Station",
-        address: "Downtown Plaza",
-        lat: 40.7128,
-        lng: -74.0060,
-        status: "available",
-      },
-      {
-        id: "2", 
-        name: "BP Express",
-        address: "Main Street",
-        lat: 40.7589,
-        lng: -73.9851,
-        status: "low",
-      },
-      {
-        id: "3",
-        name: "Total Energy",
-        address: "City Center",  
-        lat: 40.7489,
-        lng: -73.9857,
-        status: "available",
-      }
-    ];
-    setStations(mockStations);
-  };
+  const filteredStations = stations.filter(station => {
+    return true; // Simplified for mobile experience - could add filters later
+  });
 
   const handleStationSelect = (station: Station) => {
     setSelectedStation(station);
@@ -88,15 +65,20 @@ export default function Index() {
     setShowSearch(false);
   };
 
-  const toggleFavorite = (stationId: string) => {
-    const newFavorites = new Set(favorites);
-    if (newFavorites.has(stationId)) {
-      newFavorites.delete(stationId);
-    } else {
-      newFavorites.add(stationId);
-    }
-    setFavorites(newFavorites);
+  const handleGetMyLocation = () => {
+    requestLocation();
   };
+
+  // Update selected location when geolocation changes
+  useEffect(() => {
+    if (position) {
+      setSelectedLocation({
+        lat: position.coords.latitude,
+        lng: position.coords.longitude,
+        label: 'Your Location'
+      });
+    }
+  }, [position]);
 
   return (
     <div className="min-h-screen bg-background relative overflow-hidden">
@@ -128,20 +110,22 @@ export default function Index() {
               size="sm"
               variant="ghost"
               className="w-10 h-10 rounded-xl"
+              onClick={handleGetMyLocation}
+              title="Get my location"
+            >
+              <LocateFixed className="h-4 w-4" />
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="w-10 h-10 rounded-xl"
               onClick={() => setShowSearch(!showSearch)}
             >
               <Search className="h-4 w-4" />
             </Button>
             <ThemeToggle />
             {user ? (
-              <Button
-                size="sm"
-                variant="ghost"
-                className="w-10 h-10 rounded-xl"
-                onClick={signOut}
-              >
-                <User className="h-4 w-4" />
-              </Button>
+              <ProfileDialog />
             ) : (
               <Button
                 size="sm"
@@ -205,101 +189,112 @@ export default function Index() {
       <main className="flex-1 relative">
         {mode === 'fuel' ? (
           <>
-            {/* Map/List Toggle */}
-            <div className="absolute top-4 left-4 right-4 z-30 flex bg-background/95 backdrop-blur-md rounded-2xl p-1 shadow-md border border-border/30">
-              <button
-                onClick={() => setActiveTab('map')}
-                className={`mobile-tab ${activeTab === 'map' ? 'mobile-tab-active' : 'mobile-tab-inactive'}`}
-              >
-                <MapPin className="h-4 w-4 mr-2" />
-                Map
-              </button>
-              <button
-                onClick={() => setActiveTab('list')}
-                className={`mobile-tab ${activeTab === 'list' ? 'mobile-tab-active' : 'mobile-tab-inactive'}`}
-              >
-                <Star className="h-4 w-4 mr-2" />
-                List
-              </button>
-            </div>
-
-            {/* Map View */}
-            {activeTab === 'map' && (
-              <div className="h-[calc(100vh-200px)]">
-                <LeafletMap
-                  stations={filteredStations}
-                  onSelect={handleStationSelect}
-                  focusPoint={selectedLocation}
-                  className="h-full w-full"
-                />
-              </div>
-            )}
-
-            {/* List View */}
-            {activeTab === 'list' && (
-              <div className="p-4 pt-20 h-[calc(100vh-200px)] overflow-y-auto">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-lg font-semibold">Nearby Stations</h2>
-                    <Button size="sm" variant="outline" className="h-9 px-3 rounded-xl">
-                      <Filter className="h-4 w-4 mr-2" />
-                      Filter
-                    </Button>
-                  </div>
-                  <StationList
-                    stations={filteredStations}
-                    origin={selectedLocation}
-                    selectedId={selectedStation?.id}
-                    onSelect={handleStationSelect}
-                    favorites={favorites}
-                    onToggleFavorite={toggleFavorite}
-                  />
+            {stationsLoading ? (
+              <div className="flex items-center justify-center h-[calc(100vh-200px)]">
+                <div className="text-center space-y-4">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+                  <p className="text-muted-foreground">Loading stations...</p>
                 </div>
               </div>
-            )}
+            ) : (
+              <>
+                {/* Map/List Toggle */}
+                <div className="absolute top-4 left-4 right-4 z-30 flex bg-background/95 backdrop-blur-md rounded-2xl p-1 shadow-md border border-border/30">
+                  <button
+                    onClick={() => setActiveTab('map')}
+                    className={`mobile-tab ${activeTab === 'map' ? 'mobile-tab-active' : 'mobile-tab-inactive'}`}
+                  >
+                    <MapPin className="h-4 w-4 mr-2" />
+                    Map
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('list')}
+                    className={`mobile-tab ${activeTab === 'list' ? 'mobile-tab-active' : 'mobile-tab-inactive'}`}
+                  >
+                    <Star className="h-4 w-4 mr-2" />
+                    List
+                  </button>
+                </div>
 
-            {/* Quick Stats */}
-            <div className="absolute bottom-4 left-4 right-4 z-30">
-              <div className="bg-background/95 backdrop-blur-md rounded-2xl p-4 shadow-lg border border-border/30">
-                <div className="grid grid-cols-3 gap-4 text-center">
-                  <div>
-                    <div className="text-lg font-semibold text-success">{filteredStations.filter(s => s.status === 'available').length}</div>
-                    <div className="text-xs text-muted-foreground">Available</div>
+                {/* Map View */}
+                {activeTab === 'map' && (
+                  <div className="h-[calc(100vh-200px)]">
+                    <LeafletMap
+                      stations={filteredStations}
+                      onSelect={handleStationSelect}
+                      focusPoint={selectedLocation}
+                      className="h-full w-full"
+                    />
                   </div>
-                  <div>
-                    <div className="text-lg font-semibold text-warning">{filteredStations.filter(s => s.status === 'low').length}</div>
-                    <div className="text-xs text-muted-foreground">Low Stock</div>
+                )}
+
+                {/* List View */}
+                {activeTab === 'list' && (
+                  <div className="p-4 pt-20 h-[calc(100vh-200px)] overflow-y-auto">
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-lg font-semibold">Nearby Stations</h2>
+                        <Button size="sm" variant="outline" className="h-9 px-3 rounded-xl">
+                          <Filter className="h-4 w-4 mr-2" />
+                          Filter
+                        </Button>
+                      </div>
+                      <StationList
+                        stations={filteredStations}
+                        origin={selectedLocation}
+                        selectedId={selectedStation?.id}
+                        onSelect={handleStationSelect}
+                        favorites={new Set(profile?.preferences?.favorite_stations || [])}
+                        onToggleFavorite={toggleFavoriteStation}
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <div className="text-lg font-semibold text-destructive">{filteredStations.filter(s => s.status === 'out').length}</div>
-                    <div className="text-xs text-muted-foreground">Out of Stock</div>
+                )}
+
+                {/* Quick Stats */}
+                <div className="absolute bottom-4 left-4 right-4 z-30">
+                  <div className="bg-background/95 backdrop-blur-md rounded-2xl p-4 shadow-lg border border-border/30">
+                    <div className="grid grid-cols-3 gap-4 text-center">
+                      <div>
+                        <div className="text-lg font-semibold text-success">{filteredStations.filter(s => s.status === 'available').length}</div>
+                        <div className="text-xs text-muted-foreground">Available</div>
+                      </div>
+                      <div>
+                        <div className="text-lg font-semibold text-warning">{filteredStations.filter(s => s.status === 'low').length}</div>
+                        <div className="text-xs text-muted-foreground">Low Stock</div>
+                      </div>
+                      <div>
+                        <div className="text-lg font-semibold text-destructive">{filteredStations.filter(s => s.status === 'out').length}</div>
+                        <div className="text-xs text-muted-foreground">Out of Stock</div>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </div>
+              </>
+            )}
           </>
         ) : (
           <>
             {/* Rideshare Content */}
             {!user ? (
               <div className="flex items-center justify-center h-[calc(100vh-200px)] p-8">
-                <div className="text-center space-y-6">
-                  <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
-                    <Car className="h-12 w-12 text-primary" />
-                  </div>
-                  <div>
-                    <h2 className="text-2xl font-bold mb-2">Join the Community</h2>
-                    <p className="text-muted-foreground mb-6">
-                      Sign in to request rides or become a driver
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => window.location.href = '/auth'}
-                    className="mobile-button w-full max-w-xs mx-auto"
-                  >
-                    Get Started
-                  </button>
-                </div>
+            <div className="text-center space-y-6">
+              <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
+                <Car className="h-12 w-12 text-primary" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold mb-2">Join the Community</h2>
+                <p className="text-muted-foreground mb-6">
+                  Sign in to request rides or become a driver
+                </p>
+              </div>
+              <button
+                onClick={() => window.location.href = '/auth'}
+                className="mobile-button w-full max-w-xs mx-auto"
+              >
+                Get Started
+              </button>
+            </div>
               </div>
             ) : (
               <div className="h-[calc(100vh-200px)]">
