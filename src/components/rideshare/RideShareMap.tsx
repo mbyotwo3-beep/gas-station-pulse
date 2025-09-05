@@ -47,7 +47,7 @@ export default function RideShareMap({
     if (!containerRef.current || mapRef.current) return;
 
     mapRef.current = L.map(containerRef.current, {
-      center: [40.7128, -74.0060], // NYC default
+      center: [-15.3875, 28.3228], // Lusaka, Zambia
       zoom: 12,
       zoomControl: true,
       scrollWheelZoom: true,

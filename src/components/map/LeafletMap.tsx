@@ -25,8 +25,8 @@ export default function LeafletMap({ stations, onSelect, className, focusPoint }
     if (!containerRef.current || mapRef.current) return;
 
     mapRef.current = L.map(containerRef.current, {
-      center: [20, 0],
-      zoom: 2,
+      center: [-15.3875, 28.3228], // Lusaka, Zambia
+      zoom: 12,
       zoomControl: true,
       scrollWheelZoom: false,
     });
