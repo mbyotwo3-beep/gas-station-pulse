@@ -260,10 +260,9 @@ All colors MUST be HSL. Optimized for mobile experiences.
   .shadow-glow { box-shadow: var(--shadow-glow); }
 
   /* Transition utilities */
-  .transition-fast { transition: var(--transition-fast); }
-  .transition-normal { transition: var(--transition-normal); }
-  .transition-slow { transition: var(--transition-slow); }
-  .transition-spring { transition: var(--transition-spring); }
+  .transition-mobile { transition: var(--transition-mobile); }
+  .transition-touch { transition: var(--transition-touch); }
+  .transition-bounce { transition: var(--transition-bounce); }
 
   /* Interactive utilities */
   .hover-lift {
