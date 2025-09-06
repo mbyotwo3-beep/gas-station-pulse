@@ -45,7 +45,6 @@ export default function Index() {
   const [selectedStation, setSelectedStation] = useState<Station | null>(null);
   const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number; label?: string } | null>(null);
   const [showSearch, setShowSearch] = useState(false);
-  const [activeTab, setActiveTab] = useState<'map' | 'list'>('map');
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
     status: ['available', 'low'] as Array<'available' | 'low' | 'out'>,
@@ -57,12 +56,16 @@ export default function Index() {
     sortBy: 'distance' as 'distance' | 'price' | 'rating' | 'updated'
   });
 
-  // Initialize with default location (Lusaka)
+  // Initialize with Lusaka as default location
   useEffect(() => {
     if (!selectedLocation) {
-      setSelectedLocation(getLocationOrDefault());
+      setSelectedLocation({
+        lat: -15.3875,
+        lng: 28.3228,
+        label: 'Lusaka, Zambia'
+      });
     }
-  }, [getLocationOrDefault, selectedLocation]);
+  }, [selectedLocation]);
 
   const filteredStations = stations.filter(station => {
     // Filter by status
@@ -82,7 +85,6 @@ export default function Index() {
 
   const handleStationSelect = (station: Station) => {
     setSelectedStation(station);
-    setActiveTab('map');
   };
 
   const handleLocationSelect = (location: { lat: number; lng: number; label?: string }) => {
@@ -125,7 +127,7 @@ export default function Index() {
                 {mode === 'fuel' ? 'FuelFinder' : 'RideShare'}
               </h1>
               <p className="text-xs text-muted-foreground">
-                {selectedLocation?.label || 'Current Location'}
+                {selectedLocation?.label || 'Lusaka, Zambia'}
               </p>
             </div>
           </div>
@@ -215,71 +217,38 @@ export default function Index() {
         {mode === 'fuel' ? (
           <>
             {stationsLoading ? (
-              <>
-                {/* Map/List Toggle Skeleton */}
-                <div className="absolute top-4 left-4 right-4 z-30 flex bg-background/95 backdrop-blur-md rounded-2xl p-1 shadow-md border border-border/30">
-                  <div className="flex-1 h-10 bg-muted animate-pulse rounded-xl"></div>
-                  <div className="flex-1 h-10 bg-muted/50 animate-pulse rounded-xl ml-1"></div>
-                </div>
-                
-                {activeTab === 'map' ? (
-                  <div className="h-[calc(100vh-200px)]">
-                    <StationMapSkeleton />
-                  </div>
-                ) : (
-                  <div className="p-4 pt-20 h-[calc(100vh-200px)] overflow-y-auto">
-                    <StationListSkeleton />
-                  </div>
-                )}
-              </>
+              <div className="h-[calc(100vh-200px)]">
+                <StationMapSkeleton />
+              </div>
             ) : (
               <>
-                {/* Map/List Toggle */}
-                <div className="absolute top-4 left-4 right-4 z-30 flex bg-background/95 backdrop-blur-md rounded-2xl p-1 shadow-md border border-border/30">
-                  <button
-                    onClick={() => setActiveTab('map')}
-                    className={`mobile-tab ${activeTab === 'map' ? 'mobile-tab-active' : 'mobile-tab-inactive'}`}
-                  >
-                    <MapPin className="h-4 w-4 mr-2" />
-                    Map
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('list')}
-                    className={`mobile-tab ${activeTab === 'list' ? 'mobile-tab-active' : 'mobile-tab-inactive'}`}
-                  >
-                    <Star className="h-4 w-4 mr-2" />
-                    List
-                  </button>
+                {/* Map View - Always Shown */}
+                <div className="h-[calc(100vh-200px)]">
+                  <LeafletMap
+                    stations={filteredStations}
+                    onSelect={handleStationSelect}
+                    focusPoint={selectedLocation}
+                    className="h-full w-full"
+                  />
                 </div>
 
-                {/* Map View */}
-                {activeTab === 'map' && (
-                  <div className="h-[calc(100vh-200px)]">
-                    <LeafletMap
-                      stations={filteredStations}
-                      onSelect={handleStationSelect}
-                      focusPoint={selectedLocation}
-                      className="h-full w-full"
-                    />
-                  </div>
-                )}
-
-                {/* List View */}
-                {activeTab === 'list' && (
-                  <div className="p-4 pt-20 h-[calc(100vh-200px)] overflow-y-auto">
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-lg font-semibold">Nearby Stations</h2>
+                {/* Station List Overlay */}
+                <div className="absolute top-4 right-4 z-30 w-80 max-w-[calc(100vw-2rem)]">
+                  <div className="bg-background/95 backdrop-blur-md rounded-2xl shadow-lg border border-border/30 max-h-[60vh] overflow-hidden">
+                    <div className="p-4 border-b border-border/30">
+                      <div className="flex items-center justify-between mb-2">
+                        <h2 className="font-semibold">Nearby Stations</h2>
                         <Button 
                           size="sm" 
-                          variant="outline" 
-                          className="h-9 px-3 rounded-xl"
+                          variant="ghost" 
+                          className="w-8 h-8 rounded-lg"
                           onClick={() => setShowFilters(true)}
                         >
-                          <Filter className="h-4 w-4 mr-2" />
-                          Filter
+                          <Filter className="h-4 w-4" />
                         </Button>
                       </div>
+                    </div>
+                    <div className="overflow-y-auto max-h-[50vh] p-2">
                       <StationList
                         stations={filteredStations}
                         origin={selectedLocation}
@@ -290,9 +259,9 @@ export default function Index() {
                       />
                     </div>
                   </div>
-                )}
+                </div>
 
-                {/* Quick Stats */}
+                {/* Quick Stats Bottom Bar */}
                 <div className="absolute bottom-4 left-4 right-4 z-30">
                   <div className="bg-background/95 backdrop-blur-md rounded-2xl p-4 shadow-lg border border-border/30">
                     <div className="grid grid-cols-3 gap-4 text-center">
