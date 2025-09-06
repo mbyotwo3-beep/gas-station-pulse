@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import L, { Map as LeafletMapType } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Station } from '@/hooks/useStations';
@@ -21,6 +21,7 @@ export default function LeafletMap({ stations, onSelect, className, focusPoint }
   const mapRef = useRef<LeafletMapType | null>(null);
   const stationLayerRef = useRef<L.LayerGroup | null>(null);
   const focusMarkerRef = useRef<L.CircleMarker | null>(null);
+  const [selectedStation, setSelectedStation] = useState<Station | null>(null);
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
 
@@ -50,16 +51,44 @@ useEffect(() => {
   const bounds = L.latLngBounds([]);
 
   stations.forEach((s) => {
+    const isSelected = selectedStation?.id === s.id;
     const marker = L.circleMarker([s.lat, s.lng], {
-      radius: 10,
+      radius: isSelected ? 14 : 10,
       color: colorFor(s.status),
       fillColor: colorFor(s.status),
-      fillOpacity: 0.85,
-      weight: 2,
+      fillOpacity: isSelected ? 1 : 0.85,
+      weight: isSelected ? 3 : 2,
+      className: 'station-marker animate-scale-in',
     }).addTo(stationLayer);
 
-    marker.bindTooltip(`<strong>${s.name}</strong>`, { permanent: false, opacity: 1 });
-    marker.on('click', () => onSelect?.(s));
+    // Enhanced tooltip with status
+    const statusText = s.status === 'available' ? 'Available' : s.status === 'low' ? 'Low Supply' : 'Out of Fuel';
+    marker.bindTooltip(
+      `<div class="text-center">
+        <strong>${s.name}</strong><br>
+        <span class="text-xs" style="color: ${colorFor(s.status)}">${statusText}</span>
+      </div>`, 
+      { permanent: false, opacity: 0.9 }
+    );
+    
+    marker.on('click', () => {
+      setSelectedStation(s);
+      onSelect?.(s);
+    });
+    
+    // Add hover effects
+    marker.on('mouseover', () => {
+      marker.setRadius(12);
+      marker.setStyle({ weight: 3 });
+    });
+    
+    marker.on('mouseout', () => {
+      if (!isSelected) {
+        marker.setRadius(10);
+        marker.setStyle({ weight: 2 });
+      }
+    });
+    
     bounds.extend([s.lat, s.lng]);
   });
 
@@ -95,5 +124,28 @@ useEffect(() => {
   map.setView([focusPoint.lat, focusPoint.lng], Math.max(currentZoom, targetZoom), { animate: true });
 }, [focusPoint]);
 
-  return <div ref={containerRef} className={cn("w-full rounded-lg elevated overflow-hidden", className ?? "h-[60vh]")} />;
+  return (
+    <div className="relative">
+      <div ref={containerRef} className={cn("w-full rounded-2xl overflow-hidden shadow-mobile", className ?? "h-[60vh]")} />
+      
+      {/* Map legend */}
+      <div className="absolute bottom-4 left-4 bg-background/95 backdrop-blur-md rounded-xl p-3 shadow-md border border-border/30">
+        <div className="text-xs font-medium mb-2">Station Status</div>
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-success"></div>
+            <span className="text-xs text-muted-foreground">Available</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-warning"></div>
+            <span className="text-xs text-muted-foreground">Low Supply</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-destructive"></div>
+            <span className="text-xs text-muted-foreground">Out of Fuel</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }

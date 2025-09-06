@@ -3,6 +3,9 @@ import { Toaster } from "@/components/ui/toaster";
 import LeafletMap from "@/components/map/LeafletMap";
 import RideShareMap from "@/components/rideshare/RideShareMap";
 import StationList from "@/components/StationList";
+import StationListSkeleton from "@/components/StationListSkeleton";
+import StationMapSkeleton from "@/components/StationMapSkeleton";
+import AdvancedFilters from "@/components/AdvancedFilters";
 import EnhancedLocationSearch from "@/components/map/EnhancedLocationSearch";
 import ManagerLogin from "@/components/ManagerLogin";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -43,6 +46,16 @@ export default function Index() {
   const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number; label?: string } | null>(null);
   const [showSearch, setShowSearch] = useState(false);
   const [activeTab, setActiveTab] = useState<'map' | 'list'>('map');
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState({
+    status: ['available', 'low'] as Array<'available' | 'low' | 'out'>,
+    maxDistance: 10,
+    priceRange: [0, 200] as [number, number],
+    amenities: [] as string[],
+    brands: [] as string[],
+    operatingHours: 'any' as 'any' | '24h' | 'open_now',
+    sortBy: 'distance' as 'distance' | 'price' | 'rating' | 'updated'
+  });
 
   // Initialize with default location (Lusaka)
   useEffect(() => {
@@ -52,7 +65,19 @@ export default function Index() {
   }, [getLocationOrDefault, selectedLocation]);
 
   const filteredStations = stations.filter(station => {
-    return true; // Simplified for mobile experience - could add filters later
+    // Filter by status
+    if (!filters.status.includes(station.status)) return false;
+    
+    // Filter by distance if location is available
+    if (selectedLocation) {
+      const distance = Math.sqrt(
+        Math.pow(station.lat - selectedLocation.lat, 2) + 
+        Math.pow(station.lng - selectedLocation.lng, 2)
+      ) * 111; // Rough conversion to km
+      if (distance > filters.maxDistance) return false;
+    }
+    
+    return true;
   });
 
   const handleStationSelect = (station: Station) => {
@@ -190,12 +215,23 @@ export default function Index() {
         {mode === 'fuel' ? (
           <>
             {stationsLoading ? (
-              <div className="flex items-center justify-center h-[calc(100vh-200px)]">
-                <div className="text-center space-y-4">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-                  <p className="text-muted-foreground">Loading stations...</p>
+              <>
+                {/* Map/List Toggle Skeleton */}
+                <div className="absolute top-4 left-4 right-4 z-30 flex bg-background/95 backdrop-blur-md rounded-2xl p-1 shadow-md border border-border/30">
+                  <div className="flex-1 h-10 bg-muted animate-pulse rounded-xl"></div>
+                  <div className="flex-1 h-10 bg-muted/50 animate-pulse rounded-xl ml-1"></div>
                 </div>
-              </div>
+                
+                {activeTab === 'map' ? (
+                  <div className="h-[calc(100vh-200px)]">
+                    <StationMapSkeleton />
+                  </div>
+                ) : (
+                  <div className="p-4 pt-20 h-[calc(100vh-200px)] overflow-y-auto">
+                    <StationListSkeleton />
+                  </div>
+                )}
+              </>
             ) : (
               <>
                 {/* Map/List Toggle */}
@@ -234,7 +270,12 @@ export default function Index() {
                     <div className="space-y-3">
                       <div className="flex items-center justify-between mb-4">
                         <h2 className="text-lg font-semibold">Nearby Stations</h2>
-                        <Button size="sm" variant="outline" className="h-9 px-3 rounded-xl">
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="h-9 px-3 rounded-xl"
+                          onClick={() => setShowFilters(true)}
+                        >
                           <Filter className="h-4 w-4 mr-2" />
                           Filter
                         </Button>
@@ -331,6 +372,24 @@ export default function Index() {
           <Plus className="h-6 w-6" />
         </button>
       )}
+
+      {/* Advanced Filters Modal */}
+      <AdvancedFilters
+        isOpen={showFilters}
+        onClose={() => setShowFilters(false)}
+        filters={filters}
+        onFiltersChange={setFilters}
+        onApplyFilters={() => {}}
+        onClearFilters={() => setFilters({
+          status: ['available', 'low'],
+          maxDistance: 10,
+          priceRange: [0, 200],
+          amenities: [],
+          brands: [],
+          operatingHours: 'any',
+          sortBy: 'distance'
+        })}
+      />
 
       {/* Mobile Bottom Navigation */}
       <nav className="mobile-bottom-nav mobile-safe-bottom">

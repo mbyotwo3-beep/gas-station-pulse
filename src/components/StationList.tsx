@@ -3,8 +3,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { Station } from "@/hooks/useStations";
-import { Star } from "lucide-react";
+import { Star, Navigation, Fuel } from "lucide-react";
 import React, { useMemo } from "react";
+import { cn } from "@/lib/utils";
 
 function haversineKm(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
   const R = 6371;
@@ -52,54 +53,87 @@ export default function StationList({
   }, [stations, origin]);
 
   return (
-    <Card className="surface-gradient p-3">
-      <div className="flex items-center justify-between mb-2">
+    <Card className="mobile-card bg-gradient-surface">
+      <div className="flex items-center justify-between mb-4">
         <h2 className="text-base font-semibold">Nearby stations</h2>
-        {origin && <div className="text-xs text-muted-foreground">From your chosen point</div>}
+        {origin && (
+          <div className="text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded-lg">
+            From your chosen point
+          </div>
+        )}
       </div>
-      <ScrollArea className="max-h-[40vh] md:max-h-[50vh] pr-2">
-        <ul className="space-y-2">
-          {items.map(({ station, distanceKm }) => {
+      <ScrollArea className="max-h-[60vh] pr-2">
+        <div className="space-y-3">
+          {items.map(({ station, distanceKm }, index) => {
             const isActive = selectedId === station.id;
             const isFav = favorites.has(station.id);
             return (
-              <li key={station.id}>
+              <div 
+                key={station.id} 
+                className="animate-fade-in"
+                style={{ animationDelay: `${index * 100}ms` }}
+              >
                 <button
                   onClick={() => onSelect(station)}
-                  className={`w-full text-left rounded-md border px-3 py-2 transition-colors ${
-                    isActive ? 'bg-accent border-accent-foreground/20' : 'hover:bg-muted/50'
-                  }`}
+                  className={cn(
+                    "w-full text-left rounded-2xl border p-4 transition-mobile active:scale-98",
+                    "hover-lift shadow-sm bg-card/50 backdrop-blur-sm",
+                    isActive 
+                      ? 'bg-accent/20 border-accent shadow-md' 
+                      : 'hover:bg-muted/30 border-border/30'
+                  )}
                 >
-                  <div className="flex items-center gap-3">
-                    <Badge variant={station.status === 'available' ? 'success' : station.status === 'low' ? 'warning' : 'destructive'}>
-                      {station.status === 'available' ? 'Fuel Available' : station.status === 'low' ? 'Low Supply' : 'Out of Fuel'}
-                    </Badge>
-                    <div>
-                      <div className="font-medium leading-tight">{station.name}</div>
-                      <div className="text-xs text-muted-foreground line-clamp-1">{station.address}</div>
-                    </div>
-                    <div className="ml-auto flex items-center gap-2">
-                      {distanceKm != null && (
-                        <div className="text-xs text-muted-foreground">{formatDistance(distanceKm)} away</div>
-                      )}
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        aria-label={isFav ? 'Remove favorite' : 'Add favorite'}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onToggleFavorite(station.id);
-                        }}
+                  <div className="flex items-start gap-3">
+                    {/* Status indicator */}
+                    <div className="flex flex-col items-center gap-1 min-w-fit">
+                      <div className={cn(
+                        "w-3 h-3 rounded-full animate-pulse",
+                        station.status === 'available' && "bg-success",
+                        station.status === 'low' && "bg-warning", 
+                        station.status === 'out' && "bg-destructive"
+                      )} />
+                      <Badge 
+                        variant={station.status === 'available' ? 'success' : station.status === 'low' ? 'warning' : 'destructive'}
+                        className="text-xs px-2 py-0.5"
                       >
-                        <Star className={"h-4 w-4 " + (isFav ? 'text-warning' : 'text-muted-foreground')} fill={isFav ? "currentColor" : "none"} />
-                      </Button>
+                        <Fuel className="h-2.5 w-2.5 mr-1" />
+                        {station.status === 'available' ? 'Available' : station.status === 'low' ? 'Low' : 'Out'}
+                      </Badge>
                     </div>
+                    
+                    {/* Station info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium leading-tight mb-1">{station.name}</div>
+                      <div className="text-xs text-muted-foreground line-clamp-2">{station.address}</div>
+                      {distanceKm != null && (
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+                          <Navigation className="h-2.5 w-2.5" />
+                          {formatDistance(distanceKm)} away
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Favorite button */}
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="w-8 h-8 rounded-xl min-w-fit"
+                      aria-label={isFav ? 'Remove favorite' : 'Add favorite'}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onToggleFavorite(station.id);
+                      }}
+                    >
+                      <Star className={cn("h-3.5 w-3.5 transition-colors", 
+                        isFav ? 'text-warning fill-current' : 'text-muted-foreground'
+                      )} />
+                    </Button>
                   </div>
                 </button>
-              </li>
+              </div>
             );
           })}
-        </ul>
+        </div>
       </ScrollArea>
     </Card>
   );

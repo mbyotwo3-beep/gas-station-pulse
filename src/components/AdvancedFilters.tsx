@@ -86,9 +86,9 @@ export default function AdvancedFilters({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm">
-      <div className="fixed inset-x-4 top-4 bottom-4 md:inset-x-auto md:left-1/2 md:-translate-x-1/2 md:max-w-2xl">
-        <Card className="h-full overflow-hidden">
+    <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm animate-fade-in">
+      <div className="fixed inset-x-4 top-4 bottom-4 md:inset-x-auto md:left-1/2 md:-translate-x-1/2 md:max-w-2xl animate-slide-up">
+        <Card className="h-full overflow-hidden mobile-card shadow-2xl border-border/50">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
             <CardTitle className="flex items-center gap-2">
               <Filter className="h-5 w-5" />
@@ -242,12 +242,12 @@ export default function AdvancedFilters({
           </CardContent>
 
           {/* Fixed bottom buttons */}
-          <div className="absolute bottom-0 left-0 right-0 p-6 bg-background border-t">
+          <div className="absolute bottom-0 left-0 right-0 p-6 bg-background/95 backdrop-blur-md border-t border-border/50">
             <div className="flex gap-3">
-              <Button variant="outline" onClick={handleClear} className="flex-1">
+              <Button variant="outline" onClick={handleClear} className="flex-1 mobile-button-secondary h-12">
                 Clear All
               </Button>
-              <Button onClick={handleApply} className="flex-1">
+              <Button onClick={handleApply} className="flex-1 mobile-button h-12">
                 Apply Filters
               </Button>
             </div>
