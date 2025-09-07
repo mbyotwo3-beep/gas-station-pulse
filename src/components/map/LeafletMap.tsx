@@ -22,22 +22,34 @@ export default function LeafletMap({ stations, onSelect, className, focusPoint }
   const stationLayerRef = useRef<L.LayerGroup | null>(null);
   const focusMarkerRef = useRef<L.CircleMarker | null>(null);
   const [selectedStation, setSelectedStation] = useState<Station | null>(null);
+
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
 
+    // Initialize map
     mapRef.current = L.map(containerRef.current, {
       center: [-15.3875, 28.3228], // Lusaka, Zambia
       zoom: 12,
       zoomControl: true,
-      scrollWheelZoom: false,
+      scrollWheelZoom: true,
+      attributionControl: true,
     });
 
+    // Add tile layer
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap contributors',
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     }).addTo(mapRef.current);
 
-    // layer for station markers
+    // Create layer for station markers
     stationLayerRef.current = L.layerGroup().addTo(mapRef.current);
+
+    // Cleanup function
+    return () => {
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
+    };
   }, []);
 
 useEffect(() => {
