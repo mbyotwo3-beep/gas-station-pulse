@@ -49,45 +49,136 @@ export function useStations() {
         note: report.note
       }));
 
-      // Add some default stations if no reports exist
-      if (stationData.length === 0) {
+      // Use fetched data or fallback to default stations
+      if (stationData.length > 0) {
+        setStations(stationData);
+      } else {
+        // Default stations for Lusaka area
         const defaultStations: Station[] = [
           {
             id: 'lusaka-central',
             name: 'Shell Lusaka Central',
             address: 'Cairo Road, Lusaka',
-            lat: -15.3875,
-            lng: 28.3228,
-            status: 'available'
-          },
-          {
-            id: 'lusaka-east',
-            name: 'BP Kamwala',
-            address: 'Kamwala Shopping Centre',
             lat: -15.4067,
-            lng: 28.3400,
-            status: 'low'
+            lng: 28.2871,
+            status: 'available',
+            lastUpdated: new Date().toISOString()
           },
           {
-            id: 'lusaka-north',
-            name: 'Total Northmead',
-            address: 'Northmead Shopping Mall',
-            lat: -15.3650,
-            lng: 28.3350,
-            status: 'available'
+            id: 'lusaka-kabulonga',
+            name: 'Total Kabulonga',
+            address: 'Kabulonga Shopping Mall',
+            lat: -15.3928,
+            lng: 28.3152,
+            status: 'low',
+            lastUpdated: new Date().toISOString()
+          },
+          {
+            id: 'lusaka-woodlands',
+            name: 'BP Woodlands',
+            address: 'Great East Road, Woodlands',
+            lat: -15.3654,
+            lng: 28.3891,
+            status: 'available',
+            lastUpdated: new Date().toISOString()
+          },
+          {
+            id: 'lusaka-roma',
+            name: 'Puma Roma',
+            address: 'Roma Township, Lusaka',
+            lat: -15.3598,
+            lng: 28.2654,
+            status: 'out',
+            lastUpdated: new Date().toISOString()
+          },
+          {
+            id: 'lusaka-chelston',
+            name: 'Shell Chelston',
+            address: 'Chelston Shopping Centre',
+            lat: -15.4234,
+            lng: 28.3456,
+            status: 'available',
+            lastUpdated: new Date().toISOString()
+          },
+          {
+            id: 'lusaka-chilanga',
+            name: 'Total Chilanga',
+            address: 'Chilanga Road',
+            lat: -15.5123,
+            lng: 28.2987,
+            status: 'low',
+            lastUpdated: new Date().toISOString()
           }
         ];
         setStations(defaultStations);
-      } else {
-        setStations(stationData);
       }
       
     } catch (error) {
       console.error('Error fetching stations:', error);
+      
+      // Always show fallback stations when there's an error
+      const fallbackStations: Station[] = [
+        {
+          id: 'lusaka-central',
+          name: 'Shell Lusaka Central',
+          address: 'Cairo Road, Lusaka',
+          lat: -15.4067,
+          lng: 28.2871,
+          status: 'available',
+          lastUpdated: new Date().toISOString()
+        },
+        {
+          id: 'lusaka-kabulonga',
+          name: 'Total Kabulonga',
+          address: 'Kabulonga Shopping Mall',
+          lat: -15.3928,
+          lng: 28.3152,
+          status: 'low',
+          lastUpdated: new Date().toISOString()
+        },
+        {
+          id: 'lusaka-woodlands',
+          name: 'BP Woodlands',
+          address: 'Great East Road, Woodlands',
+          lat: -15.3654,
+          lng: 28.3891,
+          status: 'available',
+          lastUpdated: new Date().toISOString()
+        },
+        {
+          id: 'lusaka-roma',
+          name: 'Puma Roma',
+          address: 'Roma Township, Lusaka',
+          lat: -15.3598,
+          lng: 28.2654,
+          status: 'out',
+          lastUpdated: new Date().toISOString()
+        },
+        {
+          id: 'lusaka-chelston',
+          name: 'Shell Chelston',
+          address: 'Chelston Shopping Centre',
+          lat: -15.4234,
+          lng: 28.3456,
+          status: 'available',
+          lastUpdated: new Date().toISOString()
+        },
+        {
+          id: 'lusaka-chilanga',
+          name: 'Total Chilanga',
+          address: 'Chilanga Road',
+          lat: -15.5123,
+          lng: 28.2987,
+          status: 'low',  
+          lastUpdated: new Date().toISOString()
+        }
+      ];
+      setStations(fallbackStations);
+      
       toast({
-        title: 'Error',
-        description: 'Failed to load station data',
-        variant: 'destructive'
+        title: 'Using Demo Data',
+        description: 'Showing sample stations around Lusaka',
+        variant: 'default'
       });
     } finally {
       setLoading(false);
