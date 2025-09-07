@@ -17,7 +17,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useStations } from "@/hooks/useStations";
 import { useProfile } from "@/hooks/useProfile";
 import { useGeolocation } from "@/hooks/useGeolocation";
+import { useRoles } from "@/hooks/useRoles";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { 
   Fuel, 
   Car, 
@@ -30,7 +32,9 @@ import {
   Star,
   Filter,
   Plus,
-  LocateFixed
+  LocateFixed,
+  Shield,
+  Crown
 } from "lucide-react";
 import type { Station } from "@/hooks/useStations";
 
@@ -39,6 +43,7 @@ export default function Index() {
   const { stations, loading: stationsLoading } = useStations();
   const { profile, toggleFavoriteStation, isFavorite } = useProfile();
   const { position, requestLocation, getLocationOrDefault } = useGeolocation();
+  const { roles, hasRole, canManageStations, canDrive } = useRoles();
   
   const [mode, setMode] = useState<'fuel' | 'rideshare'>('fuel');
   const [rideShareMode, setRideShareMode] = useState<'passenger' | 'driver'>('passenger');
@@ -107,6 +112,15 @@ export default function Index() {
     }
   }, [position]);
 
+  const getRoleDisplayInfo = () => {
+    if (hasRole('admin')) return { label: 'Admin', color: 'bg-red-500', icon: Crown };
+    if (hasRole('manager')) return { label: 'Manager', color: 'bg-purple-500', icon: Shield };
+    if (hasRole('driver')) return { label: 'Driver', color: 'bg-green-500', icon: Car };
+    return { label: 'User', color: 'bg-blue-500', icon: User };
+  };
+
+  const roleInfo = getRoleDisplayInfo();
+
   return (
     <div className="min-h-screen bg-background relative overflow-hidden">
       <Toaster />
@@ -133,6 +147,12 @@ export default function Index() {
           </div>
           
           <div className="flex items-center space-x-2">
+            {user && (
+              <div className={`${roleInfo.color} rounded-lg px-2 py-1 flex items-center gap-1`}>
+                <roleInfo.icon className="h-3 w-3 text-white" />
+                <span className="text-xs text-white font-medium">{roleInfo.label}</span>
+              </div>
+            )}
             <Button
               size="sm"
               variant="ghost"
@@ -192,7 +212,7 @@ export default function Index() {
         </div>
 
         {/* Rideshare Sub-tabs */}
-        {mode === 'rideshare' && user && (
+        {mode === 'rideshare' && user && canDrive() && (
           <div className="mt-3 flex bg-secondary rounded-2xl p-1">
             <button
               onClick={() => setRideShareMode('passenger')}
@@ -238,14 +258,21 @@ export default function Index() {
                     <div className="p-4 border-b border-border/30">
                       <div className="flex items-center justify-between mb-2">
                         <h2 className="font-semibold">Nearby Stations</h2>
-                        <Button 
-                          size="sm" 
-                          variant="ghost" 
-                          className="w-8 h-8 rounded-lg"
-                          onClick={() => setShowFilters(true)}
-                        >
-                          <Filter className="h-4 w-4" />
-                        </Button>
+                        <div className="flex items-center gap-2">
+                          {canManageStations() && (
+                            <Badge variant="secondary" className="text-xs">
+                              Manager
+                            </Badge>
+                          )}
+                          <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            className="w-8 h-8 rounded-lg"
+                            onClick={() => setShowFilters(true)}
+                          >
+                            <Filter className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
                     </div>
                     <div className="overflow-y-auto max-h-[50vh] p-2">
@@ -305,6 +332,21 @@ export default function Index() {
                 Get Started
               </button>
             </div>
+              </div>
+            ) : !canDrive() ? (
+              <div className="flex items-center justify-center h-[calc(100vh-200px)] p-8">
+                <div className="text-center space-y-6">
+                  <div className="w-24 h-24 bg-warning/10 rounded-full flex items-center justify-center mx-auto">
+                    <Car className="h-12 w-12 text-warning" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold mb-2">Driver Role Required</h2>
+                    <p className="text-muted-foreground mb-6">
+                      You need driver privileges to access rideshare features. Add the driver role from your profile.
+                    </p>
+                  </div>
+                  <ProfileDialog />
+                </div>
               </div>
             ) : (
               <div className="h-[calc(100vh-200px)]">

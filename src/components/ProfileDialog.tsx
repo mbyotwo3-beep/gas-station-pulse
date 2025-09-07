@@ -1,138 +1,157 @@
-import { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { useProfile } from '@/hooks/useProfile';
-import { useAuth } from '@/contexts/AuthContext';
-import { User, Settings, Bell } from 'lucide-react';
+import React, { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { User, Settings, Shield } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useProfile } from "@/hooks/useProfile";
+import { useRoles } from "@/hooks/useRoles";
+import { toast } from "@/hooks/use-toast";
+import RoleBasedFeatures from "@/components/RoleBasedFeatures";
 
 export default function ProfileDialog() {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const { profile, updateProfile, loading } = useProfile();
-  const [open, setOpen] = useState(false);
-  const [displayName, setDisplayName] = useState(profile?.display_name || '');
-  const [notifications, setNotifications] = useState<boolean>(profile?.preferences?.notifications ?? true);
+  const { primaryRole } = useRoles();
+  const [isOpen, setIsOpen] = useState(false);
+  const [displayName, setDisplayName] = useState(profile?.display_name || "");
+  const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url || "");
+  const [saving, setSaving] = useState(false);
 
   const handleSave = async () => {
-    await updateProfile({
-      display_name: displayName,
-      preferences: {
-        ...profile?.preferences,
-        notifications,
-        favorite_stations: profile?.preferences?.favorite_stations || []
-      }
-    });
-    setOpen(false);
+    setSaving(true);
+    try {
+      await updateProfile({
+        display_name: displayName,
+        avatar_url: avatarUrl,
+      });
+      
+      toast({
+        title: "Profile updated",
+        description: "Your profile has been successfully updated.",
+      });
+      
+      setIsOpen(false);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update profile. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
   };
 
-  if (!user) return null;
+  const handleSignOut = async () => {
+    await signOut();
+    setIsOpen(false);
+  };
+
+  // Update local state when profile changes
+  React.useEffect(() => {
+    setDisplayName(profile?.display_name || "");
+    setAvatarUrl(profile?.avatar_url || "");
+  }, [profile]);
+
+  if (loading) {
+    return (
+      <Button
+        size="sm"
+        variant="ghost"
+        className="w-10 h-10 rounded-xl"
+        disabled
+      >
+        <User className="h-4 w-4" />
+      </Button>
+    );
+  }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="sm" className="w-10 h-10 rounded-xl">
+        <Button
+          size="sm"
+          variant="ghost"
+          className="w-10 h-10 rounded-xl"
+        >
           <User className="h-4 w-4" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <User className="h-5 w-5" />
+            <Settings className="h-5 w-5" />
             Profile Settings
           </DialogTitle>
         </DialogHeader>
         
-        <div className="space-y-6">
-          {/* User Info */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Account Information</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  value={user.email || ''}
-                  disabled
-                  className="bg-muted"
-                />
-              </div>
-              <div>
-                <Label htmlFor="display-name">Display Name</Label>
-                <Input
-                  id="display-name"
-                  value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value)}
-                  placeholder="Enter your display name"
-                />
-              </div>
-            </CardContent>
-          </Card>
+        <Tabs defaultValue="profile" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="profile">Profile</TabsTrigger>
+            <TabsTrigger value="roles">Roles</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="profile" className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                value={user?.email || ""}
+                disabled
+                className="bg-muted"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="displayName">Display Name</Label>
+              <Input
+                id="displayName"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                placeholder="Your display name"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="avatarUrl">Avatar URL</Label>
+              <Input
+                id="avatarUrl"
+                value={avatarUrl}
+                onChange={(e) => setAvatarUrl(e.target.value)}
+                placeholder="https://example.com/avatar.jpg"
+              />
+            </div>
 
-          {/* Preferences */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Settings className="h-4 w-4" />
-                Preferences
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Bell className="h-4 w-4" />
-                  <div>
-                    <Label>Notifications</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Receive updates about station status
-                    </p>
-                  </div>
-                </div>
-                <Switch
-                  checked={notifications}
-                  onCheckedChange={(checked) => setNotifications(checked)}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Favorite Stations */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Favorite Stations</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {profile?.preferences?.favorite_stations?.length > 0 ? (
-                <div className="flex flex-wrap gap-2">
-                  {profile.preferences.favorite_stations.map((stationId) => (
-                    <Badge key={stationId} variant="secondary">
-                      {stationId}
-                    </Badge>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  No favorite stations yet. Start favoriting stations from the main map!
-                </p>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Actions */}
-          <div className="flex gap-3 pt-4 border-t">
-            <Button variant="outline" onClick={() => setOpen(false)} className="flex-1">
-              Cancel
-            </Button>
-            <Button onClick={handleSave} disabled={loading} className="flex-1">
-              {loading ? 'Saving...' : 'Save Changes'}
-            </Button>
-          </div>
-        </div>
+            <div className="flex justify-between pt-4">
+              <Button
+                variant="outline"
+                onClick={handleSignOut}
+              >
+                Sign Out
+              </Button>
+              
+              <Button
+                onClick={handleSave}
+                disabled={saving}
+              >
+                {saving ? "Saving..." : "Save Changes"}
+              </Button>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="roles" className="space-y-4">
+            <RoleBasedFeatures />
+          </TabsContent>
+        </Tabs>
       </DialogContent>
     </Dialog>
   );

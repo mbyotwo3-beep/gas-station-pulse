@@ -7,6 +7,8 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   signOut: () => Promise<void>;
+  signUp: (email: string, password: string, displayName?: string, primaryRole?: 'user' | 'driver' | 'manager') => Promise<{ error: any }>;
+  signIn: (email: string, password: string) => Promise<{ error: any }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -25,7 +27,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (mounted) {
           setSession(session);
           setUser(session?.user ?? null);
-          setLoading(false);
         }
       }
     );
@@ -37,10 +38,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (mounted) {
           setSession(session);
           setUser(session?.user ?? null);
-          setLoading(false);
         }
       } catch (error) {
         console.error('Error getting session:', error);
+      } finally {
         if (mounted) {
           setLoading(false);
         }
@@ -66,11 +67,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const signUp = async (email: string, password: string, displayName?: string, primaryRole: 'user' | 'driver' | 'manager' = 'user') => {
+    const redirectUrl = `${window.location.origin}/`;
+    
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: redirectUrl,
+        data: {
+          display_name: displayName,
+          primary_role: primaryRole
+        }
+      }
+    });
+    
+    return { error };
+  };
+
+  const signIn = async (email: string, password: string) => {
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    });
+    
+    return { error };
+  };
+
   const value = {
     user,
     session,
     loading,
     signOut,
+    signUp,
+    signIn,
   };
 
   return (
