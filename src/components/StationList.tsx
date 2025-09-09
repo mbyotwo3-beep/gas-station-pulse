@@ -67,6 +67,7 @@ export default function StationList({
           {items.map(({ station, distanceKm }, index) => {
             const isActive = selectedId === station.id;
             const isFav = favorites.has(station.id);
+            
             return (
               <div 
                 key={station.id} 

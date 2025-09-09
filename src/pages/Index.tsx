@@ -13,6 +13,8 @@ import DriverDashboard from "@/components/rideshare/DriverDashboard";
 import PassengerDashboard from "@/components/rideshare/PassengerDashboard";
 import BottomBar from "@/components/mobile/BottomBar";
 import ProfileDialog from "@/components/ProfileDialog";
+import StationReportDialog from "@/components/StationReportDialog";
+import AddStationDialog from "@/components/AddStationDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { useStations } from "@/hooks/useStations";
 import { useProfile } from "@/hooks/useProfile";
@@ -20,6 +22,7 @@ import { useGeolocation } from "@/hooks/useGeolocation";
 import { useRoles } from "@/hooks/useRoles";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import { 
   Fuel, 
   Car, 
@@ -90,6 +93,14 @@ export default function Index() {
 
   const handleStationSelect = (station: Station) => {
     setSelectedStation(station);
+  };
+
+  const handleStationReported = () => {
+    // Refetch stations when a new report is submitted
+    if (typeof stations !== 'undefined') {
+      // This will trigger the real-time subscription to refetch data
+      window.location.reload();
+    }
   };
 
   const handleLocationSelect = (location: { lat: number; lng: number; label?: string }) => {
@@ -259,24 +270,22 @@ export default function Index() {
                 <div className="absolute top-4 right-4 z-30 w-80 max-w-[calc(100vw-2rem)]">
                   <div className="bg-background/95 backdrop-blur-md rounded-2xl shadow-lg border border-border/30 max-h-[60vh] overflow-hidden">
                     <div className="p-4 border-b border-border/30">
-                      <div className="flex items-center justify-between mb-2">
-                        <h2 className="font-semibold">Nearby Stations</h2>
-                        <div className="flex items-center gap-2">
-                          {canManageStations() && (
-                            <Badge variant="secondary" className="text-xs">
-                              Manager
-                            </Badge>
-                          )}
-                          <Button 
-                            size="sm" 
-                            variant="ghost" 
-                            className="w-8 h-8 rounded-lg"
-                            onClick={() => setShowFilters(true)}
-                          >
-                            <Filter className="h-4 w-4" />
-                          </Button>
+                        <div className="flex items-center justify-between mb-2">
+                          <h2 className="font-semibold">Nearby Stations</h2>
+                          <div className="flex items-center gap-2">
+                            {canManageStations() && (
+                              <AddStationDialog onStationAdded={handleStationReported} />
+                            )}
+                            <Button 
+                              size="sm" 
+                              variant="ghost" 
+                              className="w-8 h-8 rounded-lg"
+                              onClick={() => setShowFilters(true)}
+                            >
+                              <Filter className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
-                      </div>
                     </div>
                     <div className="overflow-y-auto max-h-[50vh] p-2">
                       <StationList
@@ -291,7 +300,60 @@ export default function Index() {
                   </div>
                 </div>
 
-                {/* Quick Stats Bottom Bar */}
+          {/* Selected Station Report Dialog */}
+          {selectedStation && (
+            <div className="absolute bottom-20 left-4 right-4 z-30">
+              <div className="bg-background/95 backdrop-blur-md rounded-2xl p-4 shadow-lg border border-border/30">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className={cn(
+                    "w-4 h-4 rounded-full",
+                    selectedStation.status === 'available' && "bg-success",
+                    selectedStation.status === 'low' && "bg-warning", 
+                    selectedStation.status === 'out' && "bg-destructive"
+                  )} />
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-sm">{selectedStation.name}</h3>
+                    <p className="text-xs text-muted-foreground">{selectedStation.address}</p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setSelectedStation(null)}
+                    className="w-6 h-6 rounded-lg"
+                  >
+                    ×
+                  </Button>
+                </div>
+                
+                <div className="flex gap-2">
+                  <StationReportDialog
+                    station={selectedStation}
+                    onReportSubmitted={handleStationReported}
+                  >
+                    <Button size="sm" className="flex-1">
+                      Report Status
+                    </Button>
+                  </StationReportDialog>
+                  
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => {
+                      const isFav = profile?.preferences?.favorite_stations?.includes(selectedStation.id);
+                      toggleFavoriteStation(selectedStation.id);
+                    }}
+                    className="px-3"
+                  >
+                    <Star className={cn("h-4 w-4", 
+                      profile?.preferences?.favorite_stations?.includes(selectedStation.id) 
+                        ? 'text-warning fill-current' 
+                        : 'text-muted-foreground'
+                    )} />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
                 <div className="absolute bottom-4 left-4 right-4 z-30">
                   <div className="bg-background/95 backdrop-blur-md rounded-2xl p-4 shadow-lg border border-border/30">
                     <div className="grid grid-cols-3 gap-4 text-center">
