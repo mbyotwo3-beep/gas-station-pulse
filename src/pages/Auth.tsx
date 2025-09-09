@@ -12,7 +12,7 @@ export default function Auth() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
-  const [primaryRole, setPrimaryRole] = useState<'user' | 'driver' | 'manager'>('user');
+  const [primaryRole, setPrimaryRole] = useState<'user' | 'driver' | 'manager' | 'passenger'>('passenger');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
@@ -79,23 +79,30 @@ export default function Auth() {
 
   const roleOptions = [
     {
-      value: 'user' as const,
-      label: 'Regular User',
-      description: 'Find fuel stations and report status',
+      value: 'passenger' as const,
+      label: 'Passenger',
+      description: 'Book rides and find fuel stations',
       icon: User,
       color: 'text-blue-500'
     },
     {
       value: 'driver' as const,
       label: 'Driver',
-      description: 'Offer rides + all user features',
+      description: 'Offer rides + all passenger features',
       icon: Car,
       color: 'text-green-500'
     },
     {
+      value: 'user' as const,
+      label: 'Fuel User',
+      description: 'Find fuel stations and report status',
+      icon: Fuel,
+      color: 'text-orange-500'
+    },
+    {
       value: 'manager' as const,
       label: 'Station Manager',
-      description: 'Manage stations + all user features',
+      description: 'Manage stations + all features',
       icon: Shield,
       color: 'text-purple-500'
     }
@@ -243,7 +250,7 @@ export default function Auth() {
               setEmail("");
               setPassword("");
               setDisplayName("");
-              setPrimaryRole('user');
+              setPrimaryRole('passenger');
             }}
             className="text-primary hover:text-primary-light font-medium transition-colors"
           >

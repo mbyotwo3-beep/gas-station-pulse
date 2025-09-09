@@ -3,18 +3,18 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 
-export type AppRole = 'user' | 'driver' | 'manager' | 'admin';
+export type AppRole = 'user' | 'driver' | 'manager' | 'admin' | 'passenger';
 
 export function useRoles() {
   const { user } = useAuth();
   const [roles, setRoles] = useState<AppRole[]>([]);
-  const [primaryRole, setPrimaryRole] = useState<AppRole>('user');
+  const [primaryRole, setPrimaryRole] = useState<AppRole>('passenger');
   const [loading, setLoading] = useState(true);
 
   const fetchUserRoles = async () => {
     if (!user) {
       setRoles([]);
-      setPrimaryRole('user');
+      setPrimaryRole('passenger');
       setLoading(false);
       return;
     }
@@ -39,7 +39,7 @@ export function useRoles() {
 
       const userRolesList = userRoles?.map(r => r.role as AppRole) || [];
       setRoles(userRolesList);
-      setPrimaryRole(profile?.primary_role || 'user');
+      setPrimaryRole(profile?.primary_role || 'passenger');
       
     } catch (error) {
       console.error('Error fetching roles:', error);
@@ -65,12 +65,16 @@ export function useRoles() {
     return hasRole('admin');
   };
 
+  const canRequestRides = (): boolean => {
+    return hasRole('passenger') || hasRole('driver') || hasRole('admin');
+  };
+
   const canDrive = (): boolean => {
     return hasRole('driver') || hasRole('admin');
   };
 
   const isRegularUser = (): boolean => {
-    return hasRole('user') && !hasRole('driver') && !hasRole('manager') && !hasRole('admin');
+    return hasRole('user') && !hasRole('passenger') && !hasRole('driver') && !hasRole('manager') && !hasRole('admin');
   };
 
   const assignAdditionalRole = async (role: AppRole): Promise<boolean> => {
@@ -116,6 +120,7 @@ export function useRoles() {
     hasRole,
     canManageStations,
     canViewAllRides,
+    canRequestRides,
     canDrive,
     isRegularUser,
     assignAdditionalRole,

@@ -43,7 +43,7 @@ export default function Index() {
   const { stations, loading: stationsLoading } = useStations();
   const { profile, toggleFavoriteStation, isFavorite } = useProfile();
   const { position, requestLocation, getLocationOrDefault } = useGeolocation();
-  const { roles, hasRole, canManageStations, canDrive } = useRoles();
+  const { roles, hasRole, canManageStations, canDrive, canRequestRides } = useRoles();
   
   const [mode, setMode] = useState<'fuel' | 'rideshare'>('fuel');
   const [rideShareMode, setRideShareMode] = useState<'passenger' | 'driver'>('passenger');
@@ -116,7 +116,8 @@ export default function Index() {
     if (hasRole('admin')) return { label: 'Admin', color: 'bg-red-500', icon: Crown };
     if (hasRole('manager')) return { label: 'Manager', color: 'bg-purple-500', icon: Shield };
     if (hasRole('driver')) return { label: 'Driver', color: 'bg-green-500', icon: Car };
-    return { label: 'User', color: 'bg-blue-500', icon: User };
+    if (hasRole('passenger')) return { label: 'Passenger', color: 'bg-blue-500', icon: User };
+    return { label: 'User', color: 'bg-gray-500', icon: Fuel };
   };
 
   const roleInfo = getRoleDisplayInfo();
@@ -212,7 +213,7 @@ export default function Index() {
         </div>
 
         {/* Rideshare Sub-tabs */}
-        {mode === 'rideshare' && user && canDrive() && (
+        {mode === 'rideshare' && user && canRequestRides() && (
           <div className="mt-3 flex bg-secondary rounded-2xl p-1">
             <button
               onClick={() => setRideShareMode('passenger')}
@@ -221,13 +222,15 @@ export default function Index() {
               <MapPin className="h-4 w-4 mr-2" />
               Need Ride
             </button>
-            <button
-              onClick={() => setRideShareMode('driver')}
-              className={`mobile-tab ${rideShareMode === 'driver' ? 'mobile-tab-active' : 'mobile-tab-inactive'}`}
-            >
-              <Navigation className="h-4 w-4 mr-2" />
-              Drive
-            </button>
+            {canDrive() && (
+              <button
+                onClick={() => setRideShareMode('driver')}
+                className={`mobile-tab ${rideShareMode === 'driver' ? 'mobile-tab-active' : 'mobile-tab-inactive'}`}
+              >
+                <Navigation className="h-4 w-4 mr-2" />
+                Drive
+              </button>
+            )}
           </div>
         )}
       </header>
@@ -333,16 +336,16 @@ export default function Index() {
               </button>
             </div>
               </div>
-            ) : !canDrive() ? (
+            ) : !canRequestRides() ? (
               <div className="flex items-center justify-center h-[calc(100vh-200px)] p-8">
                 <div className="text-center space-y-6">
                   <div className="w-24 h-24 bg-warning/10 rounded-full flex items-center justify-center mx-auto">
                     <Car className="h-12 w-12 text-warning" />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-bold mb-2">Driver Role Required</h2>
+                    <h2 className="text-2xl font-bold mb-2">Passenger Role Required</h2>
                     <p className="text-muted-foreground mb-6">
-                      You need driver privileges to access rideshare features. Add the driver role from your profile.
+                      You need passenger privileges to access rideshare features. Add the passenger role from your profile.
                     </p>
                   </div>
                   <ProfileDialog />
@@ -361,7 +364,7 @@ export default function Index() {
                 {/* Dashboard */}
                 <div className="h-1/2 p-4 bg-background overflow-y-auto">
                   <div className="mobile-card">
-                    {rideShareMode === 'driver' ? (
+                    {rideShareMode === 'driver' && canDrive() ? (
                       <DriverDashboard />
                     ) : (
                       <PassengerDashboard />
