@@ -8,6 +8,7 @@ All colors MUST be HSL. Optimized for mobile experiences.
 */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import 'leaflet/dist/leaflet.css';
 
 @layer base {
   :root {
@@ -460,4 +461,12 @@ All colors MUST be HSL. Optimized for mobile experiences.
       transform: translateY(-10px);
     }
   }
+}
+
+.leaflet-container {
+  height: 100% !important;
+  width: 100% !important;
+  z-index: 10000 !important;
+  position: relative !important;
+  background: #fff !important;
 }

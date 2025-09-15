@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import LeafletMap from "@/components/map/LeafletMap";
 import RideShareMap from "@/components/rideshare/RideShareMap";
@@ -133,8 +133,25 @@ export default function Index() {
 
   const roleInfo = getRoleDisplayInfo();
 
+  // Add ref and debug state for map container
+  const mapContainerRef = useRef(null);
+  const [mapDebug, setMapDebug] = useState({ found: false, width: 0, height: 0, children: 0 });
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const mapDiv = mapContainerRef.current?.querySelector?.('.leaflet-container');
+      if (mapDiv) {
+        const rect = mapDiv.getBoundingClientRect();
+        setMapDebug({ found: true, width: rect.width, height: rect.height, children: mapDiv.children.length });
+      } else {
+        setMapDebug({ found: false, width: 0, height: 0, children: 0 });
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
-    <div className="min-h-screen bg-background relative overflow-hidden">
+    <div className="min-h-screen bg-background relative">
       <Toaster />
       
       {/* Mobile Header */}
@@ -249,149 +266,130 @@ export default function Index() {
       {/* Main Content */}
       <main className="flex-1 relative">
         {mode === 'fuel' ? (
-          <>
-            {stationsLoading ? (
-              <div className="h-[calc(100vh-200px)] flex flex-col items-center justify-center">
-                <StationMapSkeleton />
-                <div className="mt-4 text-muted-foreground text-sm">Loading stations and map...</div>
+          <div className="flex flex-col h-full w-full">
+            {/* Map Section */}
+            <div ref={mapContainerRef} className="w-full" style={{ minHeight: '400px', maxHeight: '400px', border: '3px solid red', background: '#fff', position: 'relative' }}>
+              <LeafletMap
+                stations={filteredStations}
+                onSelect={handleStationSelect}
+                focusPoint={selectedLocation}
+                className="h-full w-full"
+              />
+              <div style={{ position: 'absolute', top: 10, left: 10, color: 'red', fontWeight: 'bold', zIndex: 10000, background: '#fff', padding: '8px', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+                {mapDebug.found
+                  ? `leaflet-container: ${mapDebug.width.toFixed(0)}x${mapDebug.height.toFixed(0)}, children: ${mapDebug.children}`
+                  : 'leaflet-container not found'}
+                <br />If you see this message and no map, Leaflet is not rendering.
               </div>
-            ) : (
-              <>
-                {/* Map View - Always Shown */}
-                <div className="h-[calc(100vh-200px)]">
-                  <LeafletMap
-                    stations={filteredStations}
-                    onSelect={handleStationSelect}
-                    focusPoint={selectedLocation}
-                    className="h-full w-full"
-                  />
-                  {filteredStations.length === 0 && (
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-background/90 rounded-xl p-6 shadow-lg border border-border/30 z-40">
-                      <div className="text-center">
-                        <h2 className="text-lg font-semibold mb-2">No stations found</h2>
-                        <p className="text-muted-foreground mb-2">Try resetting your filters or zooming out.</p>
-                        <Button size="sm" variant="outline" onClick={() => setFilters({
-                          status: ['available', 'low'],
-                          maxDistance: 10,
-                          priceRange: [0, 200],
-                          amenities: [],
-                          brands: [],
-                          operatingHours: 'any',
-                          sortBy: 'distance'
-                        })}>Reset Filters</Button>
-                      </div>
-                    </div>
-                  )}
+            </div>
+            {/* Actions Bar */}
+            <div className="flex items-center justify-between px-4 py-2 bg-background sticky top-0 z-20">
+              <h2 className="font-semibold text-lg">Nearby Stations</h2>
+              <div className="flex gap-2">
+                {canManageStations() && <AddStationDialog onStationAdded={handleStationReported} />}
+                <Button size="sm" variant="ghost" onClick={() => setShowFilters(true)}>
+                  <Filter className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+            {/* Station List */}
+            <div className="flex-1 overflow-y-auto px-4 pb-24">
+              {filteredStations.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-48">
+                  <h2 className="text-lg font-semibold mb-2">No stations found</h2>
+                  <p className="text-muted-foreground mb-2">Try resetting your filters or zooming out.</p>
+                  <Button size="sm" variant="outline" onClick={() => setFilters({
+                    status: ['available', 'low'],
+                    maxDistance: 10,
+                    priceRange: [0, 200],
+                    amenities: [],
+                    brands: [],
+                    operatingHours: 'any',
+                    sortBy: 'distance'
+                  })}>Reset Filters</Button>
                 </div>
-                {/* Station List Overlay */}
-                <div className="absolute top-4 right-4 z-30 w-80 max-w-[calc(100vw-2rem)]">
-                  <div className="bg-background/95 backdrop-blur-md rounded-2xl shadow-lg border border-border/30 max-h-[60vh] overflow-hidden">
-                    <div className="p-4 border-b border-border/30">
-                        <div className="flex items-center justify-between mb-2">
-                          <h2 className="font-semibold">Nearby Stations</h2>
-                          <div className="flex items-center gap-2">
-                            {canManageStations() && (
-                              <AddStationDialog onStationAdded={handleStationReported} />
-                            )}
-                            <Button 
-                              size="sm" 
-                              variant="ghost" 
-                              className="w-8 h-8 rounded-lg"
-                              onClick={() => setShowFilters(true)}
-                            >
-                              <Filter className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                    </div>
-                    <div className="overflow-y-auto max-h-[50vh] p-2">
-                      <StationList
-                        stations={filteredStations}
-                        origin={selectedLocation}
-                        selectedId={selectedStation?.id}
-                        onSelect={handleStationSelect}
-                        favorites={new Set(profile?.preferences?.favorite_stations || [])}
-                        onToggleFavorite={toggleFavoriteStation}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-          {/* Selected Station Report Dialog */}
-          {selectedStation && (
-            <div className="absolute bottom-20 left-4 right-4 z-30">
+              ) : (
+                <StationList
+                  stations={filteredStations}
+                  origin={selectedLocation}
+                  selectedId={selectedStation?.id}
+                  onSelect={handleStationSelect}
+                  favorites={new Set(profile?.preferences?.favorite_stations || [])}
+                  onToggleFavorite={toggleFavoriteStation}
+                />
+              )}
+            </div>
+            {/* Station Status Summary */}
+            <div className="fixed bottom-20 left-0 right-0 px-4 z-30">
               <div className="bg-background/95 backdrop-blur-md rounded-2xl p-4 shadow-lg border border-border/30">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className={cn(
-                    "w-4 h-4 rounded-full",
-                    selectedStation.status === 'available' && "bg-success",
-                    selectedStation.status === 'low' && "bg-warning", 
-                    selectedStation.status === 'out' && "bg-destructive"
-                  )} />
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-sm">{selectedStation.name}</h3>
-                    <p className="text-xs text-muted-foreground">{selectedStation.address}</p>
+                <div className="grid grid-cols-3 gap-4 text-center">
+                  <div>
+                    <div className="text-lg font-semibold text-success">{filteredStations.filter(s => s.status === 'available').length}</div>
+                    <div className="text-xs text-muted-foreground">Available</div>
                   </div>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => setSelectedStation(null)}
-                    className="w-6 h-6 rounded-lg"
-                  >
-                    ×
-                  </Button>
-                </div>
-                
-                <div className="flex gap-2">
-                  <StationReportDialog
-                    station={selectedStation}
-                    onReportSubmitted={handleStationReported}
-                  >
-                    <Button size="sm" className="flex-1">
-                      Report Status
-                    </Button>
-                  </StationReportDialog>
-                  
-                  <Button 
-                    size="sm" 
-                    variant="outline"
-                    onClick={() => {
-                      const isFav = profile?.preferences?.favorite_stations?.includes(selectedStation.id);
-                      toggleFavoriteStation(selectedStation.id);
-                    }}
-                    className="px-3"
-                  >
-                    <Star className={cn("h-4 w-4", 
-                      profile?.preferences?.favorite_stations?.includes(selectedStation.id) 
-                        ? 'text-warning fill-current' 
-                        : 'text-muted-foreground'
-                    )} />
-                  </Button>
+                  <div>
+                    <div className="text-lg font-semibold text-warning">{filteredStations.filter(s => s.status === 'low').length}</div>
+                    <div className="text-xs text-muted-foreground">Low Stock</div>
+                  </div>
+                  <div>
+                    <div className="text-lg font-semibold text-destructive">{filteredStations.filter(s => s.status === 'out').length}</div>
+                    <div className="text-xs text-muted-foreground">Out of Stock</div>
+                  </div>
                 </div>
               </div>
             </div>
-          )}
-                <div className="absolute bottom-4 left-4 right-4 z-30">
-                  <div className="bg-background/95 backdrop-blur-md rounded-2xl p-4 shadow-lg border border-border/30">
-                    <div className="grid grid-cols-3 gap-4 text-center">
-                      <div>
-                        <div className="text-lg font-semibold text-success">{filteredStations.filter(s => s.status === 'available').length}</div>
-                        <div className="text-xs text-muted-foreground">Available</div>
-                      </div>
-                      <div>
-                        <div className="text-lg font-semibold text-warning">{filteredStations.filter(s => s.status === 'low').length}</div>
-                        <div className="text-xs text-muted-foreground">Low Stock</div>
-                      </div>
-                      <div>
-                        <div className="text-lg font-semibold text-destructive">{filteredStations.filter(s => s.status === 'out').length}</div>
-                        <div className="text-xs text-muted-foreground">Out of Stock</div>
-                      </div>
+            {/* Selected Station Dialog */}
+            {selectedStation && (
+              <div className="fixed bottom-36 left-0 right-0 px-4 z-40">
+                <div className="bg-background/95 backdrop-blur-md rounded-2xl p-4 shadow-lg border border-border/30">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className={cn(
+                      "w-4 h-4 rounded-full",
+                      selectedStation.status === 'available' && "bg-success",
+                      selectedStation.status === 'low' && "bg-warning", 
+                      selectedStation.status === 'out' && "bg-destructive"
+                    )} />
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-sm">{selectedStation.name}</h3>
+                      <p className="text-xs text-muted-foreground">{selectedStation.address}</p>
                     </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setSelectedStation(null)}
+                      className="w-6 h-6 rounded-lg"
+                    >
+                      ×
+                    </Button>
+                  </div>
+                  <div className="flex gap-2">
+                    <StationReportDialog
+                      station={selectedStation}
+                      onReportSubmitted={handleStationReported}
+                    >
+                      <Button size="sm" className="flex-1">
+                        Report Status
+                      </Button>
+                    </StationReportDialog>
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => {
+                        toggleFavoriteStation(selectedStation.id);
+                      }}
+                      className="px-3"
+                    >
+                      <Star className={cn("h-4 w-4",
+                        profile?.preferences?.favorite_stations?.includes(selectedStation.id)
+                          ? 'text-warning fill-current'
+                          : 'text-muted-foreground'
+                      )} />
+                    </Button>
                   </div>
                 </div>
-              </>
+              </div>
             )}
-          </>
+          </div>
         ) : (
           <>
             {/* Rideshare Content */}

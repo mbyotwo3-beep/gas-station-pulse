@@ -30,27 +30,34 @@ export default function LeafletMap({ stations, onSelect, className, focusPoint }
   const stationLayerRef = useRef<L.LayerGroup | null>(null);
   const focusMarkerRef = useRef<L.CircleMarker | null>(null);
   const [selectedStation, setSelectedStation] = useState<Station | null>(null);
+  const errorRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    if (!containerRef.current || mapRef.current) return;
+    console.log("LeafletMap: rendering and initializing");
+    let map;
+    try {
+      if (containerRef.current && !mapRef.current) {
+        map = L.map(containerRef.current, {
+          center: [-15.3875, 28.3228], // Lusaka, Zambia
+          zoom: 12,
+          zoomControl: true,
+          scrollWheelZoom: true,
+          attributionControl: true,
+        });
 
-    // Initialize map
-    mapRef.current = L.map(containerRef.current, {
-      center: [-15.3875, 28.3228], // Lusaka, Zambia
-      zoom: 12,
-      zoomControl: true,
-      scrollWheelZoom: true,
-      attributionControl: true,
-    });
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        }).addTo(map);
 
-    // Add tile layer
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    }).addTo(mapRef.current);
-
-    // Create layer for station markers
-    stationLayerRef.current = L.layerGroup().addTo(mapRef.current);
-
+        mapRef.current = map;
+        console.log("LeafletMap: map initialized");
+      }
+    } catch (err) {
+      console.error("LeafletMap: map initialization error", err);
+      if (errorRef.current) {
+        errorRef.current.textContent = "Map failed to initialize: " + err.message;
+      }
+    }
     // Cleanup function
     return () => {
       if (mapRef.current) {
@@ -60,89 +67,89 @@ export default function LeafletMap({ stations, onSelect, className, focusPoint }
     };
   }, []);
 
-useEffect(() => {
-  const map = mapRef.current;
-  const stationLayer = stationLayerRef.current;
-  if (!map || !stationLayer) return;
+  useEffect(() => {
+    const map = mapRef.current;
+    const stationLayer = stationLayerRef.current;
+    if (!map || !stationLayer) return;
 
-  // Clear existing station markers
-  stationLayer.clearLayers();
+    // Clear existing station markers
+    stationLayer.clearLayers();
 
-  const bounds = L.latLngBounds([]);
+    const bounds = L.latLngBounds([]);
 
-  stations.forEach((s) => {
-    const isSelected = selectedStation?.id === s.id;
-    const marker = L.circleMarker([s.lat, s.lng], {
-      radius: isSelected ? 14 : 10,
-      color: colorFor(s.status),
-      fillColor: colorFor(s.status),
-      fillOpacity: isSelected ? 1 : 0.85,
-      weight: isSelected ? 3 : 2,
-      className: 'station-marker animate-scale-in',
-    }).addTo(stationLayer);
+    stations.forEach((s) => {
+      const isSelected = selectedStation?.id === s.id;
+      const marker = L.circleMarker([s.lat, s.lng], {
+        radius: isSelected ? 14 : 10,
+        color: colorFor(s.status),
+        fillColor: colorFor(s.status),
+        fillOpacity: isSelected ? 1 : 0.85,
+        weight: isSelected ? 3 : 2,
+        className: 'station-marker animate-scale-in',
+      }).addTo(stationLayer);
 
-    // Enhanced tooltip with status
-    const statusText = s.status === 'available' ? 'Available' : s.status === 'low' ? 'Low Supply' : 'Out of Fuel';
-    marker.bindTooltip(
-      `<div class="text-center">
-        <strong>${s.name}</strong><br>
-        <span class="text-xs" style="color: ${colorFor(s.status)}">${statusText}</span>
-      </div>`, 
-      { permanent: false, opacity: 0.9 }
-    );
-    
-    marker.on('click', () => {
-      setSelectedStation(s);
-      onSelect?.(s);
+      // Enhanced tooltip with status
+      const statusText = s.status === 'available' ? 'Available' : s.status === 'low' ? 'Low Supply' : 'Out of Fuel';
+      marker.bindTooltip(
+        `<div class="text-center">
+          <strong>${s.name}</strong><br>
+          <span class="text-xs" style="color: ${colorFor(s.status)}">${statusText}</span>
+        </div>`, 
+        { permanent: false, opacity: 0.9 }
+      );
+      
+      marker.on('click', () => {
+        setSelectedStation(s);
+        onSelect?.(s);
+      });
+      
+      // Add hover effects
+      marker.on('mouseover', () => {
+        marker.setRadius(12);
+        marker.setStyle({ weight: 3 });
+      });
+      
+      marker.on('mouseout', () => {
+        if (!isSelected) {
+          marker.setRadius(10);
+          marker.setStyle({ weight: 2 });
+        }
+      });
+      
+      bounds.extend([s.lat, s.lng]);
     });
-    
-    // Add hover effects
-    marker.on('mouseover', () => {
-      marker.setRadius(12);
-      marker.setStyle({ weight: 3 });
-    });
-    
-    marker.on('mouseout', () => {
-      if (!isSelected) {
-        marker.setRadius(10);
-        marker.setStyle({ weight: 2 });
-      }
-    });
-    
-    bounds.extend([s.lat, s.lng]);
-  });
 
-  if (bounds.isValid() && !focusPoint) {
-    map.fitBounds(bounds.pad(0.2));
-  }
-}, [stations, onSelect, focusPoint]);
+    if (bounds.isValid() && !focusPoint) {
+      map.fitBounds(bounds.pad(0.2));
+    }
+  }, [stations, onSelect, focusPoint]);
 
-useEffect(() => {
-  const map = mapRef.current;
-  if (!map || !focusPoint) return;
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !focusPoint) return;
 
-  // Remove previous focus marker
-  if (focusMarkerRef.current) {
-    map.removeLayer(focusMarkerRef.current);
-    focusMarkerRef.current = null;
-  }
+    // Remove previous focus marker
+    if (focusMarkerRef.current) {
+      map.removeLayer(focusMarkerRef.current);
+      focusMarkerRef.current = null;
+    }
 
-  const marker = L.circleMarker([focusPoint.lat, focusPoint.lng], {
-    radius: 12,
-    color: 'hsl(var(--primary))',
-    fillColor: 'hsl(var(--primary))',
-    fillOpacity: 0.9,
-    weight: 2,
-  }).addTo(map);
+    const marker = L.circleMarker([focusPoint.lat, focusPoint.lng], {
+      radius: 12,
+      color: 'hsl(var(--primary))',
+      fillColor: 'hsl(var(--primary))',
+      fillOpacity: 0.9,
+      weight: 2,
+    }).addTo(map);
 
-  marker.bindTooltip(`<strong>${focusPoint.label ?? 'Selected location'}</strong>`, { permanent: false, opacity: 1 });
-  focusMarkerRef.current = marker;
+    marker.bindTooltip(`<strong>${focusPoint.label ?? 'Selected location'}</strong>`, { permanent: false, opacity: 1 });
+    focusMarkerRef.current = marker;
 
-  // Zoom in but don't reduce if user is already closer
-  const targetZoom = 14;
-  const currentZoom = map.getZoom();
-  map.setView([focusPoint.lat, focusPoint.lng], Math.max(currentZoom, targetZoom), { animate: true });
-}, [focusPoint]);
+    // Zoom in but don't reduce if user is already closer
+    const targetZoom = 14;
+    const currentZoom = map.getZoom();
+    map.setView([focusPoint.lat, focusPoint.lng], Math.max(currentZoom, targetZoom), { animate: true });
+  }, [focusPoint]);
 
   return (
     <div className="relative">
@@ -166,6 +173,9 @@ useEffect(() => {
           </div>
         </div>
       </div>
+
+      {/* Error display */}
+      <div ref={errorRef} style={{ position: "absolute", top: 10, left: 10, color: "red", fontWeight: "bold", zIndex: 10000 }}></div>
     </div>
   );
 }
