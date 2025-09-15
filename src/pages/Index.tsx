@@ -251,8 +251,9 @@ export default function Index() {
         {mode === 'fuel' ? (
           <>
             {stationsLoading ? (
-              <div className="h-[calc(100vh-200px)]">
+              <div className="h-[calc(100vh-200px)] flex flex-col items-center justify-center">
                 <StationMapSkeleton />
+                <div className="mt-4 text-muted-foreground text-sm">Loading stations and map...</div>
               </div>
             ) : (
               <>
@@ -264,8 +265,24 @@ export default function Index() {
                     focusPoint={selectedLocation}
                     className="h-full w-full"
                   />
+                  {filteredStations.length === 0 && (
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-background/90 rounded-xl p-6 shadow-lg border border-border/30 z-40">
+                      <div className="text-center">
+                        <h2 className="text-lg font-semibold mb-2">No stations found</h2>
+                        <p className="text-muted-foreground mb-2">Try resetting your filters or zooming out.</p>
+                        <Button size="sm" variant="outline" onClick={() => setFilters({
+                          status: ['available', 'low'],
+                          maxDistance: 10,
+                          priceRange: [0, 200],
+                          amenities: [],
+                          brands: [],
+                          operatingHours: 'any',
+                          sortBy: 'distance'
+                        })}>Reset Filters</Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
-
                 {/* Station List Overlay */}
                 <div className="absolute top-4 right-4 z-30 w-80 max-w-[calc(100vw-2rem)]">
                   <div className="bg-background/95 backdrop-blur-md rounded-2xl shadow-lg border border-border/30 max-h-[60vh] overflow-hidden">
