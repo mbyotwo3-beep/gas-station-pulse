@@ -96,11 +96,8 @@ export default function Index() {
   };
 
   const handleStationReported = () => {
-    // Refetch stations when a new report is submitted
-    if (typeof stations !== 'undefined') {
-      // This will trigger the real-time subscription to refetch data
-      window.location.reload();
-    }
+    // The real-time subscription will automatically refetch stations
+    setSelectedStation(null);
   };
 
   const handleLocationSelect = (location: { lat: number; lng: number; label?: string }) => {
@@ -132,23 +129,6 @@ export default function Index() {
   };
 
   const roleInfo = getRoleDisplayInfo();
-
-  // Add ref and debug state for map container
-  const mapContainerRef = useRef(null);
-  const [mapDebug, setMapDebug] = useState({ found: false, width: 0, height: 0, children: 0 });
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const mapDiv = mapContainerRef.current?.querySelector?.('.leaflet-container');
-      if (mapDiv) {
-        const rect = mapDiv.getBoundingClientRect();
-        setMapDebug({ found: true, width: rect.width, height: rect.height, children: mapDiv.children.length });
-      } else {
-        setMapDebug({ found: false, width: 0, height: 0, children: 0 });
-      }
-    }, 1000);
-    return () => clearInterval(interval);
-  }, []);
 
   return (
     <div className="min-h-screen bg-background relative">
@@ -268,19 +248,17 @@ export default function Index() {
         {mode === 'fuel' ? (
           <div className="flex flex-col h-full w-full">
             {/* Map Section */}
-            <div ref={mapContainerRef} className="w-full" style={{ minHeight: '400px', maxHeight: '400px', border: '3px solid red', background: '#fff', position: 'relative' }}>
-              <LeafletMap
-                stations={filteredStations}
-                onSelect={handleStationSelect}
-                focusPoint={selectedLocation}
-                className="h-full w-full"
-              />
-              <div style={{ position: 'absolute', top: 10, left: 10, color: 'red', fontWeight: 'bold', zIndex: 10000, background: '#fff', padding: '8px', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-                {mapDebug.found
-                  ? `leaflet-container: ${mapDebug.width.toFixed(0)}x${mapDebug.height.toFixed(0)}, children: ${mapDebug.children}`
-                  : 'leaflet-container not found'}
-                <br />If you see this message and no map, Leaflet is not rendering.
-              </div>
+            <div className="w-full h-[50vh] relative">
+              {stationsLoading ? (
+                <StationMapSkeleton />
+              ) : (
+                <LeafletMap
+                  stations={filteredStations}
+                  onSelect={handleStationSelect}
+                  focusPoint={selectedLocation}
+                  className="h-full w-full"
+                />
+              )}
             </div>
             {/* Actions Bar */}
             <div className="flex items-center justify-between px-4 py-2 bg-background sticky top-0 z-20">
