@@ -21,6 +21,9 @@ export default function AddStationDialog({ onStationAdded }: AddStationDialogPro
   const [formData, setFormData] = useState({
     name: '',
     address: '',
+    lat: '',
+    lng: '',
+    brand: '',
     status: 'available' as 'available' | 'low' | 'out',
     note: ''
   });
@@ -37,10 +40,22 @@ export default function AddStationDialog({ onStationAdded }: AddStationDialogPro
       return;
     }
 
-    if (!formData.name.trim() || !formData.address.trim()) {
+    if (!formData.name.trim() || !formData.address.trim() || !formData.lat || !formData.lng) {
       toast({
         title: 'Missing information',
-        description: 'Please provide both station name and address',
+        description: 'Please provide station name, address, and coordinates',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    const lat = parseFloat(formData.lat);
+    const lng = parseFloat(formData.lng);
+    
+    if (isNaN(lat) || isNaN(lng)) {
+      toast({
+        title: 'Invalid coordinates',
+        description: 'Please provide valid latitude and longitude values',
         variant: 'destructive'
       });
       return;
@@ -51,9 +66,25 @@ export default function AddStationDialog({ onStationAdded }: AddStationDialogPro
       // Generate a unique station ID based on name
       const stationId = formData.name.toLowerCase()
         .replace(/[^a-z0-9\s]/g, '')
-        .replace(/\s+/g, '-');
+        .replace(/\s+/g, '-') + '-' + Date.now();
 
-      const { error } = await supabase
+      // First, create the station
+      const { error: stationError } = await supabase
+        .from('stations')
+        .insert({
+          id: stationId,
+          name: formData.name.trim(),
+          address: formData.address.trim(),
+          lat: parseFloat(formData.lat),
+          lng: parseFloat(formData.lng),
+          brand: formData.brand.trim() || null,
+          created_by: user.id
+        });
+
+      if (stationError) throw stationError;
+
+      // Then create an initial status report
+      const { error: reportError } = await supabase
         .from('station_reports')
         .insert({
           station_id: stationId,
@@ -63,7 +94,7 @@ export default function AddStationDialog({ onStationAdded }: AddStationDialogPro
           user_id: user.id
         });
 
-      if (error) throw error;
+      if (reportError) throw reportError;
 
       toast({
         title: 'Station added successfully',
@@ -75,6 +106,9 @@ export default function AddStationDialog({ onStationAdded }: AddStationDialogPro
       setFormData({
         name: '',
         address: '',
+        lat: '',
+        lng: '',
+        brand: '',
         status: 'available',
         note: ''
       });
@@ -137,6 +171,54 @@ export default function AddStationDialog({ onStationAdded }: AddStationDialogPro
               value={formData.address}
               onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
               required
+            />
+          </div>
+
+          {/* Coordinates */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label htmlFor="lat">
+                Latitude *
+              </Label>
+              <Input
+                id="lat"
+                type="number"
+                step="any"
+                placeholder="-15.4067"
+                value={formData.lat}
+                onChange={(e) => setFormData(prev => ({ ...prev, lat: e.target.value }))}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="lng">
+                Longitude *
+              </Label>
+              <Input
+                id="lng"
+                type="number"
+                step="any"
+                placeholder="28.2871"
+                value={formData.lng}
+                onChange={(e) => setFormData(prev => ({ ...prev, lng: e.target.value }))}
+                required
+              />
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Tip: Use Google Maps to find coordinates
+          </p>
+
+          {/* Brand */}
+          <div className="space-y-2">
+            <Label htmlFor="brand">
+              Brand (Optional)
+            </Label>
+            <Input
+              id="brand"
+              placeholder="e.g., Shell, BP, Total, Puma"
+              value={formData.brand}
+              onChange={(e) => setFormData(prev => ({ ...prev, brand: e.target.value }))}
             />
           </div>
 

@@ -210,6 +210,59 @@ export type Database = {
           status?: string
           user_id?: string | null
         }
+        Relationships: [
+          {
+            foreignKeyName: "fk_station_reports_station_id"
+            columns: ["station_id"]
+            isOneToOne: false
+            referencedRelation: "stations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stations: {
+        Row: {
+          address: string
+          amenities: string[] | null
+          brand: string | null
+          created_at: string
+          created_by: string | null
+          fuel_types: string[] | null
+          id: string
+          lat: number
+          lng: number
+          name: string
+          operating_hours: Json | null
+          updated_at: string
+        }
+        Insert: {
+          address: string
+          amenities?: string[] | null
+          brand?: string | null
+          created_at?: string
+          created_by?: string | null
+          fuel_types?: string[] | null
+          id: string
+          lat: number
+          lng: number
+          name: string
+          operating_hours?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string
+          amenities?: string[] | null
+          brand?: string | null
+          created_at?: string
+          created_by?: string | null
+          fuel_types?: string[] | null
+          id?: string
+          lat?: number
+          lng?: number
+          name?: string
+          operating_hours?: Json | null
+          updated_at?: string
+        }
         Relationships: []
       }
       user_roles: {
