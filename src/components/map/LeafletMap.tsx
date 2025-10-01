@@ -73,8 +73,10 @@ export default function LeafletMap({ stations, onSelect, className, focusPoint }
 
   useEffect(() => {
     const map = mapRef.current;
+    if (!map) return;
+    
     const stationLayer = stationLayerRef.current;
-    if (!map || !stationLayer) return;
+    if (!stationLayer) return;
 
     // Clear existing station markers
     stationLayer.clearLayers();
