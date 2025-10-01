@@ -49,6 +49,10 @@ export default function LeafletMap({ stations, onSelect, className, focusPoint }
           attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
         }).addTo(map);
 
+        // Initialize station layer
+        const stationLayer = L.layerGroup().addTo(map);
+        stationLayerRef.current = stationLayer;
+
         mapRef.current = map;
         console.log("LeafletMap: map initialized");
       }
