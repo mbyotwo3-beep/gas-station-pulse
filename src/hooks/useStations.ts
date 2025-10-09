@@ -11,6 +11,12 @@ export interface Station {
   status: 'available' | 'low' | 'out';
   lastUpdated?: string;
   note?: string;
+  brand?: string;
+  photos?: string[];
+  fuel_prices?: Record<string, number>;
+  fuel_types?: string[];
+  amenities?: string[];
+  operating_hours?: Record<string, { open: string; close: string }>;
 }
 
 export function useStations() {
@@ -53,7 +59,13 @@ export function useStations() {
           lng: station.lng,
           status: latestReport?.status || 'available',
           lastUpdated: latestReport?.created_at || station.created_at,
-          note: latestReport?.note
+          note: latestReport?.note,
+          brand: station.brand,
+          photos: station.photos,
+          fuel_prices: station.fuel_prices as Record<string, number> | undefined,
+          fuel_types: station.fuel_types,
+          amenities: station.amenities,
+          operating_hours: station.operating_hours as Record<string, { open: string; close: string }> | undefined
         };
       });
 

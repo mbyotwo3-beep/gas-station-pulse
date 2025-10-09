@@ -15,6 +15,7 @@ import BottomBar from "@/components/mobile/BottomBar";
 import ProfileDialog from "@/components/ProfileDialog";
 import StationReportDialog from "@/components/StationReportDialog";
 import AddStationDialog from "@/components/AddStationDialog";
+import StationDetails from "@/components/StationDetails";
 import { useAuth } from "@/contexts/AuthContext";
 import { useStations } from "@/hooks/useStations";
 import { useProfile } from "@/hooks/useProfile";
@@ -22,6 +23,7 @@ import { useGeolocation } from "@/hooks/useGeolocation";
 import { useRoles } from "@/hooks/useRoles";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { 
   Fuel, 
@@ -37,7 +39,8 @@ import {
   Plus,
   LocateFixed,
   Shield,
-  Crown
+  Crown,
+  X
 } from "lucide-react";
 import type { Station } from "@/hooks/useStations";
 
@@ -54,6 +57,7 @@ export default function Index() {
   const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number; label?: string } | null>(null);
   const [showSearch, setShowSearch] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState({
     status: ['available', 'low'] as Array<'available' | 'low' | 'out'>,
     maxDistance: 10,
@@ -76,8 +80,20 @@ export default function Index() {
   }, [selectedLocation]);
 
   const filteredStations = stations.filter(station => {
+    // Search query filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      const matchesName = station.name.toLowerCase().includes(query);
+      const matchesAddress = station.address.toLowerCase().includes(query);
+      const matchesBrand = station.brand?.toLowerCase().includes(query);
+      if (!matchesName && !matchesAddress && !matchesBrand) return false;
+    }
+
     // Filter by status
     if (!filters.status.includes(station.status)) return false;
+    
+    // Filter by brand
+    if (filters.brands.length > 0 && station.brand && !filters.brands.includes(station.brand)) return false;
     
     // Filter by distance if location is available
     if (selectedLocation) {
@@ -197,7 +213,24 @@ export default function Index() {
 
         {/* Search Bar */}
         {showSearch && (
-          <div className="mt-4 animate-slide-up">
+          <div className="mt-4 animate-slide-up space-y-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search stations by name, brand, or address..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 pr-10"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
             <EnhancedLocationSearch onSelectLocation={handleLocationSelect} />
           </div>
         )}
@@ -335,20 +368,17 @@ export default function Index() {
                       size="sm"
                       variant="ghost"
                       onClick={() => setSelectedStation(null)}
-                      className="w-6 h-6 rounded-lg"
+                      className="w-6 h-6 rounded-lg p-0"
                     >
-                      ×
+                      <X className="h-4 w-4" />
                     </Button>
                   </div>
                   <div className="flex gap-2">
-                    <StationReportDialog
+                    <StationDetails 
                       station={selectedStation}
-                      onReportSubmitted={handleStationReported}
-                    >
-                      <Button size="sm" className="flex-1">
-                        Report Status
-                      </Button>
-                    </StationReportDialog>
+                      userLocation={selectedLocation || undefined}
+                      onClose={() => setSelectedStation(null)}
+                    />
                     <Button 
                       size="sm" 
                       variant="outline"

@@ -25,7 +25,21 @@ export default function AddStationDialog({ onStationAdded }: AddStationDialogPro
     lng: '',
     brand: '',
     status: 'available' as 'available' | 'low' | 'out',
-    note: ''
+    note: '',
+    photos: [] as string[],
+    photoInput: '',
+    fuelPrices: { petrol: '', diesel: '', premium: '' },
+    fuelTypes: [] as string[],
+    amenities: [] as string[],
+    operatingHours: {
+      monday: { open: '06:00', close: '22:00' },
+      tuesday: { open: '06:00', close: '22:00' },
+      wednesday: { open: '06:00', close: '22:00' },
+      thursday: { open: '06:00', close: '22:00' },
+      friday: { open: '06:00', close: '22:00' },
+      saturday: { open: '06:00', close: '22:00' },
+      sunday: { open: '06:00', close: '22:00' }
+    }
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -68,6 +82,12 @@ export default function AddStationDialog({ onStationAdded }: AddStationDialogPro
         .replace(/[^a-z0-9\s]/g, '')
         .replace(/\s+/g, '-') + '-' + Date.now();
 
+      // Prepare fuel prices
+      const fuelPrices: Record<string, number> = {};
+      if (formData.fuelPrices.petrol) fuelPrices.petrol = parseFloat(formData.fuelPrices.petrol);
+      if (formData.fuelPrices.diesel) fuelPrices.diesel = parseFloat(formData.fuelPrices.diesel);
+      if (formData.fuelPrices.premium) fuelPrices.premium = parseFloat(formData.fuelPrices.premium);
+
       // First, create the station
       const { error: stationError } = await supabase
         .from('stations')
@@ -78,6 +98,11 @@ export default function AddStationDialog({ onStationAdded }: AddStationDialogPro
           lat: parseFloat(formData.lat),
           lng: parseFloat(formData.lng),
           brand: formData.brand.trim() || null,
+          photos: formData.photos.length > 0 ? formData.photos : null,
+          fuel_prices: Object.keys(fuelPrices).length > 0 ? fuelPrices : null,
+          fuel_types: formData.fuelTypes.length > 0 ? formData.fuelTypes : null,
+          amenities: formData.amenities.length > 0 ? formData.amenities : null,
+          operating_hours: formData.operatingHours,
           created_by: user.id
         });
 
@@ -110,7 +135,21 @@ export default function AddStationDialog({ onStationAdded }: AddStationDialogPro
         lng: '',
         brand: '',
         status: 'available',
-        note: ''
+        note: '',
+        photos: [],
+        photoInput: '',
+        fuelPrices: { petrol: '', diesel: '', premium: '' },
+        fuelTypes: [],
+        amenities: [],
+        operatingHours: {
+          monday: { open: '06:00', close: '22:00' },
+          tuesday: { open: '06:00', close: '22:00' },
+          wednesday: { open: '06:00', close: '22:00' },
+          thursday: { open: '06:00', close: '22:00' },
+          friday: { open: '06:00', close: '22:00' },
+          saturday: { open: '06:00', close: '22:00' },
+          sunday: { open: '06:00', close: '22:00' }
+        }
       });
       
       setOpen(false);
@@ -268,6 +307,142 @@ export default function AddStationDialog({ onStationAdded }: AddStationDialogPro
               rows={3}
               className="resize-none"
             />
+          </div>
+
+          {/* Photo URLs */}
+          <div className="space-y-2">
+            <Label htmlFor="photo-input">Photo URLs (Optional)</Label>
+            <div className="flex gap-2">
+              <Input
+                id="photo-input"
+                placeholder="Enter photo URL..."
+                value={formData.photoInput}
+                onChange={(e) => setFormData(prev => ({ ...prev, photoInput: e.target.value }))}
+              />
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => {
+                  if (formData.photoInput.trim()) {
+                    setFormData(prev => ({
+                      ...prev,
+                      photos: [...prev.photos, prev.photoInput.trim()],
+                      photoInput: ''
+                    }));
+                  }
+                }}
+              >
+                Add
+              </Button>
+            </div>
+            {formData.photos.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-2">
+                {formData.photos.map((photo, i) => (
+                  <div key={i} className="relative group">
+                    <img src={photo} alt="" className="w-16 h-16 object-cover rounded" />
+                    <button
+                      type="button"
+                      onClick={() => setFormData(prev => ({
+                        ...prev,
+                        photos: prev.photos.filter((_, idx) => idx !== i)
+                      }))}
+                      className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-white rounded-full text-xs"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Fuel Prices */}
+          <div className="space-y-2">
+            <Label>Fuel Prices (K/Liter, Optional)</Label>
+            <div className="grid grid-cols-3 gap-2">
+              <Input
+                type="number"
+                step="0.01"
+                placeholder="Petrol"
+                value={formData.fuelPrices.petrol}
+                onChange={(e) => setFormData(prev => ({
+                  ...prev,
+                  fuelPrices: { ...prev.fuelPrices, petrol: e.target.value }
+                }))}
+              />
+              <Input
+                type="number"
+                step="0.01"
+                placeholder="Diesel"
+                value={formData.fuelPrices.diesel}
+                onChange={(e) => setFormData(prev => ({
+                  ...prev,
+                  fuelPrices: { ...prev.fuelPrices, diesel: e.target.value }
+                }))}
+              />
+              <Input
+                type="number"
+                step="0.01"
+                placeholder="Premium"
+                value={formData.fuelPrices.premium}
+                onChange={(e) => setFormData(prev => ({
+                  ...prev,
+                  fuelPrices: { ...prev.fuelPrices, premium: e.target.value }
+                }))}
+              />
+            </div>
+          </div>
+
+          {/* Fuel Types */}
+          <div className="space-y-2">
+            <Label>Fuel Types Available</Label>
+            <div className="flex flex-wrap gap-2">
+              {['petrol', 'diesel', 'premium', 'lpg', 'electric'].map((type) => (
+                <Button
+                  key={type}
+                  type="button"
+                  size="sm"
+                  variant={formData.fuelTypes.includes(type) ? 'default' : 'outline'}
+                  onClick={() => {
+                    setFormData(prev => ({
+                      ...prev,
+                      fuelTypes: prev.fuelTypes.includes(type)
+                        ? prev.fuelTypes.filter(t => t !== type)
+                        : [...prev.fuelTypes, type]
+                    }));
+                  }}
+                  className="capitalize"
+                >
+                  {type}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          {/* Amenities */}
+          <div className="space-y-2">
+            <Label>Amenities</Label>
+            <div className="flex flex-wrap gap-2">
+              {['wifi', 'coffee', 'car_wash', 'shop', 'restroom', 'atm'].map((amenity) => (
+                <Button
+                  key={amenity}
+                  type="button"
+                  size="sm"
+                  variant={formData.amenities.includes(amenity) ? 'default' : 'outline'}
+                  onClick={() => {
+                    setFormData(prev => ({
+                      ...prev,
+                      amenities: prev.amenities.includes(amenity)
+                        ? prev.amenities.filter(a => a !== amenity)
+                        : [...prev.amenities, amenity]
+                    }));
+                  }}
+                  className="capitalize text-xs"
+                >
+                  {amenity.replace('_', ' ')}
+                </Button>
+              ))}
+            </div>
           </div>
 
           {/* Submit Button */}

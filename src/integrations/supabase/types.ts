@@ -220,6 +220,44 @@ export type Database = {
           },
         ]
       }
+      station_reviews: {
+        Row: {
+          comment: string | null
+          created_at: string
+          id: string
+          rating: number
+          station_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          rating: number
+          station_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          rating?: number
+          station_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "station_reviews_station_id_fkey"
+            columns: ["station_id"]
+            isOneToOne: false
+            referencedRelation: "stations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stations: {
         Row: {
           address: string
@@ -227,12 +265,14 @@ export type Database = {
           brand: string | null
           created_at: string
           created_by: string | null
+          fuel_prices: Json | null
           fuel_types: string[] | null
           id: string
           lat: number
           lng: number
           name: string
           operating_hours: Json | null
+          photos: string[] | null
           updated_at: string
         }
         Insert: {
@@ -241,12 +281,14 @@ export type Database = {
           brand?: string | null
           created_at?: string
           created_by?: string | null
+          fuel_prices?: Json | null
           fuel_types?: string[] | null
           id: string
           lat: number
           lng: number
           name: string
           operating_hours?: Json | null
+          photos?: string[] | null
           updated_at?: string
         }
         Update: {
@@ -255,12 +297,14 @@ export type Database = {
           brand?: string | null
           created_at?: string
           created_by?: string | null
+          fuel_prices?: Json | null
           fuel_types?: string[] | null
           id?: string
           lat?: number
           lng?: number
           name?: string
           operating_hours?: Json | null
+          photos?: string[] | null
           updated_at?: string
         }
         Relationships: []
