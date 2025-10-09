@@ -74,10 +74,10 @@ export default function StationList({
                 className="animate-fade-in"
                 style={{ animationDelay: `${index * 100}ms` }}
               >
-                <button
+                <div
                   onClick={() => onSelect(station)}
                   className={cn(
-                    "w-full text-left rounded-2xl border p-4 transition-mobile active:scale-98",
+                    "w-full text-left rounded-2xl border p-4 transition-mobile active:scale-98 cursor-pointer",
                     "hover-lift shadow-sm bg-card/50 backdrop-blur-sm",
                     isActive 
                       ? 'bg-accent/20 border-accent shadow-md' 
@@ -130,7 +130,7 @@ export default function StationList({
                       )} />
                     </Button>
                   </div>
-                </button>
+                </div>
               </div>
             );
           })}
