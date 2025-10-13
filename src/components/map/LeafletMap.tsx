@@ -47,6 +47,8 @@ export default function LeafletMap({ stations, onSelect, className, focusPoint }
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
           attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+          fadeAnimation: false,
+          className: 'map-tile-layer',
         }).addTo(map);
 
         // Initialize station layer

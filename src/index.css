@@ -473,9 +473,13 @@ All colors MUST be HSL. Optimized for mobile experiences.
 
 .leaflet-tile-pane,
 .leaflet-tile-container,
-.leaflet-tile {
+.leaflet-tile,
+.map-tile-layer,
+img.leaflet-tile {
   opacity: 1 !important;
   z-index: 1 !important;
+  animation: none !important;
+  transition: none !important;
 }
 
 .leaflet-pane {
