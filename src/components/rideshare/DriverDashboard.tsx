@@ -10,6 +10,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import { Car, Star, Navigation, DollarSign } from 'lucide-react';
+import { useDriverLocation } from '@/hooks/useDriverLocation';
+import ActiveRideTracker from './ActiveRideTracker';
+import RideHistory from './RideHistory';
 
 interface DriverProfile {
   id: string;
@@ -45,6 +48,9 @@ export default function DriverDashboard() {
   const [vehicleMake, setVehicleMake] = useState('');
   const [vehicleModel, setVehicleModel] = useState('');
   const [licensePlate, setLicensePlate] = useState('');
+  
+  // Enable real-time location tracking when driver is active
+  useDriverLocation(driverProfile?.is_active ?? false);
 
   useEffect(() => {
     if (user) {
@@ -229,6 +235,9 @@ export default function DriverDashboard() {
 
   return (
     <div className="space-y-6">
+      {/* Active Ride Tracker */}
+      <ActiveRideTracker />
+      
       {/* Driver Status Card */}
       <Card className="surface-gradient">
         <CardHeader>
@@ -335,6 +344,9 @@ export default function DriverDashboard() {
           )}
         </CardContent>
       </Card>
+
+      {/* Ride History */}
+      <RideHistory />
     </div>
   );
 }

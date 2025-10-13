@@ -135,32 +135,50 @@ export function useNotifications(): UseNotificationsReturn {
 
   // Listen for station updates for favorites
   useEffect(() => {
-    if (!user || !preferences.favoriteStationUpdates) return;
+    if (!user || !preferences.favoriteStationUpdates || !hasPermission) return;
 
-    const channel = supabase
-      .channel('favorite-station-updates')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'station_reports'
-        },
-        (payload) => {
-          const report = payload.new as any;
-          // Check if this is a favorite station (you'd need to check user's favorites)
-          showNotification(
-            `${report.station_name} Updated`,
-            `Status changed to ${report.status}${report.note ? ': ' + report.note : ''}`
-          );
-        }
-      )
-      .subscribe();
+    const loadFavoritesAndSubscribe = async () => {
+      // Get user's favorite stations from profile
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('preferences')
+        .eq('id', user.id)
+        .single();
 
-    return () => {
-      supabase.removeChannel(channel);
+      const favoriteStations = (profileData?.preferences as any)?.favorite_stations || [];
+
+      if (favoriteStations.length === 0) return;
+
+      // Subscribe to station reports
+      const channel = supabase
+        .channel('favorite-station-updates')
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'station_reports'
+          },
+          (payload) => {
+            const report = payload.new as any;
+            // Only notify if this is a favorite station
+            if (favoriteStations.includes(report.station_id)) {
+              showNotification(
+                `${report.station_name} Updated`,
+                `Status: ${report.status}${report.note ? ' - ' + report.note : ''}`
+              );
+            }
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
     };
-  }, [user, preferences.favoriteStationUpdates, showNotification]);
+
+    loadFavoritesAndSubscribe();
+  }, [user, preferences.favoriteStationUpdates, hasPermission, showNotification]);
 
   return {
     preferences,

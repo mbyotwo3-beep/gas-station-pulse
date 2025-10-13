@@ -10,6 +10,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import { Navigation, MapPin, Clock, DollarSign, User } from 'lucide-react';
 import LocationSearch from '@/components/map/LocationSearch';
+import ActiveRideTracker from './ActiveRideTracker';
+import RideHistory from './RideHistory';
 
 interface RideRequest {
   id: string;
@@ -155,58 +157,18 @@ export default function PassengerDashboard() {
   // Show active ride if exists
   if (activeRide) {
     return (
-      <Card className="surface-gradient">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Navigation className="h-5 w-5" />
-            Active Ride
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Badge variant={
-            activeRide.status === 'accepted' ? 'success' : 
-            activeRide.status === 'in_progress' ? 'warning' : 'secondary'
-          }>
-            {activeRide.status === 'accepted' ? 'Driver En Route' : 
-             activeRide.status === 'in_progress' ? 'In Progress' : 
-             activeRide.status.charAt(0).toUpperCase() + activeRide.status.slice(1)}
-          </Badge>
-          
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <MapPin className="h-4 w-4 text-primary" />
-              <span className="font-medium">Pickup:</span>
-              <span className="text-sm">{activeRide.pickup_location.address}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Navigation className="h-4 w-4 text-destructive" />
-              <span className="font-medium">Destination:</span>
-              <span className="text-sm">{activeRide.destination_location.address}</span>
-            </div>
-            {activeRide.fare_amount && (
-              <div className="flex items-center gap-2">
-                <DollarSign className="h-4 w-4 text-success" />
-                <span className="font-medium">Fare: ${activeRide.fare_amount}</span>
-              </div>
-            )}
-          </div>
-          
-          <div className="pt-4 border-t">
-            <p className="text-sm text-muted-foreground">
-              {activeRide.status === 'accepted' 
-                ? 'Your driver is on the way to pick you up!' 
-                : 'Enjoy your ride! You can rate your driver when the trip is complete.'}
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="space-y-6">
+        <ActiveRideTracker />
+        <RideHistory />
+      </div>
     );
   }
 
   // Show active request if exists
   if (activeRequest) {
     return (
-      <Card className="surface-gradient">
+      <div className="space-y-6">
+        <Card className="surface-gradient">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Clock className="h-5 w-5" />
@@ -255,12 +217,15 @@ export default function PassengerDashboard() {
           </div>
         </CardContent>
       </Card>
+        <RideHistory />
+      </div>
     );
   }
 
   // Show request ride form
   return (
-    <Card className="surface-gradient">
+    <div className="space-y-6">
+      <Card className="surface-gradient">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Navigation className="h-5 w-5" />
@@ -346,5 +311,7 @@ export default function PassengerDashboard() {
         </Button>
       </CardContent>
     </Card>
+      <RideHistory />
+    </div>
   );
 }
