@@ -466,7 +466,22 @@ All colors MUST be HSL. Optimized for mobile experiences.
 .leaflet-container {
   height: 100% !important;
   width: 100% !important;
-  z-index: 10000 !important;
+  z-index: 1 !important;
   position: relative !important;
-  background: #fff !important;
+  background: hsl(var(--muted)) !important;
+}
+
+.leaflet-tile-pane,
+.leaflet-tile-container,
+.leaflet-tile {
+  opacity: 1 !important;
+  z-index: 1 !important;
+}
+
+.leaflet-pane {
+  z-index: auto !important;
+}
+
+.leaflet-map-pane {
+  z-index: 1 !important;
 }
