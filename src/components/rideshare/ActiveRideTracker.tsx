@@ -5,9 +5,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useActiveRide } from '@/hooks/useActiveRide';
 import { useAuth } from '@/contexts/AuthContext';
-import { Navigation, MapPin, Clock, DollarSign, Phone } from 'lucide-react';
+import { Navigation, MapPin, Clock, DollarSign, MessageCircle } from 'lucide-react';
 import { useState } from 'react';
 import { RideRatingDialog } from './RideRatingDialog';
+import { RidePaymentDialog } from './RidePaymentDialog';
+import { RideChatDialog } from './RideChatDialog';
 
 export default function ActiveRideTracker() {
   const { user } = useAuth();
@@ -15,6 +17,8 @@ export default function ActiveRideTracker() {
   const [notes, setNotes] = useState('');
   const [updating, setUpdating] = useState(false);
   const [showRating, setShowRating] = useState(false);
+  const [showPayment, setShowPayment] = useState(false);
+  const [showChat, setShowChat] = useState(false);
 
   if (loading) {
     return <div className="text-center text-muted-foreground">Loading...</div>;
@@ -36,7 +40,11 @@ export default function ActiveRideTracker() {
     setNotes('');
     setUpdating(false);
     if (success && newStatus === 'completed') {
-      setShowRating(true);
+      if (!isDriver) {
+        setShowPayment(true);
+      } else {
+        setShowRating(true);
+      }
     }
   };
 
@@ -150,24 +158,51 @@ export default function ActiveRideTracker() {
           </div>
         )}
 
-        {/* Contact Information */}
+        {/* Chat Button */}
         <div className="pt-4 border-t">
-          <p className="text-sm text-muted-foreground text-center">
-            {isDriver 
-              ? '📱 Contact passenger if needed' 
-              : '📱 Contact driver if needed'}
-          </p>
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={() => setShowChat(true)}
+          >
+            <MessageCircle className="h-4 w-4 mr-2" />
+            Chat with {isDriver ? 'Passenger' : 'Driver'}
+          </Button>
         </div>
       </CardContent>
 
       {showRating && activeRide && (
         <RideRatingDialog
           open={showRating}
-          onOpenChange={setShowRating}
+          onOpenChange={(open) => {
+            setShowRating(open);
+            if (!open && !isDriver) setShowPayment(true);
+          }}
           rideId={activeRide.id}
           ratedUserId={isDriver ? activeRide.passenger_id! : activeRide.driver_id!}
           ratedUserName={isDriver ? 'Passenger' : 'Driver'}
           userType={isDriver ? 'passenger' : 'driver'}
+        />
+      )}
+
+      {showPayment && activeRide && activeRide.fare_amount && (
+        <RidePaymentDialog
+          open={showPayment}
+          onOpenChange={(open) => {
+            setShowPayment(open);
+            if (!open) setShowRating(true);
+          }}
+          rideId={activeRide.id}
+          amount={activeRide.fare_amount}
+        />
+      )}
+
+      {showChat && activeRide && (
+        <RideChatDialog
+          open={showChat}
+          onOpenChange={setShowChat}
+          rideId={activeRide.id}
+          otherUserName={isDriver ? 'Passenger' : 'Driver'}
         />
       )}
     </Card>
