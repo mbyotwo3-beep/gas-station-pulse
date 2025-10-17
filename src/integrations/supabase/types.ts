@@ -92,6 +92,44 @@ export type Database = {
         }
         Relationships: []
       }
+      ride_ratings: {
+        Row: {
+          comment: string | null
+          created_at: string
+          id: string
+          rated_by: string
+          rated_user: string
+          rating: number
+          ride_id: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          rated_by: string
+          rated_user: string
+          rating: number
+          ride_id: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          rated_by?: string
+          rated_user?: string
+          rating?: number
+          ride_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ride_ratings_ride_id_fkey"
+            columns: ["ride_id"]
+            isOneToOne: false
+            referencedRelation: "rides"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ride_requests: {
         Row: {
           created_at: string

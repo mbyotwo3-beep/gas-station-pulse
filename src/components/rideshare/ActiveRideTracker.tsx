@@ -7,12 +7,14 @@ import { useActiveRide } from '@/hooks/useActiveRide';
 import { useAuth } from '@/contexts/AuthContext';
 import { Navigation, MapPin, Clock, DollarSign, Phone } from 'lucide-react';
 import { useState } from 'react';
+import { RideRatingDialog } from './RideRatingDialog';
 
 export default function ActiveRideTracker() {
   const { user } = useAuth();
   const { activeRide, updateRideStatus, loading } = useActiveRide();
   const [notes, setNotes] = useState('');
   const [updating, setUpdating] = useState(false);
+  const [showRating, setShowRating] = useState(false);
 
   if (loading) {
     return <div className="text-center text-muted-foreground">Loading...</div>;
@@ -30,9 +32,12 @@ export default function ActiveRideTracker() {
 
   const handleStatusUpdate = async (newStatus: string) => {
     setUpdating(true);
-    await updateRideStatus(activeRide.id, newStatus, notes || undefined);
+    const success = await updateRideStatus(activeRide.id, newStatus, notes || undefined);
     setNotes('');
     setUpdating(false);
+    if (success && newStatus === 'completed') {
+      setShowRating(true);
+    }
   };
 
   return (
@@ -154,6 +159,17 @@ export default function ActiveRideTracker() {
           </p>
         </div>
       </CardContent>
+
+      {showRating && activeRide && (
+        <RideRatingDialog
+          open={showRating}
+          onOpenChange={setShowRating}
+          rideId={activeRide.id}
+          ratedUserId={isDriver ? activeRide.passenger_id! : activeRide.driver_id!}
+          ratedUserName={isDriver ? 'Passenger' : 'Driver'}
+          userType={isDriver ? 'passenger' : 'driver'}
+        />
+      )}
     </Card>
   );
 }
