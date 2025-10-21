@@ -160,11 +160,11 @@ export default function LeafletMap({ stations, onSelect, className, focusPoint }
   }, [focusPoint]);
 
   return (
-    <div className="relative">
-      <div ref={containerRef} className={cn("w-full rounded-2xl overflow-hidden shadow-mobile", className ?? "h-[60vh]")} />
+    <div className={cn("relative w-full", className)}>
+      <div ref={containerRef} className="absolute inset-0 w-full h-full rounded-2xl overflow-hidden shadow-mobile z-0" style={{ minHeight: '300px' }} />
       
       {/* Map legend */}
-      <div className="absolute bottom-4 left-4 bg-background/95 backdrop-blur-md rounded-xl p-3 shadow-md border border-border/30">
+      <div className="absolute bottom-4 left-4 bg-background/95 backdrop-blur-md rounded-xl p-3 shadow-md border border-border/30 z-10">
         <div className="text-xs font-medium mb-2">Station Status</div>
         <div className="space-y-1">
           <div className="flex items-center gap-2">

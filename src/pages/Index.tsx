@@ -281,7 +281,7 @@ export default function Index() {
         {mode === 'fuel' ? (
           <div className="flex flex-col h-full w-full">
             {/* Map Section */}
-            <div className="w-full h-[50vh] relative">
+            <div className="w-full h-[45vh] min-h-[300px] relative bg-muted/30">
               {stationsLoading ? (
                 <StationMapSkeleton />
               ) : (
@@ -289,17 +289,21 @@ export default function Index() {
                   stations={filteredStations}
                   onSelect={handleStationSelect}
                   focusPoint={selectedLocation}
-                  className="h-full w-full"
+                  className="h-full"
                 />
               )}
             </div>
             {/* Actions Bar */}
-            <div className="flex items-center justify-between px-4 py-2 bg-background sticky top-0 z-20">
-              <h2 className="font-semibold text-lg">Nearby Stations</h2>
+            <div className="flex items-center justify-between px-4 py-3 bg-background/95 backdrop-blur-md sticky top-0 z-20 border-b border-border/50">
+              <div>
+                <h2 className="font-semibold text-base">Nearby Stations</h2>
+                <p className="text-xs text-muted-foreground">From your chosen point</p>
+              </div>
               <div className="flex gap-2">
                 {canManageStations() && <AddStationDialog onStationAdded={handleStationReported} />}
-                <Button size="sm" variant="ghost" onClick={() => setShowFilters(true)}>
-                  <Filter className="h-4 w-4" />
+                <Button size="sm" variant="outline" onClick={() => setShowFilters(true)} className="h-9 px-3">
+                  <Filter className="h-4 w-4 mr-1" />
+                  <span className="text-xs">Filter</span>
                 </Button>
               </div>
             </div>
@@ -331,44 +335,44 @@ export default function Index() {
               )}
             </div>
             {/* Station Status Summary */}
-            <div className="fixed bottom-20 left-0 right-0 px-4 z-30">
-              <div className="bg-background/95 backdrop-blur-md rounded-2xl p-4 shadow-lg border border-border/30">
+            <div className="fixed bottom-20 left-4 right-4 z-30 pointer-events-none">
+              <div className="bg-background/98 backdrop-blur-xl rounded-2xl p-4 shadow-elegant border border-border/50 pointer-events-auto">
                 <div className="grid grid-cols-3 gap-4 text-center">
-                  <div>
-                    <div className="text-lg font-semibold text-success">{filteredStations.filter(s => s.status === 'available').length}</div>
-                    <div className="text-xs text-muted-foreground">Available</div>
+                  <div className="space-y-1">
+                    <div className="text-2xl font-bold text-success">{filteredStations.filter(s => s.status === 'available').length}</div>
+                    <div className="text-xs text-muted-foreground font-medium">Available</div>
                   </div>
-                  <div>
-                    <div className="text-lg font-semibold text-warning">{filteredStations.filter(s => s.status === 'low').length}</div>
-                    <div className="text-xs text-muted-foreground">Low Stock</div>
+                  <div className="space-y-1 border-x border-border/50">
+                    <div className="text-2xl font-bold text-warning">{filteredStations.filter(s => s.status === 'low').length}</div>
+                    <div className="text-xs text-muted-foreground font-medium">Low Stock</div>
                   </div>
-                  <div>
-                    <div className="text-lg font-semibold text-destructive">{filteredStations.filter(s => s.status === 'out').length}</div>
-                    <div className="text-xs text-muted-foreground">Out of Stock</div>
+                  <div className="space-y-1">
+                    <div className="text-2xl font-bold text-destructive">{filteredStations.filter(s => s.status === 'out').length}</div>
+                    <div className="text-xs text-muted-foreground font-medium">Out of Stock</div>
                   </div>
                 </div>
               </div>
             </div>
             {/* Selected Station Dialog */}
             {selectedStation && (
-              <div className="fixed bottom-36 left-0 right-0 px-4 z-40">
-                <div className="bg-background/95 backdrop-blur-md rounded-2xl p-4 shadow-lg border border-border/30">
-                  <div className="flex items-center gap-3 mb-3">
+              <div className="fixed bottom-36 left-4 right-4 z-40 animate-slide-up">
+                <div className="bg-background/98 backdrop-blur-xl rounded-2xl p-4 shadow-elegant border border-primary/20">
+                  <div className="flex items-start gap-3 mb-3">
                     <div className={cn(
-                      "w-4 h-4 rounded-full",
+                      "w-3 h-3 rounded-full mt-1 flex-shrink-0 animate-pulse",
                       selectedStation.status === 'available' && "bg-success",
                       selectedStation.status === 'low' && "bg-warning", 
                       selectedStation.status === 'out' && "bg-destructive"
                     )} />
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-sm">{selectedStation.name}</h3>
-                      <p className="text-xs text-muted-foreground">{selectedStation.address}</p>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-sm truncate">{selectedStation.name}</h3>
+                      <p className="text-xs text-muted-foreground line-clamp-1">{selectedStation.address}</p>
                     </div>
                     <Button
                       size="sm"
                       variant="ghost"
                       onClick={() => setSelectedStation(null)}
-                      className="w-6 h-6 rounded-lg p-0"
+                      className="w-8 h-8 rounded-full p-0 flex-shrink-0 hover:bg-destructive/10"
                     >
                       <X className="h-4 w-4" />
                     </Button>
@@ -385,11 +389,11 @@ export default function Index() {
                       onClick={() => {
                         toggleFavoriteStation(selectedStation.id);
                       }}
-                      className="px-3"
+                      className="px-3 hover:bg-warning/10"
                     >
-                      <Star className={cn("h-4 w-4",
+                      <Star className={cn("h-4 w-4 transition-all",
                         profile?.preferences?.favorite_stations?.includes(selectedStation.id)
-                          ? 'text-warning fill-current'
+                          ? 'text-warning fill-warning'
                           : 'text-muted-foreground'
                       )} />
                     </Button>
