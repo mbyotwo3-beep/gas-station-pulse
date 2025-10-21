@@ -56,8 +56,35 @@ export default function DriverDashboard() {
     if (user) {
       fetchDriverProfile();
       fetchRideRequests();
+      
+      // Real-time subscription for new ride requests
+      const channel = supabase
+        .channel('ride-requests-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'ride_requests',
+            filter: 'status=eq.active'
+          },
+          () => {
+            fetchRideRequests();
+            if (driverProfile?.is_active && 'Notification' in window && Notification.permission === 'granted') {
+              new Notification('New Ride Request', {
+                body: 'A new ride request is available',
+                icon: '/favicon.ico'
+              });
+            }
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
     }
-  }, [user]);
+  }, [user, driverProfile?.is_active]);
 
   const fetchDriverProfile = async () => {
     if (!user) return;

@@ -237,7 +237,8 @@ export default function StationDetails({ station, userLocation, onClose }: Stati
             <TabsContent value="photos">
               <StationPhotos 
                 photos={station.photos || []} 
-                stationName={station.name} 
+                stationName={station.name}
+                stationId={station.id}
               />
             </TabsContent>
 

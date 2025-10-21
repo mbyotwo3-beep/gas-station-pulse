@@ -10,12 +10,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { User, Settings, Shield } from "lucide-react";
+import { User, Settings, Shield, Camera } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfile } from "@/hooks/useProfile";
 import { useRoles } from "@/hooks/useRoles";
 import { toast } from "@/hooks/use-toast";
 import RoleBasedFeatures from "@/components/RoleBasedFeatures";
+import { PhotoUpload } from "@/components/PhotoUpload";
 
 export default function ProfileDialog() {
   const { user, signOut } = useAuth();
@@ -122,7 +123,36 @@ export default function ProfileDialog() {
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="avatarUrl">Avatar URL</Label>
+              <Label htmlFor="avatarUrl">Avatar</Label>
+              {avatarUrl && (
+                <div className="flex items-center gap-4 mb-2">
+                  <img 
+                    src={avatarUrl} 
+                    alt="Avatar preview" 
+                    className="w-16 h-16 rounded-full object-cover border-2 border-border"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setAvatarUrl('')}
+                  >
+                    Remove
+                  </Button>
+                </div>
+              )}
+              <PhotoUpload
+                bucket="avatars"
+                folder={user?.id || 'default'}
+                onUploadComplete={(url) => {
+                  setAvatarUrl(url);
+                  toast({ title: 'Avatar uploaded!', description: 'Click Save Changes to update your profile.' });
+                }}
+                maxSize={2097152}
+              />
+              <p className="text-xs text-muted-foreground">
+                Or enter a URL directly:
+              </p>
               <Input
                 id="avatarUrl"
                 value={avatarUrl}

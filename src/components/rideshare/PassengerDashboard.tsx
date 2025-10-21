@@ -53,6 +53,57 @@ export default function PassengerDashboard() {
     if (user) {
       fetchActiveRequest();
       fetchActiveRide();
+      
+      // Real-time subscription for ride status changes
+      const channel = supabase
+        .channel('passenger-ride-updates')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'rides',
+            filter: `passenger_id=eq.${user.id}`
+          },
+          (payload) => {
+            if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+              fetchActiveRide();
+              if ('Notification' in window && Notification.permission === 'granted') {
+                const ride = payload.new as any;
+                let message = 'Your ride has been updated';
+                if (ride.status === 'accepted') message = 'A driver accepted your request!';
+                else if (ride.status === 'in_progress') message = 'Your ride is in progress';
+                else if (ride.status === 'completed') message = 'Your ride is complete';
+                
+                new Notification('Ride Update', {
+                  body: message,
+                  icon: '/favicon.ico'
+                });
+              }
+            }
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'ride_requests',
+            filter: `passenger_id=eq.${user.id}`
+          },
+          (payload) => {
+            const request = payload.new as any;
+            if (request.status === 'matched') {
+              fetchActiveRequest();
+              fetchActiveRide();
+            }
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
     }
   }, [user]);
 
