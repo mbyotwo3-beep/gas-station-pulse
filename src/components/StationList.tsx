@@ -53,17 +53,7 @@ export default function StationList({
   }, [stations, origin]);
 
   return (
-    <Card className="mobile-card bg-gradient-surface">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-base font-semibold">Nearby stations</h2>
-        {origin && (
-          <div className="text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded-lg">
-            From your chosen point
-          </div>
-        )}
-      </div>
-      <ScrollArea className="max-h-[60vh] pr-2">
-        <div className="space-y-3">
+    <div className="space-y-3">
           {items.map(({ station, distanceKm }, index) => {
             const isActive = selectedId === station.id;
             const isFav = favorites.has(station.id);
@@ -134,8 +124,6 @@ export default function StationList({
               </div>
             );
           })}
-        </div>
-      </ScrollArea>
-    </Card>
+    </div>
   );
 }

@@ -336,8 +336,8 @@ export default function Index() {
                 </Button>
               </div>
             </div>
-            {/* Station List */}
-            <div className="flex-1 overflow-y-auto px-4 pb-24">
+            {/* Station List - increased bottom padding to prevent overlap */}
+            <div className="flex-1 overflow-y-auto px-4 pb-64">
               {filteredStations.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-48">
                   <h2 className="text-lg font-semibold mb-2">No stations found</h2>
@@ -363,8 +363,8 @@ export default function Index() {
                 />
               )}
             </div>
-            {/* Station Status Summary */}
-            <div className="fixed bottom-20 left-4 right-4 z-30 pointer-events-none">
+            {/* Station Status Summary - adjusted positioning */}
+            <div className="fixed bottom-24 left-4 right-4 z-10 pointer-events-none md:hidden">
               <div className="bg-background/98 backdrop-blur-xl rounded-2xl p-4 shadow-elegant border border-border/50 pointer-events-auto">
                 <div className="grid grid-cols-3 gap-4 text-center">
                   <div className="space-y-1">
@@ -384,7 +384,7 @@ export default function Index() {
             </div>
             {/* Selected Station Dialog */}
             {selectedStation && (
-              <div className="fixed bottom-36 left-4 right-4 z-40 animate-slide-up">
+              <div className="fixed bottom-44 left-4 right-4 z-20 animate-slide-up md:hidden">
                 <div className="bg-background/98 backdrop-blur-xl rounded-2xl p-4 shadow-elegant border border-primary/20">
                   <div className="flex items-start gap-3 mb-3">
                     <div className={cn(
@@ -432,14 +432,14 @@ export default function Index() {
             )}
           </div>
         ) : mode === 'admin' && hasRole('admin') ? (
-          <div className="pb-24">
+          <div className="pb-24 px-4 overflow-y-auto h-[calc(100vh-250px)]">
             <AdminPanel />
           </div>
         ) : (
           <>
             {/* Rideshare Content */}
             {!user ? (
-              <div className="flex items-center justify-center h-[calc(100vh-200px)] p-8">
+              <div className="flex items-center justify-center min-h-[calc(100vh-240px)] p-8">
             <div className="text-center space-y-6">
               <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
                 <Car className="h-12 w-12 text-primary" />
@@ -450,16 +450,17 @@ export default function Index() {
                   Sign in to request rides or become a driver
                 </p>
               </div>
-              <button
+              <Button
                 onClick={() => window.location.href = '/auth'}
-                className="mobile-button w-full max-w-xs mx-auto"
+                className="w-full max-w-xs mx-auto"
+                size="lg"
               >
                 Get Started
-              </button>
+              </Button>
             </div>
               </div>
             ) : !canRequestRides() ? (
-              <div className="flex items-center justify-center h-[calc(100vh-200px)] p-8">
+              <div className="flex items-center justify-center min-h-[calc(100vh-240px)] p-8">
                 <div className="text-center space-y-6">
                   <div className="w-24 h-24 bg-warning/10 rounded-full flex items-center justify-center mx-auto">
                     <Car className="h-12 w-12 text-warning" />
@@ -474,9 +475,9 @@ export default function Index() {
                 </div>
               </div>
             ) : (
-              <div className="h-[calc(100vh-200px)]">
+              <div className="flex flex-col h-[calc(100vh-240px)]">
                 {/* Rideshare Map */}
-                <div className="h-1/2">
+                <div className="flex-1 min-h-[300px]">
                   <RideShareMap
                     focusPoint={selectedLocation}
                     className="h-full w-full"
@@ -484,7 +485,7 @@ export default function Index() {
                 </div>
                 
                 {/* Dashboard */}
-                <div className="h-1/2 p-4 bg-background overflow-y-auto">
+                <div className="flex-1 p-4 bg-background overflow-y-auto pb-24">
                   <div className="mobile-card">
                     {rideShareMode === 'driver' && canDrive() ? (
                       <DriverDashboard />
@@ -528,26 +529,7 @@ export default function Index() {
       />
 
       {/* Mobile Bottom Navigation */}
-      <nav className="mobile-bottom-nav mobile-safe-bottom">
-        <div className="flex justify-around items-center py-2">
-          <button className="flex flex-col items-center space-y-1 p-2 rounded-xl active:scale-95 transition-mobile">
-            <MapPin className="h-5 w-5 text-primary" />
-            <span className="text-xs font-medium text-primary">Home</span>
-          </button>
-          <button className="flex flex-col items-center space-y-1 p-2 rounded-xl active:scale-95 transition-mobile">
-            <Star className="h-5 w-5 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground">Favorites</span>
-          </button>
-          <button className="flex flex-col items-center space-y-1 p-2 rounded-xl active:scale-95 transition-mobile">
-            <Search className="h-5 w-5 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground">Search</span>
-          </button>
-          <button className="flex flex-col items-center space-y-1 p-2 rounded-xl active:scale-95 transition-mobile">
-            <Settings className="h-5 w-5 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground">Settings</span>
-          </button>
-        </div>
-      </nav>
+      <BottomBar />
     </div>
   );
 }
