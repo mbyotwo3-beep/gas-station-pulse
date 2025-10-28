@@ -12,6 +12,11 @@ import ThemeToggle from "@/components/ThemeToggle";
 import DriverDashboard from "@/components/rideshare/DriverDashboard";
 import PassengerDashboard from "@/components/rideshare/PassengerDashboard";
 import BottomBar from "@/components/mobile/BottomBar";
+import ServiceSelector from "@/components/delivery/ServiceSelector";
+import FoodDeliveryDashboard from "@/components/delivery/FoodDeliveryDashboard";
+import PackageDeliveryForm from "@/components/delivery/PackageDeliveryForm";
+import OrderTracker from "@/components/delivery/OrderTracker";
+import DriverDeliveryDashboard from "@/components/delivery/DriverDeliveryDashboard";
 import ProfileDialog from "@/components/ProfileDialog";
 import StationReportDialog from "@/components/StationReportDialog";
 import AddStationDialog from "@/components/AddStationDialog";
@@ -58,6 +63,7 @@ export default function Index() {
   
   const [mode, setMode] = useState<'fuel' | 'rideshare' | 'admin'>('fuel');
   const [rideShareMode, setRideShareMode] = useState<'passenger' | 'driver'>('passenger');
+  const [selectedService, setSelectedService] = useState<'ride' | 'food_delivery' | 'package_delivery'>('ride');
   const [selectedStation, setSelectedStation] = useState<Station | null>(null);
   const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number; label?: string } | null>(null);
   const [showSearch, setShowSearch] = useState(false);
@@ -486,11 +492,32 @@ export default function Index() {
                 
                 {/* Dashboard */}
                 <div className="flex-1 p-4 bg-background overflow-y-auto pb-24">
-                  <div className="mobile-card">
-                    {rideShareMode === 'driver' && canDrive() ? (
-                      <DriverDashboard />
-                    ) : (
-                      <PassengerDashboard />
+                  <div className="mobile-card space-y-4">
+                    <ServiceSelector 
+                      selectedService={selectedService}
+                      onServiceChange={setSelectedService}
+                    />
+                    <OrderTracker />
+                    {selectedService === 'ride' && (
+                      rideShareMode === 'driver' && canDrive() ? (
+                        <DriverDashboard />
+                      ) : (
+                        <PassengerDashboard />
+                      )
+                    )}
+                    {selectedService === 'food_delivery' && (
+                      rideShareMode === 'driver' && canDrive() ? (
+                        <DriverDeliveryDashboard />
+                      ) : (
+                        <FoodDeliveryDashboard />
+                      )
+                    )}
+                    {selectedService === 'package_delivery' && (
+                      rideShareMode === 'driver' && canDrive() ? (
+                        <DriverDeliveryDashboard />
+                      ) : (
+                        <PackageDeliveryForm />
+                      )
                     )}
                   </div>
                 </div>

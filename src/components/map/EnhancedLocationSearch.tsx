@@ -19,7 +19,8 @@ interface SearchHistoryItem {
 }
 
 interface EnhancedLocationSearchProps {
-  onSelectLocation: (location: SearchLocation) => void;
+  onSelectLocation?: (location: SearchLocation) => void;
+  onLocationSelect?: (location: SearchLocation) => void;
   placeholder?: string;
   className?: string;
 }
@@ -28,9 +29,11 @@ const MAX_HISTORY_ITEMS = 10;
 
 export default function EnhancedLocationSearch({ 
   onSelectLocation, 
+  onLocationSelect,
   placeholder = "Search for places...", 
   className 
 }: EnhancedLocationSearchProps) {
+  const handleLocationCallback = onLocationSelect || onSelectLocation;
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchLocation[]>([]);
   const [loading, setLoading] = useState(false);
@@ -135,7 +138,9 @@ export default function EnhancedLocationSearch({
   };
 
   const handleSelectLocation = (location: SearchLocation) => {
-    onSelectLocation(location);
+    if (handleLocationCallback) {
+      handleLocationCallback(location);
+    }
     addToHistory(query, location);
     setQuery('');
     setShowSuggestions(false);
@@ -143,8 +148,8 @@ export default function EnhancedLocationSearch({
   };
 
   const handleSelectFromHistory = (item: SearchHistoryItem) => {
-    if (item.location) {
-      onSelectLocation(item.location);
+    if (item.location && handleLocationCallback) {
+      handleLocationCallback(item.location);
       setQuery('');
       setShowSuggestions(false);
     } else {
