@@ -11,6 +11,23 @@ L.Icon.Default.mergeOptions({
   iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
 });
+// Haversine formula to calculate distance in km
+function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371; // Earth's radius in km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+function formatDistance(km: number): string {
+  if (km < 1) return `${Math.round(km * 1000)}m`;
+  return `${km.toFixed(1)}km`;
+}
+
 export interface LeafletMapProps {
   stations: Station[];
   onSelect?: (s: Station) => void;
@@ -87,6 +104,14 @@ export default function LeafletMap({ stations, onSelect, className, focusPoint }
 
     stations.forEach((s) => {
       const isSelected = selectedStation?.id === s.id;
+      
+      // Calculate distance if focusPoint is available
+      let distanceText = '';
+      if (focusPoint) {
+        const distance = calculateDistance(focusPoint.lat, focusPoint.lng, s.lat, s.lng);
+        distanceText = `<br><span class="text-xs">${formatDistance(distance)} away</span>`;
+      }
+      
       const marker = L.circleMarker([s.lat, s.lng], {
         radius: isSelected ? 14 : 10,
         color: colorFor(s.status),
@@ -96,12 +121,12 @@ export default function LeafletMap({ stations, onSelect, className, focusPoint }
         className: 'station-marker animate-scale-in',
       }).addTo(stationLayer);
 
-      // Enhanced tooltip with status
+      // Enhanced tooltip with status and distance
       const statusText = s.status === 'available' ? 'Available' : s.status === 'low' ? 'Low Supply' : 'Out of Fuel';
       marker.bindTooltip(
         `<div class="text-center">
           <strong>${s.name}</strong><br>
-          <span class="text-xs" style="color: ${colorFor(s.status)}">${statusText}</span>
+          <span class="text-xs" style="color: ${colorFor(s.status)}">${statusText}</span>${distanceText}
         </div>`, 
         { permanent: false, opacity: 0.9 }
       );
