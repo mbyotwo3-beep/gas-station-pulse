@@ -72,13 +72,12 @@ export default function LeafletMap({ stations, onSelect, className, focusPoint, 
           className: 'map-tile-layer',
         }).addTo(map);
 
-        // Initialize station layer
-        const stationLayer = L.layerGroup().addTo(map);
-        stationLayerRef.current = stationLayer;
-
-        // Initialize path layer
+        // Initialize layers in correct z-order (bottom to top)
         const pathLayer = L.layerGroup().addTo(map);
         pathLayerRef.current = pathLayer;
+        
+        const stationLayer = L.layerGroup().addTo(map);
+        stationLayerRef.current = stationLayer;
 
         mapRef.current = map;
         console.log("LeafletMap: map initialized");
@@ -152,6 +151,7 @@ export default function LeafletMap({ stations, onSelect, className, focusPoint, 
         fillOpacity: isSelected ? 1 : 0.85,
         weight: isSelected ? 3 : 2,
         className: 'station-marker animate-scale-in',
+        pane: 'markerPane', // Ensure markers are on top
       }).addTo(stationLayer);
 
       // Enhanced tooltip with status and distance
@@ -206,6 +206,7 @@ export default function LeafletMap({ stations, onSelect, className, focusPoint, 
       fillColor: 'hsl(var(--primary))',
       fillOpacity: 0.9,
       weight: 2,
+      pane: 'markerPane', // Ensure markers are on top
     }).addTo(map);
 
     marker.bindTooltip(`<strong>${focusPoint.label ?? 'Selected location'}</strong>`, { permanent: false, opacity: 1 });
