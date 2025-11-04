@@ -3,6 +3,7 @@ import L, { Map as LeafletMapType } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Station } from '@/hooks/useStations';
 import { cn } from '@/lib/utils';
+import { Route } from '@/hooks/useRouting';
 
 // Fix for default markers in Leaflet
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -33,6 +34,7 @@ export interface LeafletMapProps {
   onSelect?: (s: Station) => void;
   className?: string;
   focusPoint?: { lat: number; lng: number; label?: string } | null;
+  route?: Route | null;
 }
 
 function colorFor(status: Station['status']) {
@@ -41,11 +43,12 @@ function colorFor(status: Station['status']) {
   return 'hsl(var(--destructive))';
 }
 
-export default function LeafletMap({ stations, onSelect, className, focusPoint }: LeafletMapProps) {
+export default function LeafletMap({ stations, onSelect, className, focusPoint, route }: LeafletMapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<LeafletMapType | null>(null);
   const stationLayerRef = useRef<L.LayerGroup | null>(null);
   const pathLayerRef = useRef<L.LayerGroup | null>(null);
+  const routeLayerRef = useRef<L.Polyline | null>(null);
   const focusMarkerRef = useRef<L.CircleMarker | null>(null);
   const [selectedStation, setSelectedStation] = useState<Station | null>(null);
   const errorRef = useRef<HTMLDivElement | null>(null);
@@ -213,6 +216,34 @@ export default function LeafletMap({ stations, onSelect, className, focusPoint }
     const currentZoom = map.getZoom();
     map.setView([focusPoint.lat, focusPoint.lng], Math.max(currentZoom, targetZoom), { animate: true });
   }, [focusPoint]);
+
+  // Draw navigation route
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    // Remove previous route
+    if (routeLayerRef.current) {
+      map.removeLayer(routeLayerRef.current);
+      routeLayerRef.current = null;
+    }
+
+    if (!route) return;
+
+    // Draw the route polyline
+    const routeLine = L.polyline(route.coordinates, {
+      color: 'hsl(var(--primary))',
+      weight: 5,
+      opacity: 0.8,
+      smoothFactor: 1,
+      className: 'route-line',
+    }).addTo(map);
+
+    routeLayerRef.current = routeLine;
+
+    // Fit map to show the entire route
+    map.fitBounds(routeLine.getBounds().pad(0.1));
+  }, [route]);
 
   return (
     <div className={cn("relative w-full", className)}>

@@ -21,6 +21,7 @@ import ProfileDialog from "@/components/ProfileDialog";
 import StationReportDialog from "@/components/StationReportDialog";
 import AddStationDialog from "@/components/AddStationDialog";
 import StationDetails from "@/components/StationDetails";
+import TurnByTurnDirections from "@/components/map/TurnByTurnDirections";
 import AdminPanel from "@/components/admin/AdminPanel";
 import { useAuth } from "@/contexts/AuthContext";
 import { useStations } from "@/hooks/useStations";
@@ -28,6 +29,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { useGeolocation } from "@/hooks/useGeolocation";
 import { useRoles } from "@/hooks/useRoles";
 import { useNotifications } from "@/hooks/useNotifications";
+import { useRouting } from "@/hooks/useRouting";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -60,6 +62,7 @@ export default function Index() {
   const { position, requestLocation, getLocationOrDefault } = useGeolocation();
   const { roles, hasRole, canManageStations, canDrive, canRequestRides } = useRoles();
   const { hasPermission, requestNotificationPermission } = useNotifications();
+  const { route, loading: routeLoading, getRoute, clearRoute } = useRouting();
   
   const [mode, setMode] = useState<'fuel' | 'rideshare' | 'admin'>('fuel');
   const [rideShareMode, setRideShareMode] = useState<'passenger' | 'driver'>('passenger');
@@ -120,6 +123,16 @@ export default function Index() {
 
   const handleStationSelect = (station: Station) => {
     setSelectedStation(station);
+    clearRoute(); // Clear route when selecting a new station
+  };
+
+  const handleGetDirections = async () => {
+    if (!selectedStation || !selectedLocation) return;
+    
+    await getRoute(selectedLocation, {
+      lat: selectedStation.lat,
+      lng: selectedStation.lng,
+    });
   };
 
   const handleStationReported = () => {
@@ -324,6 +337,7 @@ export default function Index() {
                   stations={filteredStations}
                   onSelect={handleStationSelect}
                   focusPoint={selectedLocation}
+                  route={route}
                   className="h-full"
                 />
               )}
@@ -420,6 +434,16 @@ export default function Index() {
                     />
                     <Button 
                       size="sm" 
+                      variant="default"
+                      onClick={handleGetDirections}
+                      disabled={routeLoading || !selectedLocation}
+                      className="h-9 px-3"
+                    >
+                      <Navigation className="h-4 w-4 mr-1" />
+                      {routeLoading ? 'Loading...' : 'Route'}
+                    </Button>
+                    <Button 
+                      size="sm" 
                       variant="outline"
                       onClick={() => {
                         toggleFavoriteStation(selectedStation.id);
@@ -434,6 +458,17 @@ export default function Index() {
                     </Button>
                   </div>
                 </div>
+              </div>
+            )}
+            
+            {/* Turn by Turn Directions */}
+            {route && (
+              <div className="fixed top-20 right-4 z-30 animate-slide-up">
+                <TurnByTurnDirections
+                  route={route}
+                  onClose={clearRoute}
+                  destinationName={selectedStation?.name}
+                />
               </div>
             )}
           </div>
