@@ -45,6 +45,7 @@ export default function LeafletMap({ stations, onSelect, className, focusPoint }
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<LeafletMapType | null>(null);
   const stationLayerRef = useRef<L.LayerGroup | null>(null);
+  const pathLayerRef = useRef<L.LayerGroup | null>(null);
   const focusMarkerRef = useRef<L.CircleMarker | null>(null);
   const [selectedStation, setSelectedStation] = useState<Station | null>(null);
   const errorRef = useRef<HTMLDivElement | null>(null);
@@ -72,6 +73,10 @@ export default function LeafletMap({ stations, onSelect, className, focusPoint }
         const stationLayer = L.layerGroup().addTo(map);
         stationLayerRef.current = stationLayer;
 
+        // Initialize path layer
+        const pathLayer = L.layerGroup().addTo(map);
+        pathLayerRef.current = pathLayer;
+
         mapRef.current = map;
         console.log("LeafletMap: map initialized");
       }
@@ -95,12 +100,37 @@ export default function LeafletMap({ stations, onSelect, className, focusPoint }
     if (!map) return;
     
     const stationLayer = stationLayerRef.current;
-    if (!stationLayer) return;
+    const pathLayer = pathLayerRef.current;
+    if (!stationLayer || !pathLayer) return;
 
-    // Clear existing station markers
+    // Clear existing station markers and paths
     stationLayer.clearLayers();
+    pathLayer.clearLayers();
 
     const bounds = L.latLngBounds([]);
+
+    // Draw paths from focus point to all stations if focus point exists
+    if (focusPoint) {
+      stations.forEach((s) => {
+        const distance = calculateDistance(focusPoint.lat, focusPoint.lng, s.lat, s.lng);
+        
+        // Only draw paths to nearby stations (within 10km)
+        if (distance <= 10) {
+          const isSelected = selectedStation?.id === s.id;
+          
+          L.polyline(
+            [[focusPoint.lat, focusPoint.lng], [s.lat, s.lng]],
+            {
+              color: isSelected ? 'hsl(var(--primary))' : colorFor(s.status),
+              weight: isSelected ? 3 : 1.5,
+              opacity: isSelected ? 0.8 : 0.4,
+              dashArray: isSelected ? undefined : '5, 10',
+              className: 'station-path',
+            }
+          ).addTo(pathLayer);
+        }
+      });
+    }
 
     stations.forEach((s) => {
       const isSelected = selectedStation?.id === s.id;
@@ -155,7 +185,7 @@ export default function LeafletMap({ stations, onSelect, className, focusPoint }
     if (bounds.isValid() && !focusPoint) {
       map.fitBounds(bounds.pad(0.2));
     }
-  }, [stations, onSelect, focusPoint]);
+  }, [stations, onSelect, focusPoint, selectedStation]);
 
   useEffect(() => {
     const map = mapRef.current;
