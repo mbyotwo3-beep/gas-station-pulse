@@ -112,7 +112,8 @@ export default function LeafletMap({ stations, onSelect, className, focusPoint, 
     const bounds = L.latLngBounds([]);
 
     // Draw paths from focus point to all stations if focus point exists
-    if (focusPoint) {
+    // Hide distance lines when a navigation route is active
+    if (focusPoint && !route) {
       stations.forEach((s) => {
         const distance = calculateDistance(focusPoint.lat, focusPoint.lng, s.lat, s.lng);
         
@@ -231,13 +232,24 @@ export default function LeafletMap({ stations, onSelect, className, focusPoint, 
 
     if (!route) return;
 
-    // Draw the route polyline
+    // Draw the route polyline with enhanced visibility
     const routeLine = L.polyline(route.coordinates, {
       color: 'hsl(var(--primary))',
-      weight: 5,
-      opacity: 0.8,
+      weight: 6,
+      opacity: 0.9,
       smoothFactor: 1,
       className: 'route-line',
+      // Add a white outline for better visibility
+      pane: 'overlayPane',
+    }).addTo(map);
+
+    // Add a shadow/outline effect
+    L.polyline(route.coordinates, {
+      color: '#ffffff',
+      weight: 8,
+      opacity: 0.5,
+      smoothFactor: 1,
+      pane: 'shadowPane',
     }).addTo(map);
 
     routeLayerRef.current = routeLine;
