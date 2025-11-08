@@ -1,13 +1,16 @@
 import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Route } from '@/hooks/useRouting';
-import { Navigation, ArrowRight, ArrowLeft, ArrowUp, TrendingUp, MapPin } from 'lucide-react';
+import { Navigation, ArrowRight, ArrowLeft, ArrowUp, TrendingUp, MapPin, Volume2, VolumeX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useState } from 'react';
 
 interface TurnByTurnDirectionsProps {
   route: Route | null;
   onClose: () => void;
   destinationName?: string;
+  voiceEnabled: boolean;
+  onVoiceToggle: () => void;
 }
 
 function formatDistance(meters: number): string {
@@ -34,7 +37,7 @@ function getManeuverIcon(type: string, modifier?: string) {
   return <ArrowUp className="w-5 h-5" />;
 }
 
-export default function TurnByTurnDirections({ route, onClose, destinationName }: TurnByTurnDirectionsProps) {
+export default function TurnByTurnDirections({ route, onClose, destinationName, voiceEnabled, onVoiceToggle }: TurnByTurnDirectionsProps) {
   if (!route) return null;
 
   return (
@@ -45,9 +48,19 @@ export default function TurnByTurnDirections({ route, onClose, destinationName }
             <Navigation className="w-5 h-5 text-primary" />
             <h3 className="font-semibold">Directions</h3>
           </div>
-          <Button variant="ghost" size="sm" onClick={onClose}>
-            ✕
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={onVoiceToggle}
+              className={voiceEnabled ? 'text-primary' : 'text-muted-foreground'}
+            >
+              {voiceEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+            </Button>
+            <Button variant="ghost" size="sm" onClick={onClose}>
+              ✕
+            </Button>
+          </div>
         </div>
         
         {destinationName && (

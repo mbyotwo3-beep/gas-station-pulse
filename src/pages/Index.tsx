@@ -30,6 +30,7 @@ import { useGeolocation } from "@/hooks/useGeolocation";
 import { useRoles } from "@/hooks/useRoles";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useRouting } from "@/hooks/useRouting";
+import { useVoiceNavigation } from "@/hooks/useVoiceNavigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -72,6 +73,7 @@ export default function Index() {
   const [showSearch, setShowSearch] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [voiceEnabled, setVoiceEnabled] = useState(false);
   const [filters, setFilters] = useState({
     status: ['available', 'low'] as Array<'available' | 'low' | 'out'>,
     maxDistance: 10,
@@ -81,6 +83,14 @@ export default function Index() {
     operatingHours: 'any' as 'any' | '24h' | 'open_now',
     sortBy: 'distance' as 'distance' | 'price' | 'rating' | 'updated'
   });
+
+  const userLocation = position ? { lat: position.coords.latitude, lng: position.coords.longitude } : null;
+  
+  const { startNavigation, stopNavigation } = useVoiceNavigation(
+    route,
+    selectedLocation || userLocation,
+    voiceEnabled
+  );
 
   // Initialize with Lusaka as default location
   useEffect(() => {
@@ -129,10 +139,23 @@ export default function Index() {
   const handleGetDirections = async () => {
     if (!selectedStation || !selectedLocation) return;
     
-    await getRoute(selectedLocation, {
+    const routeResult = await getRoute(selectedLocation, {
       lat: selectedStation.lat,
       lng: selectedStation.lng,
     });
+    
+    if (routeResult && voiceEnabled) {
+      startNavigation();
+    }
+  };
+
+  const handleVoiceToggle = () => {
+    if (voiceEnabled) {
+      stopNavigation();
+    } else if (route) {
+      startNavigation();
+    }
+    setVoiceEnabled(!voiceEnabled);
   };
 
   const handleStationReported = () => {
@@ -464,10 +487,31 @@ export default function Index() {
             {/* Turn by Turn Directions */}
             {route && (
               <div className="fixed top-20 right-4 z-30 animate-slide-up">
-                <TurnByTurnDirections
+                <TurnByTurnDirections 
                   route={route}
-                  onClose={clearRoute}
-                  destinationName={selectedStation?.name}
+                  onClose={() => {
+                    clearRoute();
+                    stopNavigation();
+                    setVoiceEnabled(false);
+                  }}
+                  destinationName={selectedStation?.name || ''}
+                  voiceEnabled={voiceEnabled}
+                  onVoiceToggle={handleVoiceToggle}
+                />
+              </div>
+            )}
+            {route && (
+              <div className="fixed top-24 left-4 right-4 z-20 md:left-auto md:right-4 md:w-96">
+                <TurnByTurnDirections 
+                  route={route}
+                  onClose={() => {
+                    clearRoute();
+                    stopNavigation();
+                    setVoiceEnabled(false);
+                  }}
+                  destinationName={selectedStation?.name || ''}
+                  voiceEnabled={voiceEnabled}
+                  onVoiceToggle={handleVoiceToggle}
                 />
               </div>
             )}
