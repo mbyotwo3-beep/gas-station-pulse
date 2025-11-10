@@ -23,6 +23,7 @@ import AddStationDialog from "@/components/AddStationDialog";
 import StationDetails from "@/components/StationDetails";
 import TurnByTurnDirections from "@/components/map/TurnByTurnDirections";
 import WaypointsManager, { Waypoint } from "@/components/map/WaypointsManager";
+import RouteAlternatives from "@/components/map/RouteAlternatives";
 import AdminPanel from "@/components/admin/AdminPanel";
 import { useAuth } from "@/contexts/AuthContext";
 import { useStations } from "@/hooks/useStations";
@@ -65,7 +66,7 @@ export default function Index() {
   const { position, requestLocation, getLocationOrDefault } = useGeolocation();
   const { roles, hasRole, canManageStations, canDrive, canRequestRides } = useRoles();
   const { hasPermission, requestNotificationPermission } = useNotifications();
-  const { route, loading: routeLoading, getRoute, clearRoute } = useRouting();
+  const { route, routeAlternatives, loading: routeLoading, getRoute, clearRoute, selectRoute } = useRouting();
   
   const [mode, setMode] = useState<'fuel' | 'rideshare' | 'admin'>('fuel');
   const [rideShareMode, setRideShareMode] = useState<'passenger' | 'driver'>('passenger');
@@ -79,6 +80,8 @@ export default function Index() {
   const [waypoints, setWaypoints] = useState<Waypoint[]>([]);
   const [showWaypoints, setShowWaypoints] = useState(false);
   const [addingWaypoint, setAddingWaypoint] = useState(false);
+  const [showRouteAlternatives, setShowRouteAlternatives] = useState(false);
+  const [selectedRouteIndex, setSelectedRouteIndex] = useState(0);
   const [filters, setFilters] = useState({
     status: ['available', 'low'] as Array<'available' | 'low' | 'out'>,
     maxDistance: 10,
@@ -155,9 +158,23 @@ export default function Index() {
       waypointCoords
     );
     
-    if (routeResult && voiceEnabled) {
+    if (routeResult) {
+      // Show route alternatives if multiple routes are available
+      setSelectedRouteIndex(0);
+      setShowRouteAlternatives(true);
+    }
+  };
+
+  const handleConfirmRoute = () => {
+    setShowRouteAlternatives(false);
+    if (voiceEnabled) {
       startNavigation();
     }
+  };
+
+  const handleSelectRouteAlternative = (index: number) => {
+    setSelectedRouteIndex(index);
+    selectRoute(index);
   };
 
   const handleAddWaypoint = (waypoint: Omit<Waypoint, 'id'>) => {
@@ -576,8 +593,21 @@ export default function Index() {
               </div>
             )}
             
+            {/* Route Alternatives */}
+            {showRouteAlternatives && routeAlternatives.length > 0 && (
+              <div className="fixed top-20 left-4 right-4 z-30 animate-slide-up md:left-auto md:right-4 md:w-96">
+                <RouteAlternatives
+                  routes={routeAlternatives}
+                  selectedRouteIndex={selectedRouteIndex}
+                  onSelectRoute={handleSelectRouteAlternative}
+                  onClose={() => setShowRouteAlternatives(false)}
+                  onConfirm={handleConfirmRoute}
+                />
+              </div>
+            )}
+
             {/* Turn by Turn Directions */}
-            {route && (
+            {route && !showRouteAlternatives && (
               <div className="fixed top-20 right-4 z-30 animate-slide-up">
                 <TurnByTurnDirections 
                   route={route}
@@ -593,7 +623,7 @@ export default function Index() {
                 />
               </div>
             )}
-            {route && (
+            {route && !showRouteAlternatives && (
               <div className="fixed top-24 left-4 right-4 z-20 md:left-auto md:right-4 md:w-96">
                 <TurnByTurnDirections 
                   route={route}

@@ -16,10 +16,13 @@ export interface Route {
   steps: RouteStep[];
   distance: number;
   duration: number;
+  index?: number;
+  type?: 'fastest' | 'shortest' | 'alternative';
 }
 
 export function useRouting() {
   const [route, setRoute] = useState<Route | null>(null);
+  const [routeAlternatives, setRouteAlternatives] = useState<Route[]>([]);
   const [loading, setLoading] = useState(false);
 
   const getRoute = useCallback(async (
@@ -36,8 +39,8 @@ export function useRouting() {
         `${end.lng},${end.lat}`
       ].join(';');
       
-      // Using OSRM public API for routing with waypoints
-      const url = `https://router.project-osrm.org/route/v1/driving/${coordsString}?overview=full&geometries=geojson&steps=true`;
+      // Using OSRM public API for routing with waypoints and alternatives
+      const url = `https://router.project-osrm.org/route/v1/driving/${coordsString}?overview=full&geometries=geojson&steps=true&alternatives=true&alternatives=2`;
       
       const response = await fetch(url);
       const data = await response.json();
@@ -46,33 +49,51 @@ export function useRouting() {
         throw new Error('No route found');
       }
 
-      const routeData = data.routes[0];
-      const coordinates: [number, number][] = routeData.geometry.coordinates.map((coord: number[]) => [coord[1], coord[0]] as [number, number]);
-      
-      const steps: RouteStep[] = [];
-      routeData.legs.forEach((leg: any) => {
-        leg.steps.forEach((step: any) => {
-          steps.push({
-            instruction: step.maneuver.instruction || getInstructionText(step.maneuver),
-            distance: step.distance,
-            duration: step.duration,
-            maneuver: {
-              type: step.maneuver.type,
-              modifier: step.maneuver.modifier,
-            },
+      // Parse all available routes
+      const allRoutes: Route[] = data.routes.map((routeData: any, index: number) => {
+        const coordinates: [number, number][] = routeData.geometry.coordinates.map((coord: number[]) => [coord[1], coord[0]] as [number, number]);
+        
+        const steps: RouteStep[] = [];
+        routeData.legs.forEach((leg: any) => {
+          leg.steps.forEach((step: any) => {
+            steps.push({
+              instruction: step.maneuver.instruction || getInstructionText(step.maneuver),
+              distance: step.distance,
+              duration: step.duration,
+              maneuver: {
+                type: step.maneuver.type,
+                modifier: step.maneuver.modifier,
+              },
+            });
           });
         });
+
+        // Determine route type
+        let type: 'fastest' | 'shortest' | 'alternative' = 'alternative';
+        if (index === 0) {
+          type = 'fastest';
+        } else if (data.routes.length > 1) {
+          // Check if this route is shorter in distance
+          const firstRoute = data.routes[0];
+          if (routeData.distance < firstRoute.distance) {
+            type = 'shortest';
+          }
+        }
+
+        return {
+          coordinates,
+          steps,
+          distance: routeData.distance,
+          duration: routeData.duration,
+          index,
+          type,
+        };
       });
 
-      const routeInfo: Route = {
-        coordinates,
-        steps,
-        distance: routeData.distance,
-        duration: routeData.duration,
-      };
-
-      setRoute(routeInfo);
-      return routeInfo;
+      // Set the fastest route as the primary route
+      setRoute(allRoutes[0]);
+      setRouteAlternatives(allRoutes);
+      return allRoutes[0];
     } catch (error) {
       console.error('Routing error:', error);
       toast.error('Failed to get route directions');
@@ -84,13 +105,23 @@ export function useRouting() {
 
   const clearRoute = useCallback(() => {
     setRoute(null);
+    setRouteAlternatives([]);
   }, []);
+
+  const selectRoute = useCallback((routeIndex: number) => {
+    const selectedRoute = routeAlternatives.find(r => r.index === routeIndex);
+    if (selectedRoute) {
+      setRoute(selectedRoute);
+    }
+  }, [routeAlternatives]);
 
   return {
     route,
+    routeAlternatives,
     loading,
     getRoute,
     clearRoute,
+    selectRoute,
   };
 }
 
