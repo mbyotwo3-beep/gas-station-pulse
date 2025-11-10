@@ -24,12 +24,20 @@ export function useRouting() {
 
   const getRoute = useCallback(async (
     start: { lat: number; lng: number },
-    end: { lat: number; lng: number }
+    end: { lat: number; lng: number },
+    waypoints?: { lat: number; lng: number }[]
   ) => {
     setLoading(true);
     try {
-      // Using OSRM public API for routing
-      const url = `https://router.project-osrm.org/route/v1/driving/${start.lng},${start.lat};${end.lng},${end.lat}?overview=full&geometries=geojson&steps=true`;
+      // Build coordinates string with waypoints
+      const coordsString = [
+        `${start.lng},${start.lat}`,
+        ...(waypoints || []).map(wp => `${wp.lng},${wp.lat}`),
+        `${end.lng},${end.lat}`
+      ].join(';');
+      
+      // Using OSRM public API for routing with waypoints
+      const url = `https://router.project-osrm.org/route/v1/driving/${coordsString}?overview=full&geometries=geojson&steps=true`;
       
       const response = await fetch(url);
       const data = await response.json();
@@ -39,7 +47,7 @@ export function useRouting() {
       }
 
       const routeData = data.routes[0];
-      const coordinates = routeData.geometry.coordinates.map((coord: number[]) => [coord[1], coord[0]] as [number, number]);
+      const coordinates: [number, number][] = routeData.geometry.coordinates.map((coord: number[]) => [coord[1], coord[0]] as [number, number]);
       
       const steps: RouteStep[] = [];
       routeData.legs.forEach((leg: any) => {

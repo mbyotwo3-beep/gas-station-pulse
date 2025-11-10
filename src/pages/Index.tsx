@@ -22,6 +22,7 @@ import StationReportDialog from "@/components/StationReportDialog";
 import AddStationDialog from "@/components/AddStationDialog";
 import StationDetails from "@/components/StationDetails";
 import TurnByTurnDirections from "@/components/map/TurnByTurnDirections";
+import WaypointsManager, { Waypoint } from "@/components/map/WaypointsManager";
 import AdminPanel from "@/components/admin/AdminPanel";
 import { useAuth } from "@/contexts/AuthContext";
 import { useStations } from "@/hooks/useStations";
@@ -35,7 +36,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { 
+import { Card } from "@/components/ui/card";
+import {
   Fuel, 
   Car, 
   MapPin, 
@@ -74,6 +76,9 @@ export default function Index() {
   const [showFilters, setShowFilters] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [voiceEnabled, setVoiceEnabled] = useState(false);
+  const [waypoints, setWaypoints] = useState<Waypoint[]>([]);
+  const [showWaypoints, setShowWaypoints] = useState(false);
+  const [addingWaypoint, setAddingWaypoint] = useState(false);
   const [filters, setFilters] = useState({
     status: ['available', 'low'] as Array<'available' | 'low' | 'out'>,
     maxDistance: 10,
@@ -139,14 +144,45 @@ export default function Index() {
   const handleGetDirections = async () => {
     if (!selectedStation || !selectedLocation) return;
     
-    const routeResult = await getRoute(selectedLocation, {
-      lat: selectedStation.lat,
-      lng: selectedStation.lng,
-    });
+    const waypointCoords = waypoints.map(wp => ({ lat: wp.lat, lng: wp.lng }));
+    
+    const routeResult = await getRoute(
+      selectedLocation,
+      {
+        lat: selectedStation.lat,
+        lng: selectedStation.lng,
+      },
+      waypointCoords
+    );
     
     if (routeResult && voiceEnabled) {
       startNavigation();
     }
+  };
+
+  const handleAddWaypoint = (waypoint: Omit<Waypoint, 'id'>) => {
+    const newWaypoint = {
+      ...waypoint,
+      id: `waypoint-${Date.now()}-${Math.random()}`
+    };
+    setWaypoints([...waypoints, newWaypoint]);
+    setAddingWaypoint(false);
+    clearRoute(); // Clear route when waypoints change
+  };
+
+  const handleRemoveWaypoint = (id: string) => {
+    setWaypoints(waypoints.filter(wp => wp.id !== id));
+    clearRoute(); // Clear route when waypoints change
+  };
+
+  const handleReorderWaypoints = (newWaypoints: Waypoint[]) => {
+    setWaypoints(newWaypoints);
+    clearRoute(); // Clear route when waypoints change
+  };
+
+  const handleSelectWaypointLocation = () => {
+    setAddingWaypoint(true);
+    setShowWaypoints(false);
   };
 
   const handleVoiceToggle = () => {
@@ -164,8 +200,16 @@ export default function Index() {
   };
 
   const handleLocationSelect = (location: { lat: number; lng: number; label?: string }) => {
-    setSelectedLocation(location);
-    setShowSearch(false);
+    if (addingWaypoint) {
+      handleAddWaypoint({
+        lat: location.lat,
+        lng: location.lng,
+        label: location.label || 'Waypoint'
+      });
+    } else {
+      setSelectedLocation(location);
+      setShowSearch(false);
+    }
   };
 
   const handleGetMyLocation = () => {
@@ -361,6 +405,7 @@ export default function Index() {
                   onSelect={handleStationSelect}
                   focusPoint={selectedLocation}
                   route={route}
+                  waypoints={waypoints}
                   className="h-full"
                 />
               )}
@@ -457,6 +502,15 @@ export default function Index() {
                     />
                     <Button 
                       size="sm" 
+                      variant={showWaypoints ? 'secondary' : 'outline'}
+                      onClick={() => setShowWaypoints(!showWaypoints)}
+                      className="h-9 px-3"
+                    >
+                      <MapPin className="h-4 w-4 mr-1" />
+                      Stops{waypoints.length > 0 && ` (${waypoints.length})`}
+                    </Button>
+                    <Button 
+                      size="sm" 
                       variant="default"
                       onClick={handleGetDirections}
                       disabled={routeLoading || !selectedLocation}
@@ -484,6 +538,44 @@ export default function Index() {
               </div>
             )}
             
+            {/* Waypoints Manager */}
+            {showWaypoints && selectedStation && (
+              <div className="fixed bottom-44 left-4 right-4 z-20 animate-slide-up md:hidden">
+                <WaypointsManager
+                  waypoints={waypoints}
+                  onAddWaypoint={handleAddWaypoint}
+                  onRemoveWaypoint={handleRemoveWaypoint}
+                  onReorderWaypoints={handleReorderWaypoints}
+                  onSelectLocation={handleSelectWaypointLocation}
+                />
+              </div>
+            )}
+
+            {/* Adding Waypoint Prompt */}
+            {addingWaypoint && (
+              <div className="fixed top-20 left-4 right-4 z-30 animate-slide-up">
+                <Card className="bg-background/95 backdrop-blur-md border-primary/50 shadow-lg p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <MapPin className="w-5 h-5 text-primary" />
+                      <h3 className="font-semibold">Select Waypoint Location</h3>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setAddingWaypoint(false)}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Search for a location to add as a stop on your route
+                  </p>
+                  <EnhancedLocationSearch onSelectLocation={handleLocationSelect} />
+                </Card>
+              </div>
+            )}
+            
             {/* Turn by Turn Directions */}
             {route && (
               <div className="fixed top-20 right-4 z-30 animate-slide-up">
@@ -497,6 +589,7 @@ export default function Index() {
                   destinationName={selectedStation?.name || ''}
                   voiceEnabled={voiceEnabled}
                   onVoiceToggle={handleVoiceToggle}
+                  waypoints={waypoints}
                 />
               </div>
             )}
@@ -512,6 +605,7 @@ export default function Index() {
                   destinationName={selectedStation?.name || ''}
                   voiceEnabled={voiceEnabled}
                   onVoiceToggle={handleVoiceToggle}
+                  waypoints={waypoints}
                 />
               </div>
             )}

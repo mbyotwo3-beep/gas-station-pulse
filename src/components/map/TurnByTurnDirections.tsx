@@ -1,6 +1,7 @@
 import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Route } from '@/hooks/useRouting';
+import { Waypoint } from '@/components/map/WaypointsManager';
 import { Navigation, ArrowRight, ArrowLeft, ArrowUp, TrendingUp, MapPin, Volume2, VolumeX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
@@ -11,6 +12,7 @@ interface TurnByTurnDirectionsProps {
   destinationName?: string;
   voiceEnabled: boolean;
   onVoiceToggle: () => void;
+  waypoints?: Waypoint[];
 }
 
 function formatDistance(meters: number): string {
@@ -37,7 +39,7 @@ function getManeuverIcon(type: string, modifier?: string) {
   return <ArrowUp className="w-5 h-5" />;
 }
 
-export default function TurnByTurnDirections({ route, onClose, destinationName, voiceEnabled, onVoiceToggle }: TurnByTurnDirectionsProps) {
+export default function TurnByTurnDirections({ route, onClose, destinationName, voiceEnabled, onVoiceToggle, waypoints = [] }: TurnByTurnDirectionsProps) {
   if (!route) return null;
 
   return (
@@ -65,6 +67,22 @@ export default function TurnByTurnDirections({ route, onClose, destinationName, 
         
         {destinationName && (
           <p className="text-sm text-muted-foreground mb-2">To {destinationName}</p>
+        )}
+        
+        {waypoints.length > 0 && (
+          <div className="mb-2 p-2 rounded-lg bg-muted/30">
+            <p className="text-xs font-medium text-muted-foreground mb-1">Stops along the way:</p>
+            <div className="space-y-1">
+              {waypoints.map((waypoint, index) => (
+                <div key={waypoint.id} className="flex items-center gap-2 text-xs">
+                  <div className="w-4 h-4 rounded-full bg-primary/20 text-primary flex items-center justify-center text-[10px] font-bold flex-shrink-0">
+                    {index + 1}
+                  </div>
+                  <span className="truncate">{waypoint.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
         )}
         
         <div className="flex gap-4 text-sm">

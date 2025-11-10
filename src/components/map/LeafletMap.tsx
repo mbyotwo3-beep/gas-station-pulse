@@ -29,12 +29,20 @@ function formatDistance(km: number): string {
   return `${km.toFixed(1)}km`;
 }
 
+export interface Waypoint {
+  id: string;
+  lat: number;
+  lng: number;
+  label: string;
+}
+
 export interface LeafletMapProps {
   stations: Station[];
   onSelect?: (s: Station) => void;
   className?: string;
   focusPoint?: { lat: number; lng: number; label?: string } | null;
   route?: Route | null;
+  waypoints?: Waypoint[];
 }
 
 function colorFor(status: Station['status']) {
@@ -43,12 +51,13 @@ function colorFor(status: Station['status']) {
   return 'hsl(var(--destructive))';
 }
 
-export default function LeafletMap({ stations, onSelect, className, focusPoint, route }: LeafletMapProps) {
+export default function LeafletMap({ stations, onSelect, className, focusPoint, route, waypoints = [] }: LeafletMapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<LeafletMapType | null>(null);
   const stationLayerRef = useRef<L.LayerGroup | null>(null);
   const pathLayerRef = useRef<L.LayerGroup | null>(null);
   const routeLayerRef = useRef<L.Polyline | null>(null);
+  const waypointMarkersRef = useRef<L.CircleMarker[]>([]);
   const focusMarkerRef = useRef<L.CircleMarker | null>(null);
   const [selectedStation, setSelectedStation] = useState<Station | null>(null);
   const errorRef = useRef<HTMLDivElement | null>(null);
@@ -257,6 +266,63 @@ export default function LeafletMap({ stations, onSelect, className, focusPoint, 
     // Fit map to show the entire route
     map.fitBounds(routeLine.getBounds().pad(0.1));
   }, [route]);
+
+  // Draw waypoint markers
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    // Remove previous waypoint markers
+    waypointMarkersRef.current.forEach(marker => {
+      map.removeLayer(marker);
+    });
+    waypointMarkersRef.current = [];
+
+    // Add waypoint markers
+    waypoints.forEach((waypoint, index) => {
+      const marker = L.circleMarker([waypoint.lat, waypoint.lng], {
+        radius: 10,
+        color: 'hsl(var(--primary))',
+        fillColor: '#ffffff',
+        fillOpacity: 1,
+        weight: 3,
+        pane: 'markerPane',
+      }).addTo(map);
+
+      // Add number label
+      const divIcon = L.divIcon({
+        html: `<div style="
+          width: 24px;
+          height: 24px;
+          border-radius: 50%;
+          background: hsl(var(--primary));
+          color: white;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 12px;
+          font-weight: bold;
+          border: 2px solid white;
+        ">${index + 1}</div>`,
+        className: 'waypoint-marker',
+        iconSize: [24, 24],
+        iconAnchor: [12, 12],
+      });
+
+      const labelMarker = L.marker([waypoint.lat, waypoint.lng], {
+        icon: divIcon,
+        pane: 'markerPane',
+      }).addTo(map);
+
+      labelMarker.bindTooltip(`<strong>Stop ${index + 1}</strong><br>${waypoint.label}`, {
+        permanent: false,
+        opacity: 0.9,
+      });
+
+      waypointMarkersRef.current.push(marker);
+      waypointMarkersRef.current.push(labelMarker as any);
+    });
+  }, [waypoints]);
 
   return (
     <div className={cn("relative w-full", className)}>
