@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import LeafletMap from "@/components/map/LeafletMap";
 import RideShareMap from "@/components/rideshare/RideShareMap";
@@ -33,6 +33,7 @@ import { useRoles } from "@/hooks/useRoles";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useRouting } from "@/hooks/useRouting";
 import { useVoiceNavigation } from "@/hooks/useVoiceNavigation";
+import { useAutoRerouting } from "@/hooks/useAutoRerouting";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -82,6 +83,7 @@ export default function Index() {
   const [addingWaypoint, setAddingWaypoint] = useState(false);
   const [showRouteAlternatives, setShowRouteAlternatives] = useState(false);
   const [selectedRouteIndex, setSelectedRouteIndex] = useState(0);
+  const [autoRerouteEnabled, setAutoRerouteEnabled] = useState(true);
   const [filters, setFilters] = useState({
     status: ['available', 'low'] as Array<'available' | 'low' | 'out'>,
     maxDistance: 10,
@@ -98,6 +100,34 @@ export default function Index() {
     route,
     selectedLocation || userLocation,
     voiceEnabled
+  );
+
+  // Auto-rerouting when user deviates from route
+  const handleAutoReroute = useCallback(async () => {
+    if (!selectedStation || !userLocation) return;
+    
+    const waypointCoords = waypoints.map(wp => ({ lat: wp.lat, lng: wp.lng }));
+    
+    await getRoute(
+      userLocation,
+      {
+        lat: selectedStation.lat,
+        lng: selectedStation.lng,
+      },
+      waypointCoords
+    );
+  }, [selectedStation, userLocation, waypoints, getRoute]);
+
+  const { isRerouting } = useAutoRerouting(
+    route,
+    userLocation,
+    selectedStation ? { lat: selectedStation.lat, lng: selectedStation.lng } : null,
+    {
+      enabled: autoRerouteEnabled && !!route && !!selectedStation,
+      deviationThreshold: 50, // 50 meters
+      checkInterval: 5000, // Check every 5 seconds
+      onReroute: handleAutoReroute,
+    }
   );
 
   // Initialize with Lusaka as default location
@@ -620,6 +650,9 @@ export default function Index() {
                   voiceEnabled={voiceEnabled}
                   onVoiceToggle={handleVoiceToggle}
                   waypoints={waypoints}
+                  autoRerouteEnabled={autoRerouteEnabled}
+                  onAutoRerouteToggle={() => setAutoRerouteEnabled(!autoRerouteEnabled)}
+                  isRerouting={isRerouting}
                 />
               </div>
             )}
@@ -636,6 +669,9 @@ export default function Index() {
                   voiceEnabled={voiceEnabled}
                   onVoiceToggle={handleVoiceToggle}
                   waypoints={waypoints}
+                  autoRerouteEnabled={autoRerouteEnabled}
+                  onAutoRerouteToggle={() => setAutoRerouteEnabled(!autoRerouteEnabled)}
+                  isRerouting={isRerouting}
                 />
               </div>
             )}

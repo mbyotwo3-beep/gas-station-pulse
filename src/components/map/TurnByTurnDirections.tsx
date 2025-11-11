@@ -2,8 +2,10 @@ import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Route } from '@/hooks/useRouting';
 import { Waypoint } from '@/components/map/WaypointsManager';
-import { Navigation, ArrowRight, ArrowLeft, ArrowUp, TrendingUp, MapPin, Volume2, VolumeX } from 'lucide-react';
+import { Navigation, ArrowRight, ArrowLeft, ArrowUp, TrendingUp, MapPin, Volume2, VolumeX, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { useState } from 'react';
 
 interface TurnByTurnDirectionsProps {
@@ -13,6 +15,9 @@ interface TurnByTurnDirectionsProps {
   voiceEnabled: boolean;
   onVoiceToggle: () => void;
   waypoints?: Waypoint[];
+  autoRerouteEnabled?: boolean;
+  onAutoRerouteToggle?: () => void;
+  isRerouting?: boolean;
 }
 
 function formatDistance(meters: number): string {
@@ -39,7 +44,17 @@ function getManeuverIcon(type: string, modifier?: string) {
   return <ArrowUp className="w-5 h-5" />;
 }
 
-export default function TurnByTurnDirections({ route, onClose, destinationName, voiceEnabled, onVoiceToggle, waypoints = [] }: TurnByTurnDirectionsProps) {
+export default function TurnByTurnDirections({ 
+  route, 
+  onClose, 
+  destinationName, 
+  voiceEnabled, 
+  onVoiceToggle, 
+  waypoints = [],
+  autoRerouteEnabled = true,
+  onAutoRerouteToggle,
+  isRerouting = false
+}: TurnByTurnDirectionsProps) {
   if (!route) return null;
 
   return (
@@ -94,6 +109,32 @@ export default function TurnByTurnDirections({ route, onClose, destinationName, 
             <span className="text-muted-foreground">Time: </span>
             <span className="font-medium">{formatDuration(route.duration)}</span>
           </div>
+        </div>
+
+        {/* Auto-reroute toggle and status */}
+        <div className="mt-3 pt-3 border-t border-border/50">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Switch
+                id="auto-reroute"
+                checked={autoRerouteEnabled}
+                onCheckedChange={onAutoRerouteToggle}
+                disabled={!onAutoRerouteToggle}
+              />
+              <Label htmlFor="auto-reroute" className="text-sm cursor-pointer">
+                Auto-reroute
+              </Label>
+            </div>
+            {isRerouting && (
+              <div className="flex items-center gap-2 text-xs text-primary">
+                <RefreshCw className="w-3 h-3 animate-spin" />
+                <span>Recalculating...</span>
+              </div>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">
+            Automatically find a new route if you deviate from the path
+          </p>
         </div>
       </div>
 
