@@ -531,6 +531,39 @@ export type Database = {
         }
         Relationships: []
       }
+      saved_routes: {
+        Row: {
+          created_at: string
+          end_location: Json
+          id: string
+          name: string
+          start_location: Json
+          updated_at: string
+          user_id: string
+          waypoints: Json | null
+        }
+        Insert: {
+          created_at?: string
+          end_location: Json
+          id?: string
+          name: string
+          start_location: Json
+          updated_at?: string
+          user_id: string
+          waypoints?: Json | null
+        }
+        Update: {
+          created_at?: string
+          end_location?: Json
+          id?: string
+          name?: string
+          start_location?: Json
+          updated_at?: string
+          user_id?: string
+          waypoints?: Json | null
+        }
+        Relationships: []
+      }
       station_reports: {
         Row: {
           created_at: string

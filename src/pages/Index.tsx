@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Toaster } from "@/components/ui/toaster";
+import { toast } from "sonner";
 import LeafletMap from "@/components/map/LeafletMap";
 import RideShareMap from "@/components/rideshare/RideShareMap";
 import StationList from "@/components/StationList";
@@ -24,6 +25,8 @@ import StationDetails from "@/components/StationDetails";
 import TurnByTurnDirections from "@/components/map/TurnByTurnDirections";
 import WaypointsManager, { Waypoint } from "@/components/map/WaypointsManager";
 import RouteAlternatives from "@/components/map/RouteAlternatives";
+import SaveRouteDialog from "@/components/map/SaveRouteDialog";
+import SavedRoutesList from "@/components/map/SavedRoutesList";
 import AdminPanel from "@/components/admin/AdminPanel";
 import { useAuth } from "@/contexts/AuthContext";
 import { useStations } from "@/hooks/useStations";
@@ -34,6 +37,7 @@ import { useNotifications } from "@/hooks/useNotifications";
 import { useRouting } from "@/hooks/useRouting";
 import { useVoiceNavigation } from "@/hooks/useVoiceNavigation";
 import { useAutoRerouting } from "@/hooks/useAutoRerouting";
+import { useSavedRoutes } from "@/hooks/useSavedRoutes";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -56,7 +60,8 @@ import {
   Crown,
   X,
   Bell,
-  BellOff
+  BellOff,
+  Bookmark
 } from "lucide-react";
 import type { Station } from "@/hooks/useStations";
 
@@ -68,6 +73,7 @@ export default function Index() {
   const { roles, hasRole, canManageStations, canDrive, canRequestRides } = useRoles();
   const { hasPermission, requestNotificationPermission } = useNotifications();
   const { route, routeAlternatives, loading: routeLoading, getRoute, clearRoute, selectRoute } = useRouting();
+  const { savedRoutes, loading: savedRoutesLoading, saveRoute, deleteRoute, updateRoute } = useSavedRoutes();
   
   const [mode, setMode] = useState<'fuel' | 'rideshare' | 'admin'>('fuel');
   const [rideShareMode, setRideShareMode] = useState<'passenger' | 'driver'>('passenger');
@@ -84,6 +90,7 @@ export default function Index() {
   const [showRouteAlternatives, setShowRouteAlternatives] = useState(false);
   const [selectedRouteIndex, setSelectedRouteIndex] = useState(0);
   const [autoRerouteEnabled, setAutoRerouteEnabled] = useState(true);
+  const [showSavedRoutes, setShowSavedRoutes] = useState(false);
   const [filters, setFilters] = useState({
     status: ['available', 'low'] as Array<'available' | 'low' | 'out'>,
     maxDistance: 10,
@@ -230,6 +237,56 @@ export default function Index() {
   const handleSelectWaypointLocation = () => {
     setAddingWaypoint(true);
     setShowWaypoints(false);
+  };
+
+  const handleSaveRoute = async (name: string) => {
+    if (!selectedLocation || !selectedStation) return false;
+    
+    return await saveRoute(
+      name,
+      selectedLocation,
+      {
+        lat: selectedStation.lat,
+        lng: selectedStation.lng,
+        label: selectedStation.name
+      },
+      waypoints
+    );
+  };
+
+  const handleLoadSavedRoute = async (savedRoute: any) => {
+    // Set locations
+    setSelectedLocation(savedRoute.start_location);
+    
+    // Find station if end location matches
+    const matchingStation = stations.find(
+      s => Math.abs(s.lat - savedRoute.end_location.lat) < 0.001 && 
+           Math.abs(s.lng - savedRoute.end_location.lng) < 0.001
+    );
+    
+    if (matchingStation) {
+      setSelectedStation(matchingStation);
+    }
+    
+    // Set waypoints
+    setWaypoints(savedRoute.waypoints || []);
+    
+    // Close saved routes list
+    setShowSavedRoutes(false);
+    
+    // Get route
+    const waypointCoords = (savedRoute.waypoints || []).map((wp: any) => ({ 
+      lat: wp.lat, 
+      lng: wp.lng 
+    }));
+    
+    await getRoute(
+      savedRoute.start_location,
+      savedRoute.end_location,
+      waypointCoords
+    );
+    
+    toast.success(`Loaded route: ${savedRoute.name}`);
   };
 
   const handleVoiceToggle = () => {
@@ -556,6 +613,17 @@ export default function Index() {
                       <MapPin className="h-4 w-4 mr-1" />
                       Stops{waypoints.length > 0 && ` (${waypoints.length})`}
                     </Button>
+                    {user && (
+                      <Button 
+                        size="sm" 
+                        variant={showSavedRoutes ? 'secondary' : 'outline'}
+                        onClick={() => setShowSavedRoutes(!showSavedRoutes)}
+                        className="h-9 px-3"
+                      >
+                        <Bookmark className="h-4 w-4 mr-1" />
+                        Saved
+                      </Button>
+                    )}
                     <Button 
                       size="sm" 
                       variant="default"
@@ -632,6 +700,35 @@ export default function Index() {
                   onSelectRoute={handleSelectRouteAlternative}
                   onClose={() => setShowRouteAlternatives(false)}
                   onConfirm={handleConfirmRoute}
+                />
+              </div>
+            )}
+
+            {/* Saved Routes List */}
+            {showSavedRoutes && user && (
+              <div className="fixed top-20 left-4 right-4 z-30 animate-slide-up md:left-auto md:right-4 md:w-96">
+                <SavedRoutesList
+                  routes={savedRoutes}
+                  onLoadRoute={handleLoadSavedRoute}
+                  onDeleteRoute={deleteRoute}
+                  onUpdateRoute={updateRoute}
+                  onClose={() => setShowSavedRoutes(false)}
+                />
+              </div>
+            )}
+
+            {/* Save Route Dialog - shown when route is active */}
+            {route && selectedStation && user && !showRouteAlternatives && (
+              <div className="fixed bottom-44 left-4 z-20 md:bottom-auto md:top-96 md:left-4">
+                <SaveRouteDialog
+                  startLocation={selectedLocation}
+                  endLocation={selectedStation ? {
+                    lat: selectedStation.lat,
+                    lng: selectedStation.lng,
+                    label: selectedStation.name
+                  } : null}
+                  waypoints={waypoints}
+                  onSave={handleSaveRoute}
                 />
               </div>
             )}
