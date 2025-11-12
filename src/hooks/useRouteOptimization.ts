@@ -1,0 +1,118 @@
+import { useState, useCallback } from 'react';
+import type { SavedRoute } from './useSavedRoutes';
+import type { Route } from './useRouting';
+
+interface OptimizationSuggestion {
+  routeId: string;
+  routeName: string;
+  currentEstimate: {
+    distance: number;
+    duration: number;
+  };
+  suggestedRoute: Route;
+  savings: {
+    distance: number;
+    duration: number;
+    percentage: number;
+  };
+}
+
+export function useRouteOptimization() {
+  const [suggestions, setSuggestions] = useState<OptimizationSuggestion[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const analyzeRoutes = useCallback(async (routes: SavedRoute[]) => {
+    if (routes.length === 0) return;
+
+    setLoading(true);
+    const newSuggestions: OptimizationSuggestion[] = [];
+
+    try {
+      for (const route of routes) {
+        // Build coordinates string for OSRM
+        const waypoints = route.waypoints || [];
+        const coordinates = [
+          `${route.start_location.lng},${route.start_location.lat}`,
+          ...waypoints.map(wp => `${wp.lng},${wp.lat}`),
+          `${route.end_location.lng},${route.end_location.lat}`
+        ].join(';');
+
+        // Fetch alternative routes from OSRM
+        const response = await fetch(
+          `https://router.project-osrm.org/route/v1/driving/${coordinates}?alternatives=3&overview=full&geometries=geojson&steps=true`
+        );
+
+        if (!response.ok) continue;
+
+        const data = await response.json();
+        
+        if (data.routes && data.routes.length > 1) {
+          // Current route is typically the first one
+          const currentRoute = data.routes[0];
+          
+          // Find the best alternative that's significantly better
+          for (let i = 1; i < data.routes.length; i++) {
+            const alternative = data.routes[i];
+            
+            const distanceSavings = currentRoute.distance - alternative.distance;
+            const durationSavings = currentRoute.duration - alternative.duration;
+            const savingsPercentage = (durationSavings / currentRoute.duration) * 100;
+
+            // Only suggest if savings are significant (>10% time or >15% distance)
+            if (savingsPercentage > 10 || (distanceSavings / currentRoute.distance) * 100 > 15) {
+              newSuggestions.push({
+                routeId: route.id,
+                routeName: route.name,
+                currentEstimate: {
+                  distance: currentRoute.distance,
+                  duration: currentRoute.duration
+                },
+                suggestedRoute: {
+                  coordinates: alternative.geometry.coordinates.map(([lng, lat]) => ({ lat, lng })),
+                  distance: alternative.distance,
+                  duration: alternative.duration,
+                  steps: alternative.legs[0]?.steps.map(step => ({
+                    instruction: step.maneuver.type,
+                    distance: step.distance,
+                    duration: step.duration,
+                    location: {
+                      lat: step.maneuver.location[1],
+                      lng: step.maneuver.location[0]
+                    },
+                    maneuver: {
+                      type: step.maneuver.type,
+                      modifier: step.maneuver.modifier
+                    }
+                  })) || []
+                },
+                savings: {
+                  distance: distanceSavings,
+                  duration: durationSavings,
+                  percentage: savingsPercentage
+                }
+              });
+              break; // Only show one suggestion per route
+            }
+          }
+        }
+      }
+
+      setSuggestions(newSuggestions);
+    } catch (error) {
+      console.error('Error analyzing routes:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const clearSuggestions = useCallback(() => {
+    setSuggestions([]);
+  }, []);
+
+  return {
+    suggestions,
+    loading,
+    analyzeRoutes,
+    clearSuggestions
+  };
+}

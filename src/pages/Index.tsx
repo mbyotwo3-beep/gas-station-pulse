@@ -27,6 +27,7 @@ import WaypointsManager, { Waypoint } from "@/components/map/WaypointsManager";
 import RouteAlternatives from "@/components/map/RouteAlternatives";
 import SaveRouteDialog from "@/components/map/SaveRouteDialog";
 import SavedRoutesList from "@/components/map/SavedRoutesList";
+import RouteOptimizationSuggestions from "@/components/map/RouteOptimizationSuggestions";
 import AdminPanel from "@/components/admin/AdminPanel";
 import { useAuth } from "@/contexts/AuthContext";
 import { useStations } from "@/hooks/useStations";
@@ -38,6 +39,7 @@ import { useRouting } from "@/hooks/useRouting";
 import { useVoiceNavigation } from "@/hooks/useVoiceNavigation";
 import { useAutoRerouting } from "@/hooks/useAutoRerouting";
 import { useSavedRoutes } from "@/hooks/useSavedRoutes";
+import { useRouteOptimization } from "@/hooks/useRouteOptimization";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -61,7 +63,8 @@ import {
   X,
   Bell,
   BellOff,
-  Bookmark
+  Bookmark,
+  Lightbulb
 } from "lucide-react";
 import type { Station } from "@/hooks/useStations";
 
@@ -74,6 +77,7 @@ export default function Index() {
   const { hasPermission, requestNotificationPermission } = useNotifications();
   const { route, routeAlternatives, loading: routeLoading, getRoute, clearRoute, selectRoute } = useRouting();
   const { savedRoutes, loading: savedRoutesLoading, saveRoute, deleteRoute, updateRoute } = useSavedRoutes();
+  const { suggestions, loading: optimizationLoading, analyzeRoutes, clearSuggestions } = useRouteOptimization();
   
   const [mode, setMode] = useState<'fuel' | 'rideshare' | 'admin'>('fuel');
   const [rideShareMode, setRideShareMode] = useState<'passenger' | 'driver'>('passenger');
@@ -91,6 +95,7 @@ export default function Index() {
   const [selectedRouteIndex, setSelectedRouteIndex] = useState(0);
   const [autoRerouteEnabled, setAutoRerouteEnabled] = useState(true);
   const [showSavedRoutes, setShowSavedRoutes] = useState(false);
+  const [showOptimizationSuggestions, setShowOptimizationSuggestions] = useState(false);
   const [filters, setFilters] = useState({
     status: ['available', 'low'] as Array<'available' | 'low' | 'out'>,
     maxDistance: 10,
@@ -287,6 +292,32 @@ export default function Index() {
     );
     
     toast.success(`Loaded route: ${savedRoute.name}`);
+  };
+
+  const handleAnalyzeRoutes = async () => {
+    if (savedRoutes.length === 0) {
+      toast.error('No saved routes to analyze');
+      return;
+    }
+    
+    toast.info('Analyzing your saved routes...');
+    await analyzeRoutes(savedRoutes);
+    
+    if (suggestions.length > 0) {
+      setShowOptimizationSuggestions(true);
+      setShowSavedRoutes(false);
+    } else {
+      toast.success('All your routes are already optimized!');
+    }
+  };
+
+  const handleApplyOptimization = async (routeId: string) => {
+    const savedRoute = savedRoutes.find(r => r.id === routeId);
+    if (!savedRoute) return;
+    
+    await handleLoadSavedRoute(savedRoute);
+    setShowOptimizationSuggestions(false);
+    clearSuggestions();
   };
 
   const handleVoiceToggle = () => {
@@ -614,15 +645,29 @@ export default function Index() {
                       Stops{waypoints.length > 0 && ` (${waypoints.length})`}
                     </Button>
                     {user && (
-                      <Button 
-                        size="sm" 
-                        variant={showSavedRoutes ? 'secondary' : 'outline'}
-                        onClick={() => setShowSavedRoutes(!showSavedRoutes)}
-                        className="h-9 px-3"
-                      >
-                        <Bookmark className="h-4 w-4 mr-1" />
-                        Saved
-                      </Button>
+                      <>
+                        <Button 
+                          size="sm" 
+                          variant={showSavedRoutes ? 'secondary' : 'outline'}
+                          onClick={() => setShowSavedRoutes(!showSavedRoutes)}
+                          className="h-9 px-3"
+                        >
+                          <Bookmark className="h-4 w-4 mr-1" />
+                          Saved
+                        </Button>
+                        {savedRoutes.length > 0 && (
+                          <Button 
+                            size="sm" 
+                            variant={showOptimizationSuggestions ? 'secondary' : 'outline'}
+                            onClick={handleAnalyzeRoutes}
+                            disabled={optimizationLoading}
+                            className="h-9 px-3"
+                          >
+                            <Lightbulb className="h-4 w-4 mr-1" />
+                            {optimizationLoading ? 'Analyzing...' : 'Optimize'}
+                          </Button>
+                        )}
+                      </>
                     )}
                     <Button 
                       size="sm" 
@@ -713,6 +758,20 @@ export default function Index() {
                   onDeleteRoute={deleteRoute}
                   onUpdateRoute={updateRoute}
                   onClose={() => setShowSavedRoutes(false)}
+                />
+              </div>
+            )}
+
+            {/* Route Optimization Suggestions */}
+            {showOptimizationSuggestions && user && (
+              <div className="fixed top-20 left-4 right-4 z-30 animate-slide-up md:left-auto md:right-4 md:w-96">
+                <RouteOptimizationSuggestions
+                  suggestions={suggestions}
+                  onApplySuggestion={handleApplyOptimization}
+                  onClose={() => {
+                    setShowOptimizationSuggestions(false);
+                    clearSuggestions();
+                  }}
                 />
               </div>
             )}
