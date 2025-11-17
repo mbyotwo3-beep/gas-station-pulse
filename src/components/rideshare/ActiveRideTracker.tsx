@@ -39,13 +39,24 @@ export default function ActiveRideTracker() {
     const success = await updateRideStatus(activeRide.id, newStatus, notes || undefined);
     setNotes('');
     setUpdating(false);
+    
     if (success && newStatus === 'completed') {
-      if (!isDriver) {
+      // Passengers should pay first, then rate
+      if (!isDriver && activeRide.fare_amount) {
         setShowPayment(true);
+      } else if (!isDriver) {
+        // If no fare, just show rating
+        setShowRating(true);
       } else {
+        // Drivers rate after completion
         setShowRating(true);
       }
     }
+  };
+
+  const handlePaymentComplete = () => {
+    setShowPayment(false);
+    setShowRating(true);
   };
 
   return (

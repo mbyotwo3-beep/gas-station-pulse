@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Shield, Users, Car, Fuel, TrendingUp, Search } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import DriverVerificationPanel from './DriverVerificationPanel';
 
 interface UserWithRole {
   id: string;
@@ -184,8 +185,9 @@ export default function AdminPanel() {
       </div>
 
       <Tabs defaultValue="users" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="users">User Management</TabsTrigger>
+          <TabsTrigger value="drivers">Driver Verification</TabsTrigger>
           <TabsTrigger value="system">System Health</TabsTrigger>
         </TabsList>
 
@@ -279,6 +281,10 @@ export default function AdminPanel() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="drivers">
+          <DriverVerificationPanel />
         </TabsContent>
       </Tabs>
     </div>

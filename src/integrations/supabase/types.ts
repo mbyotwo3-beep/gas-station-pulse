@@ -79,6 +79,10 @@ export type Database = {
           vehicle_make: string | null
           vehicle_model: string | null
           vehicle_type: string
+          verification_documents: Json | null
+          verification_status: string | null
+          verified_at: string | null
+          verified_by: string | null
         }
         Insert: {
           created_at?: string
@@ -93,6 +97,10 @@ export type Database = {
           vehicle_make?: string | null
           vehicle_model?: string | null
           vehicle_type: string
+          verification_documents?: Json | null
+          verification_status?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
         }
         Update: {
           created_at?: string
@@ -107,6 +115,10 @@ export type Database = {
           vehicle_make?: string | null
           vehicle_model?: string | null
           vehicle_type?: string
+          verification_documents?: Json | null
+          verification_status?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
         }
         Relationships: []
       }
@@ -490,6 +502,7 @@ export type Database = {
           id: string
           passenger_id: string | null
           passenger_notes: string | null
+          payment_status: string | null
           pickup_location: Json
           service_type: Database["public"]["Enums"]["service_type"] | null
           status: string
@@ -507,6 +520,7 @@ export type Database = {
           id?: string
           passenger_id?: string | null
           passenger_notes?: string | null
+          payment_status?: string | null
           pickup_location: Json
           service_type?: Database["public"]["Enums"]["service_type"] | null
           status?: string
@@ -524,6 +538,7 @@ export type Database = {
           id?: string
           passenger_id?: string | null
           passenger_notes?: string | null
+          payment_status?: string | null
           pickup_location?: Json
           service_type?: Database["public"]["Enums"]["service_type"] | null
           status?: string

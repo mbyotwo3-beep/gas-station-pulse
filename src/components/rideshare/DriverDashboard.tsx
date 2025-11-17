@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
-import { Car, Star, Navigation, DollarSign } from 'lucide-react';
+import { Car, Star, Navigation, DollarSign, CheckCircle, Clock, XCircle } from 'lucide-react';
 import { useDriverLocation } from '@/hooks/useDriverLocation';
 import ActiveRideTracker from './ActiveRideTracker';
 import RideHistory from './RideHistory';
@@ -23,6 +23,8 @@ interface DriverProfile {
   is_active: boolean;
   rating: number;
   total_rides: number;
+  verification_status?: string;
+  verified_at?: string;
 }
 
 interface RideRequest {
@@ -125,22 +127,33 @@ export default function DriverDashboard() {
   const createDriverProfile = async () => {
     if (!user) return;
     
+    // Validate inputs
+    if (!vehicleType || !licensePlate.trim()) {
+      toast({
+        title: 'Validation Error',
+        description: 'Vehicle type and license plate are required',
+        variant: 'destructive'
+      });
+      return;
+    }
+
     setCreatingProfile(true);
     const { error } = await supabase
       .from('driver_profiles')
       .insert({
         user_id: user.id,
         vehicle_type: vehicleType,
-        vehicle_make: vehicleMake || null,
-        vehicle_model: vehicleModel || null,
-        license_plate: licensePlate || null,
+        vehicle_make: vehicleMake.trim() || null,
+        vehicle_model: vehicleModel.trim() || null,
+        license_plate: licensePlate.trim().toUpperCase(),
+        verification_status: 'pending',
         is_active: false,
       });
     
     if (error) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
     } else {
-      toast({ title: 'Success', description: 'Driver profile created!' });
+      toast({ title: 'Application Submitted', description: 'Your driver profile is pending verification' });
       fetchDriverProfile();
     }
     setCreatingProfile(false);
@@ -198,6 +211,11 @@ export default function DriverDashboard() {
     return <div className="flex items-center justify-center p-8">Loading...</div>;
   }
 
+  // Check verification status
+  const isVerified = driverProfile?.verification_status === 'approved';
+  const isPending = driverProfile?.verification_status === 'pending';
+  const isRejected = driverProfile?.verification_status === 'rejected';
+
   if (!driverProfile) {
     return (
       <Card className="surface-gradient">
@@ -208,6 +226,9 @@ export default function DriverDashboard() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Register as a driver to start accepting ride requests. Your application will be reviewed by our team.
+          </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Vehicle Type</Label>
@@ -368,9 +389,10 @@ export default function DriverDashboard() {
                 </div>
               ))}
             </div>
-          )}
-        </CardContent>
-      </Card>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Ride History */}
       <RideHistory />
