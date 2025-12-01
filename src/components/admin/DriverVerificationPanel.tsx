@@ -53,18 +53,28 @@ export default function DriverVerificationPanel() {
 
   const fetchPendingDrivers = async () => {
     try {
-      const { data, error } = await supabase
+      const { data: driversData, error: driversError } = await supabase
         .from('driver_profiles')
-        .select(`
-          *,
-          profiles!inner(display_name, email)
-        `)
+        .select('*')
         .in('verification_status', ['pending', 'rejected'])
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (driversError) throw driversError;
+
+      // Fetch profiles separately
+      const userIds = (driversData || []).map(d => d.user_id);
+      const { data: profilesData } = await supabase
+        .from('profiles')
+        .select('id, display_name, email')
+        .in('id', userIds);
+
+      // Merge the data
+      const driversWithProfiles = (driversData || []).map(driver => ({
+        ...driver,
+        profiles: profilesData?.find(p => p.id === driver.user_id)
+      }));
       
-      setPendingDrivers(data || []);
+      setPendingDrivers(driversWithProfiles);
     } catch (error: any) {
       console.error('Error fetching drivers:', error);
       toast({
