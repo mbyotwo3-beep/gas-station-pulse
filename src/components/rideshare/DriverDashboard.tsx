@@ -389,10 +389,9 @@ export default function DriverDashboard() {
                 </div>
               ))}
             </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
+          )}
+        </CardContent>
+      </Card>
 
       {/* Ride History */}
       <RideHistory />
