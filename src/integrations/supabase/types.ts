@@ -249,6 +249,54 @@ export type Database = {
           },
         ]
       }
+      payment_methods: {
+        Row: {
+          cardholder_name: string | null
+          created_at: string
+          expiry_month: number | null
+          expiry_year: number | null
+          id: string
+          is_active: boolean | null
+          is_default: boolean | null
+          last_four: string | null
+          provider: string | null
+          type: string
+          updated_at: string
+          user_id: string
+          wallet_id: string | null
+        }
+        Insert: {
+          cardholder_name?: string | null
+          created_at?: string
+          expiry_month?: number | null
+          expiry_year?: number | null
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          last_four?: string | null
+          provider?: string | null
+          type: string
+          updated_at?: string
+          user_id: string
+          wallet_id?: string | null
+        }
+        Update: {
+          cardholder_name?: string | null
+          created_at?: string
+          expiry_month?: number | null
+          expiry_year?: number | null
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          last_four?: string | null
+          provider?: string | null
+          type?: string
+          updated_at?: string
+          user_id?: string
+          wallet_id?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -705,6 +753,94 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      transactions: {
+        Row: {
+          amount: number
+          completed_at: string | null
+          created_at: string
+          currency: string | null
+          description: string | null
+          error_message: string | null
+          id: string
+          metadata: Json | null
+          order_id: string | null
+          payment_method_id: string | null
+          payment_method_type: string | null
+          processor_response: Json | null
+          processor_transaction_id: string | null
+          ride_id: string | null
+          service_type: Database["public"]["Enums"]["service_type"]
+          status: string
+          transaction_type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          completed_at?: string | null
+          created_at?: string
+          currency?: string | null
+          description?: string | null
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          order_id?: string | null
+          payment_method_id?: string | null
+          payment_method_type?: string | null
+          processor_response?: Json | null
+          processor_transaction_id?: string | null
+          ride_id?: string | null
+          service_type: Database["public"]["Enums"]["service_type"]
+          status?: string
+          transaction_type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          completed_at?: string | null
+          created_at?: string
+          currency?: string | null
+          description?: string | null
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          order_id?: string | null
+          payment_method_id?: string | null
+          payment_method_type?: string | null
+          processor_response?: Json | null
+          processor_transaction_id?: string | null
+          ride_id?: string | null
+          service_type?: Database["public"]["Enums"]["service_type"]
+          status?: string
+          transaction_type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transactions_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_payment_method_id_fkey"
+            columns: ["payment_method_id"]
+            isOneToOne: false
+            referencedRelation: "payment_methods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_ride_id_fkey"
+            columns: ["ride_id"]
+            isOneToOne: false
+            referencedRelation: "rides"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {

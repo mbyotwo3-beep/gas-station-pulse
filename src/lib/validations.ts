@@ -72,6 +72,30 @@ export const ratingSchema = z.object({
   comment: z.string().max(500).optional()
 });
 
+// Payment method validation
+export const paymentMethodSchema = z.object({
+  type: z.enum(['credit_card', 'debit_card', 'digital_wallet', 'cash']),
+  provider: z.string().min(1).max(50).optional(),
+  last_four: z.string().length(4).optional(),
+  cardholder_name: z.string().min(1).max(100).optional(),
+  expiry_month: z.number().min(1).max(12).optional(),
+  expiry_year: z.number().min(new Date().getFullYear()).optional(),
+  wallet_id: z.string().max(100).optional(),
+  is_default: z.boolean().optional()
+});
+
+// Transaction validation
+export const transactionSchema = z.object({
+  transaction_type: z.enum(['payment', 'refund', 'payout', 'fee']),
+  service_type: z.enum(['ride', 'food_delivery', 'package_delivery']),
+  amount: z.number().positive(),
+  currency: z.string().length(3).default('USD'),
+  payment_method_id: z.string().uuid().optional(),
+  ride_id: z.string().uuid().optional(),
+  order_id: z.string().uuid().optional(),
+  description: z.string().max(500).optional()
+});
+
 // Location validation
 export const locationSchema = z.object({
   lat: z.number().min(-90).max(90),

@@ -1,62 +1,101 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Label } from '@/components/ui/label';
-import { CreditCard, Wallet, Banknote } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { toast } from '@/hooks/use-toast';
+import { DollarSign, Loader2 } from 'lucide-react';
+import PaymentMethodSelector from '../payment/PaymentMethodSelector';
+import { usePaymentMethods } from '@/hooks/usePaymentMethods';
 
 interface RidePaymentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   rideId: string;
   amount: number;
+  onSuccess?: () => void;
 }
 
 export function RidePaymentDialog({
   open,
   onOpenChange,
   rideId,
-  amount
+  amount,
+  onSuccess
 }: RidePaymentDialogProps) {
-  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'wallet'>('cash');
-  const [processing, setProcessing] = useState(false);
-  const { toast } = useToast();
   const { user } = useAuth();
+  const { paymentMethods, fetchPaymentMethods } = usePaymentMethods();
+  const [selectedMethodId, setSelectedMethodId] = useState<string>();
+  const [processing, setProcessing] = useState(false);
+
+  useEffect(() => {
+    if (open && paymentMethods.length > 0) {
+      const defaultMethod = paymentMethods.find(pm => pm.is_default);
+      setSelectedMethodId(defaultMethod?.id || paymentMethods[0]?.id);
+    }
+  }, [open, paymentMethods]);
 
   const handlePayment = async () => {
-    if (!user) return;
+    if (!user || !selectedMethodId) return;
 
     setProcessing(true);
     try {
-      const { error } = await supabase
+      const selectedMethod = paymentMethods.find(pm => pm.id === selectedMethodId);
+      if (!selectedMethod) throw new Error('Payment method not found');
+
+      // Create payment record
+      const { error: paymentError } = await supabase
         .from('ride_payments')
         .insert({
           ride_id: rideId,
           payer_id: user.id,
           amount,
-          payment_method: paymentMethod,
-          status: paymentMethod === 'cash' ? 'completed' : 'pending',
-          completed_at: paymentMethod === 'cash' ? new Date().toISOString() : null
+          payment_method: selectedMethod.type,
+          status: 'completed',
+          completed_at: new Date().toISOString()
         });
 
-      if (error) throw error;
+      if (paymentError) throw paymentError;
+
+      // Create transaction record
+      const { error: transactionError } = await supabase
+        .from('transactions')
+        .insert({
+          user_id: user.id,
+          transaction_type: 'payment',
+          service_type: 'ride',
+          amount,
+          currency: 'USD',
+          status: 'completed',
+          payment_method_id: selectedMethodId,
+          payment_method_type: selectedMethod.type,
+          ride_id: rideId,
+          description: `Payment for ride - $${amount.toFixed(2)}`,
+          completed_at: new Date().toISOString()
+        });
+
+      if (transactionError) throw transactionError;
+
+      // Update ride payment status
+      const { error: rideUpdateError } = await supabase
+        .from('rides')
+        .update({ payment_status: 'completed' })
+        .eq('id', rideId);
+
+      if (rideUpdateError) throw rideUpdateError;
 
       toast({
-        title: 'Payment Processed',
-        description: paymentMethod === 'cash' 
-          ? 'Cash payment confirmed' 
-          : 'Payment initiated successfully',
+        title: 'Payment successful',
+        description: `Paid $${amount.toFixed(2)} via ${selectedMethod.type.replace('_', ' ')}`,
       });
 
+      onSuccess?.();
       onOpenChange(false);
     } catch (error: any) {
       toast({
-        title: 'Payment Failed',
+        title: 'Payment failed',
         description: error.message,
-        variant: 'destructive',
+        variant: 'destructive'
       });
     } finally {
       setProcessing(false);
@@ -67,35 +106,26 @@ export function RidePaymentDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Complete Payment</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <DollarSign className="h-5 w-5" />
+            Complete Payment
+          </DialogTitle>
         </DialogHeader>
-
         <div className="space-y-6">
-          <div className="text-center py-4">
-            <p className="text-sm text-muted-foreground mb-2">Total Amount</p>
-            <p className="text-3xl font-bold">${amount.toFixed(2)}</p>
+          <div className="bg-muted rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Total Amount</span>
+              <span className="text-2xl font-bold">${amount.toFixed(2)}</span>
+            </div>
           </div>
 
-          <div className="space-y-4">
-            <Label>Select Payment Method</Label>
-            <RadioGroup value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as any)}>
-              <div className="flex items-center space-x-3 border rounded-lg p-4 cursor-pointer hover:bg-accent">
-                <RadioGroupItem value="cash" id="cash" />
-                <Banknote className="h-5 w-5" />
-                <Label htmlFor="cash" className="flex-1 cursor-pointer">Cash</Label>
-              </div>
-              <div className="flex items-center space-x-3 border rounded-lg p-4 cursor-pointer hover:bg-accent">
-                <RadioGroupItem value="card" id="card" />
-                <CreditCard className="h-5 w-5" />
-                <Label htmlFor="card" className="flex-1 cursor-pointer">Card</Label>
-              </div>
-              <div className="flex items-center space-x-3 border rounded-lg p-4 cursor-pointer hover:bg-accent">
-                <RadioGroupItem value="wallet" id="wallet" />
-                <Wallet className="h-5 w-5" />
-                <Label htmlFor="wallet" className="flex-1 cursor-pointer">Digital Wallet</Label>
-              </div>
-            </RadioGroup>
-          </div>
+          <PaymentMethodSelector
+            paymentMethods={paymentMethods}
+            selectedMethodId={selectedMethodId}
+            onSelectMethod={setSelectedMethodId}
+            onMethodAdded={fetchPaymentMethods}
+            allowCash={true}
+          />
 
           <div className="flex gap-3">
             <Button
@@ -107,10 +137,11 @@ export function RidePaymentDialog({
             </Button>
             <Button
               onClick={handlePayment}
-              disabled={processing}
+              disabled={processing || !selectedMethodId}
               className="flex-1"
             >
-              {processing ? 'Processing...' : 'Confirm Payment'}
+              {processing && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Pay ${amount.toFixed(2)}
             </Button>
           </div>
         </div>
