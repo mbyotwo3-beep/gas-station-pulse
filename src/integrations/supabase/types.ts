@@ -925,6 +925,15 @@ export type Database = {
         }
         Returns: boolean
       }
+      transfer_wallet_funds: {
+        Args: {
+          p_amount: number
+          p_description?: string
+          p_from_user_id: string
+          p_to_user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "user" | "driver" | "manager" | "admin" | "passenger"
