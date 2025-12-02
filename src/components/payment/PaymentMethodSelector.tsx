@@ -4,7 +4,7 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { CreditCard, Wallet, Banknote, Plus } from 'lucide-react';
+import { CreditCard, Wallet, Banknote, Plus, Wallet2 } from 'lucide-react';
 import { PaymentMethodDialog } from './PaymentMethodDialog';
 
 interface PaymentMethod {
@@ -23,6 +23,8 @@ interface PaymentMethodSelectorProps {
   onSelectMethod: (methodId: string) => void;
   onMethodAdded?: () => void;
   allowCash?: boolean;
+  walletBalance?: number;
+  showWalletOption?: boolean;
 }
 
 export default function PaymentMethodSelector({
@@ -30,7 +32,9 @@ export default function PaymentMethodSelector({
   selectedMethodId,
   onSelectMethod,
   onMethodAdded,
-  allowCash = true
+  allowCash = true,
+  walletBalance = 0,
+  showWalletOption = false
 }: PaymentMethodSelectorProps) {
   const [showAddDialog, setShowAddDialog] = useState(false);
 
@@ -43,6 +47,8 @@ export default function PaymentMethodSelector({
         return <Wallet className="h-5 w-5" />;
       case 'cash':
         return <Banknote className="h-5 w-5" />;
+      case 'wallet':
+        return <Wallet2 className="h-5 w-5" />;
       default:
         return <CreditCard className="h-5 w-5" />;
     }
@@ -79,6 +85,36 @@ export default function PaymentMethodSelector({
 
         <RadioGroup value={selectedMethodId} onValueChange={onSelectMethod}>
           <div className="grid gap-3">
+            {showWalletOption && (
+              <Card
+                className={`cursor-pointer transition-colors ${
+                  selectedMethodId === 'wallet'
+                    ? 'border-primary'
+                    : 'hover:border-muted-foreground/50'
+                }`}
+                onClick={() => onSelectMethod('wallet')}
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <RadioGroupItem value="wallet" id="wallet" />
+                    <div className="flex-1 flex items-center gap-3">
+                      <div className="text-primary">{getMethodIcon('wallet')}</div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">Wallet Balance</span>
+                          <Badge variant="secondary" className="text-xs">
+                            ${walletBalance.toFixed(2)}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          Pay instantly from your balance
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
             {filteredMethods.map((method) => (
               <Card
                 key={method.id}

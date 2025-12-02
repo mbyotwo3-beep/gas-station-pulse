@@ -863,16 +863,55 @@ export type Database = {
         }
         Relationships: []
       }
+      wallets: {
+        Row: {
+          balance: number
+          created_at: string
+          currency: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          balance?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          balance?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      add_wallet_funds: {
+        Args: {
+          p_amount: number
+          p_payment_method_id?: string
+          p_user_id: string
+        }
+        Returns: boolean
+      }
       assign_additional_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      deduct_wallet_funds: {
+        Args: { p_amount: number; p_user_id: string }
         Returns: boolean
       }
       get_user_roles: {

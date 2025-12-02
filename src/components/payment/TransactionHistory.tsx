@@ -4,12 +4,12 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { ArrowUpRight, ArrowDownRight, RefreshCw, AlertCircle, CheckCircle } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, RefreshCw, AlertCircle, CheckCircle, Wallet } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface Transaction {
   id: string;
-  transaction_type: 'payment' | 'refund' | 'payout' | 'fee';
+  transaction_type: 'payment' | 'refund' | 'payout' | 'fee' | 'top_up';
   service_type: 'ride' | 'food_delivery' | 'package_delivery';
   amount: number;
   currency: string;
@@ -20,7 +20,11 @@ interface Transaction {
   completed_at?: string;
 }
 
-export default function TransactionHistory() {
+interface TransactionHistoryProps {
+  filterType?: 'wallet' | 'all';
+}
+
+export default function TransactionHistory({ filterType = 'all' }: TransactionHistoryProps) {
   const { user } = useAuth();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -29,17 +33,24 @@ export default function TransactionHistory() {
     if (user) {
       fetchTransactions();
     }
-  }, [user]);
+  }, [user, filterType]);
 
   const fetchTransactions = async () => {
     if (!user) return;
 
-    const { data, error } = await supabase
+    let query = supabase
       .from('transactions')
       .select('*')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(50);
+
+    // Filter for wallet-related transactions
+    if (filterType === 'wallet') {
+      query = query.or('transaction_type.eq.top_up,payment_method_type.eq.wallet');
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       console.error('Error fetching transactions:', error);
@@ -87,9 +98,11 @@ export default function TransactionHistory() {
         return <ArrowUpRight className="h-5 w-5 text-destructive" />;
       case 'refund':
       case 'payout':
-        return <ArrowDownRight className="h-5 w-5 text-success" />;
+        return <ArrowDownRight className="h-5 w-5 text-green-500" />;
+      case 'top_up':
+        return <Wallet className="h-5 w-5 text-green-500" />;
       case 'fee':
-        return <ArrowUpRight className="h-5 w-5 text-warning" />;
+        return <ArrowUpRight className="h-5 w-5 text-yellow-500" />;
       default:
         return <ArrowUpRight className="h-5 w-5" />;
     }
@@ -168,7 +181,7 @@ export default function TransactionHistory() {
                       <p className={`text-lg font-bold ${
                         transaction.transaction_type === 'payment' || transaction.transaction_type === 'fee'
                           ? 'text-destructive'
-                          : 'text-success'
+                          : 'text-green-500'
                       }`}>
                         {transaction.transaction_type === 'payment' || transaction.transaction_type === 'fee' ? '-' : '+'}
                         {transaction.currency === 'USD' ? '$' : ''}
