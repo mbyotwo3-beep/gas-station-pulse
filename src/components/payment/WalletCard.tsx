@@ -1,4 +1,4 @@
-import { Wallet, Plus, Send } from 'lucide-react';
+import { Wallet, Plus, Send, HandCoins } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -8,9 +8,10 @@ interface WalletCardProps {
   loading?: boolean;
   onTopUp?: () => void;
   onTransfer?: () => void;
+  onRequest?: () => void;
 }
 
-export default function WalletCard({ balance, loading, onTopUp, onTransfer }: WalletCardProps) {
+export default function WalletCard({ balance, loading, onTopUp, onTransfer, onRequest }: WalletCardProps) {
   if (loading) {
     return (
       <Card className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground">
@@ -46,10 +47,17 @@ export default function WalletCard({ balance, loading, onTopUp, onTransfer }: Wa
               size="sm" 
               variant="secondary" 
               className="gap-1"
+              onClick={onRequest}
+            >
+              <HandCoins className="h-4 w-4" />
+            </Button>
+            <Button 
+              size="sm" 
+              variant="secondary" 
+              className="gap-1"
               onClick={onTransfer}
             >
               <Send className="h-4 w-4" />
-              Send
             </Button>
             <Button 
               size="sm" 
@@ -58,7 +66,6 @@ export default function WalletCard({ balance, loading, onTopUp, onTransfer }: Wa
               onClick={onTopUp}
             >
               <Plus className="h-4 w-4" />
-              Add
             </Button>
           </div>
         </div>

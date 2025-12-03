@@ -5,13 +5,16 @@ import TransactionHistory from '@/components/payment/TransactionHistory';
 import WalletCard from '@/components/payment/WalletCard';
 import WalletTopUpDialog from '@/components/payment/WalletTopUpDialog';
 import WalletTransferDialog from '@/components/payment/WalletTransferDialog';
+import PaymentRequestDialog from '@/components/payment/PaymentRequestDialog';
+import PaymentRequestsList from '@/components/payment/PaymentRequestsList';
 import { useWallet } from '@/hooks/useWallet';
-import { CreditCard, History, Wallet } from 'lucide-react';
+import { CreditCard, History, Wallet, HandCoins } from 'lucide-react';
 
 export default function Payments() {
   const [activeTab, setActiveTab] = useState('wallet');
   const [showTopUp, setShowTopUp] = useState(false);
   const [showTransfer, setShowTransfer] = useState(false);
+  const [showRequest, setShowRequest] = useState(false);
   const { balance, loading } = useWallet();
 
   return (
@@ -29,18 +32,23 @@ export default function Payments() {
           loading={loading}
           onTopUp={() => setShowTopUp(true)}
           onTransfer={() => setShowTransfer(true)}
+          onRequest={() => setShowRequest(true)}
         />
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full max-w-lg grid-cols-3">
+        <TabsList className="grid w-full max-w-2xl grid-cols-4">
           <TabsTrigger value="wallet" className="flex items-center gap-2">
             <Wallet className="h-4 w-4" />
             Wallet
           </TabsTrigger>
+          <TabsTrigger value="requests" className="flex items-center gap-2">
+            <HandCoins className="h-4 w-4" />
+            Requests
+          </TabsTrigger>
           <TabsTrigger value="methods" className="flex items-center gap-2">
             <CreditCard className="h-4 w-4" />
-            Payment Methods
+            Methods
           </TabsTrigger>
           <TabsTrigger value="history" className="flex items-center gap-2">
             <History className="h-4 w-4" />
@@ -50,6 +58,10 @@ export default function Payments() {
 
         <TabsContent value="wallet" className="space-y-6">
           <TransactionHistory filterType="wallet" />
+        </TabsContent>
+
+        <TabsContent value="requests" className="space-y-6">
+          <PaymentRequestsList />
         </TabsContent>
 
         <TabsContent value="methods" className="space-y-6">
@@ -69,6 +81,11 @@ export default function Payments() {
       <WalletTransferDialog
         open={showTransfer}
         onOpenChange={setShowTransfer}
+      />
+
+      <PaymentRequestDialog
+        open={showRequest}
+        onOpenChange={setShowRequest}
       />
     </div>
   );
