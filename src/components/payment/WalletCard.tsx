@@ -1,4 +1,4 @@
-import { Wallet, Plus, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
+import { Wallet, Plus, Send } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -7,9 +7,10 @@ interface WalletCardProps {
   balance: number;
   loading?: boolean;
   onTopUp?: () => void;
+  onTransfer?: () => void;
 }
 
-export default function WalletCard({ balance, loading, onTopUp }: WalletCardProps) {
+export default function WalletCard({ balance, loading, onTopUp, onTransfer }: WalletCardProps) {
   if (loading) {
     return (
       <Card className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground">
@@ -40,15 +41,26 @@ export default function WalletCard({ balance, loading, onTopUp }: WalletCardProp
             <p className="text-3xl font-bold">${balance.toFixed(2)}</p>
             <p className="text-xs text-primary-foreground/60 mt-1">USD</p>
           </div>
-          <Button 
-            size="sm" 
-            variant="secondary" 
-            className="gap-1"
-            onClick={onTopUp}
-          >
-            <Plus className="h-4 w-4" />
-            Add Funds
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              size="sm" 
+              variant="secondary" 
+              className="gap-1"
+              onClick={onTransfer}
+            >
+              <Send className="h-4 w-4" />
+              Send
+            </Button>
+            <Button 
+              size="sm" 
+              variant="secondary" 
+              className="gap-1"
+              onClick={onTopUp}
+            >
+              <Plus className="h-4 w-4" />
+              Add
+            </Button>
+          </div>
         </div>
       </CardContent>
     </Card>

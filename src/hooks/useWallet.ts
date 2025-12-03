@@ -120,12 +120,35 @@ export const useWallet = () => {
     return { success: true };
   };
 
+  const transferFunds = async (toUserId: string, amount: number, description?: string) => {
+    if (!user || !wallet) return { success: false, error: 'No wallet found' };
+
+    if (wallet.balance < amount) {
+      return { success: false, error: 'Insufficient balance' };
+    }
+
+    const { data, error } = await supabase.rpc('transfer_wallet_funds', {
+      p_from_user_id: user.id,
+      p_to_user_id: toUserId,
+      p_amount: amount,
+      p_description: description
+    });
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    await fetchWallet();
+    return { success: true };
+  };
+
   return {
     wallet,
     balance: wallet?.balance ?? 0,
     loading,
     fetchWallet,
     addFunds,
-    deductFunds
+    deductFunds,
+    transferFunds
   };
 };
