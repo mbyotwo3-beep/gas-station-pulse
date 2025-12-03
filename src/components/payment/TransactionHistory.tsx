@@ -9,7 +9,7 @@ import { format } from 'date-fns';
 
 interface Transaction {
   id: string;
-  transaction_type: 'payment' | 'refund' | 'payout' | 'fee' | 'top_up';
+  transaction_type: 'payment' | 'refund' | 'payout' | 'fee' | 'top_up' | 'transfer_in' | 'transfer_out';
   service_type: 'ride' | 'food_delivery' | 'package_delivery';
   amount: number;
   currency: string;
@@ -95,9 +95,11 @@ export default function TransactionHistory({ filterType = 'all' }: TransactionHi
   const getTransactionIcon = (type: string) => {
     switch (type) {
       case 'payment':
+      case 'transfer_out':
         return <ArrowUpRight className="h-5 w-5 text-destructive" />;
       case 'refund':
       case 'payout':
+      case 'transfer_in':
         return <ArrowDownRight className="h-5 w-5 text-green-500" />;
       case 'top_up':
         return <Wallet className="h-5 w-5 text-green-500" />;
@@ -179,11 +181,15 @@ export default function TransactionHistory({ filterType = 'all' }: TransactionHi
                     </div>
                     <div className="text-right">
                       <p className={`text-lg font-bold ${
-                        transaction.transaction_type === 'payment' || transaction.transaction_type === 'fee'
+                        transaction.transaction_type === 'payment' || 
+                        transaction.transaction_type === 'fee' || 
+                        transaction.transaction_type === 'transfer_out'
                           ? 'text-destructive'
                           : 'text-green-500'
                       }`}>
-                        {transaction.transaction_type === 'payment' || transaction.transaction_type === 'fee' ? '-' : '+'}
+                        {transaction.transaction_type === 'payment' || 
+                         transaction.transaction_type === 'fee' || 
+                         transaction.transaction_type === 'transfer_out' ? '-' : '+'}
                         {transaction.currency === 'USD' ? '$' : ''}
                         {transaction.amount.toFixed(2)}
                       </p>

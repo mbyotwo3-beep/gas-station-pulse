@@ -4,12 +4,14 @@ import PaymentMethodsManager from '@/components/payment/PaymentMethodsManager';
 import TransactionHistory from '@/components/payment/TransactionHistory';
 import WalletCard from '@/components/payment/WalletCard';
 import WalletTopUpDialog from '@/components/payment/WalletTopUpDialog';
+import WalletTransferDialog from '@/components/payment/WalletTransferDialog';
 import { useWallet } from '@/hooks/useWallet';
 import { CreditCard, History, Wallet } from 'lucide-react';
 
 export default function Payments() {
   const [activeTab, setActiveTab] = useState('wallet');
   const [showTopUp, setShowTopUp] = useState(false);
+  const [showTransfer, setShowTransfer] = useState(false);
   const { balance, loading } = useWallet();
 
   return (
@@ -26,6 +28,7 @@ export default function Payments() {
           balance={balance} 
           loading={loading}
           onTopUp={() => setShowTopUp(true)}
+          onTransfer={() => setShowTransfer(true)}
         />
       </div>
 
@@ -61,6 +64,11 @@ export default function Payments() {
       <WalletTopUpDialog 
         open={showTopUp} 
         onOpenChange={setShowTopUp}
+      />
+
+      <WalletTransferDialog
+        open={showTransfer}
+        onOpenChange={setShowTransfer}
       />
     </div>
   );
