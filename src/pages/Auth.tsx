@@ -1,13 +1,18 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { Eye, EyeOff, Fuel, Car, Shield, User } from "lucide-react";
+import ForgotPasswordDialog from "@/components/auth/ForgotPasswordDialog";
+import ResetPasswordForm from "@/components/auth/ResetPasswordForm";
 
 export default function Auth() {
+  const [searchParams] = useSearchParams();
+  const isResetMode = searchParams.get("mode") === "reset";
+  
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -20,9 +25,13 @@ export default function Auth() {
   const { signUp, signIn } = useAuth();
 
   useEffect(() => {
-    document.title = isLogin ? "Sign In - FuelFinder" : "Sign Up - FuelFinder";
+    document.title = isResetMode 
+      ? "Reset Password - FuelFinder" 
+      : isLogin 
+        ? "Sign In - FuelFinder" 
+        : "Sign Up - FuelFinder";
     setIsChecking(false);
-  }, [isLogin]);
+  }, [isLogin, isResetMode]);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -112,6 +121,15 @@ export default function Auth() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  // Show reset password form if in reset mode
+  if (isResetMode) {
+    return (
+      <div className="min-h-screen bg-gradient-hero flex items-center justify-center p-4">
+        <ResetPasswordForm />
       </div>
     );
   }
@@ -241,6 +259,12 @@ export default function Auth() {
           >
             {loading ? "Please wait..." : isLogin ? "Sign In" : "Create Account"}
           </Button>
+
+          {isLogin && (
+            <div className="text-center mt-4">
+              <ForgotPasswordDialog />
+            </div>
+          )}
         </form>
 
         <div className="mt-6 text-center">

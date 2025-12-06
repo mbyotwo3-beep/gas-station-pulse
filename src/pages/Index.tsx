@@ -29,12 +29,14 @@ import SaveRouteDialog from "@/components/map/SaveRouteDialog";
 import SavedRoutesList from "@/components/map/SavedRoutesList";
 import RouteOptimizationSuggestions from "@/components/map/RouteOptimizationSuggestions";
 import AdminPanel from "@/components/admin/AdminPanel";
+import NotificationCenter from "@/components/common/NotificationCenter";
 import { useAuth } from "@/contexts/AuthContext";
 import { useStations } from "@/hooks/useStations";
 import { useProfile } from "@/hooks/useProfile";
 import { useGeolocation } from "@/hooks/useGeolocation";
 import { useRoles } from "@/hooks/useRoles";
 import { useNotifications } from "@/hooks/useNotifications";
+import { useRealtimeNotifications } from "@/hooks/useRealtimeNotifications";
 import { useRouting } from "@/hooks/useRouting";
 import { useVoiceNavigation } from "@/hooks/useVoiceNavigation";
 import { useAutoRerouting } from "@/hooks/useAutoRerouting";
@@ -61,7 +63,6 @@ import {
   Shield,
   Crown,
   X,
-  Bell,
   BellOff,
   Bookmark,
   Lightbulb
@@ -75,6 +76,7 @@ export default function Index() {
   const { position, requestLocation, getLocationOrDefault } = useGeolocation();
   const { roles, hasRole, canManageStations, canDrive, canRequestRides } = useRoles();
   const { hasPermission, requestNotificationPermission } = useNotifications();
+  useRealtimeNotifications(); // Enable realtime notifications
   const { route, routeAlternatives, loading: routeLoading, getRoute, clearRoute, selectRoute } = useRouting();
   const { savedRoutes, loading: savedRoutesLoading, saveRoute, deleteRoute, updateRoute } = useSavedRoutes();
   const { suggestions, loading: optimizationLoading, analyzeRoutes, clearSuggestions } = useRouteOptimization();
@@ -400,19 +402,18 @@ export default function Index() {
           <div className="flex items-center space-x-2">
             {user && (
               <>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="w-10 h-10 rounded-xl"
-                  onClick={requestNotificationPermission}
-                  title={hasPermission ? "Notifications enabled" : "Enable notifications"}
-                >
-                  {hasPermission ? (
-                    <Bell className="h-4 w-4 text-success" />
-                  ) : (
+                <NotificationCenter />
+                {!hasPermission && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="w-10 h-10 rounded-xl"
+                    onClick={requestNotificationPermission}
+                    title="Enable notifications"
+                  >
                     <BellOff className="h-4 w-4" />
-                  )}
-                </Button>
+                  </Button>
+                )}
                 <div className={`${roleInfo.color} rounded-lg px-2 py-1 flex items-center gap-1`}>
                   <roleInfo.icon className="h-3 w-3 text-white" />
                   <span className="text-xs text-white font-medium">{roleInfo.label}</span>
