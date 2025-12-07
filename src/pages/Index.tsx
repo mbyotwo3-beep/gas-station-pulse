@@ -37,7 +37,8 @@ import { useGeolocation } from "@/hooks/useGeolocation";
 import { useRoles } from "@/hooks/useRoles";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useRealtimeNotifications } from "@/hooks/useRealtimeNotifications";
-import { useRouting } from "@/hooks/useRouting";
+import { useRouting, type TransportMode } from "@/hooks/useRouting";
+import { TransportModeSelector } from "@/components/map/TransportModeSelector";
 import { useVoiceNavigation } from "@/hooks/useVoiceNavigation";
 import { useAutoRerouting } from "@/hooks/useAutoRerouting";
 import { useSavedRoutes } from "@/hooks/useSavedRoutes";
@@ -77,7 +78,7 @@ export default function Index() {
   const { roles, hasRole, canManageStations, canDrive, canRequestRides } = useRoles();
   const { hasPermission, requestNotificationPermission } = useNotifications();
   useRealtimeNotifications(); // Enable realtime notifications
-  const { route, routeAlternatives, loading: routeLoading, getRoute, clearRoute, selectRoute } = useRouting();
+  const { route, routeAlternatives, loading: routeLoading, transportMode, getRoute, clearRoute, selectRoute, changeTransportMode } = useRouting();
   const { savedRoutes, loading: savedRoutesLoading, saveRoute, deleteRoute, updateRoute } = useSavedRoutes();
   const { suggestions, loading: optimizationLoading, analyzeRoutes, clearSuggestions } = useRouteOptimization();
   
@@ -548,9 +549,22 @@ export default function Index() {
             </div>
             {/* Actions Bar */}
             <div className="flex items-center justify-between px-4 py-3 bg-background/95 backdrop-blur-md sticky top-0 z-20 border-b border-border/50">
-              <div>
-                <h2 className="font-semibold text-base">Nearby Stations</h2>
-                <p className="text-xs text-muted-foreground">From your chosen point</p>
+              <div className="flex items-center gap-3">
+                <div>
+                  <h2 className="font-semibold text-base">Nearby Stations</h2>
+                  <p className="text-xs text-muted-foreground">From your chosen point</p>
+                </div>
+                <TransportModeSelector 
+                  value={transportMode} 
+                  onChange={(mode) => {
+                    changeTransportMode(mode);
+                    if (route && selectedStation && selectedLocation) {
+                      // Re-fetch route with new transport mode
+                      const waypointCoords = waypoints.map(wp => ({ lat: wp.lat, lng: wp.lng }));
+                      getRoute(selectedLocation, { lat: selectedStation.lat, lng: selectedStation.lng }, waypointCoords, mode);
+                    }
+                  }} 
+                />
               </div>
               <div className="flex gap-2">
                 {canManageStations() && <AddStationDialog onStationAdded={handleStationReported} />}
