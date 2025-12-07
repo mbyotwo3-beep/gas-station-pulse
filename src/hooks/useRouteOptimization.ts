@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import type { SavedRoute } from './useSavedRoutes';
-import type { Route } from './useRouting';
+import type { Route, TransportMode } from './useRouting';
 
 interface OptimizationSuggestion {
   routeId: string;
@@ -9,7 +9,7 @@ interface OptimizationSuggestion {
     distance: number;
     duration: number;
   };
-  suggestedRoute: Route;
+  suggestedRoute: Omit<Route, 'transportMode'> & { transportMode?: TransportMode };
   savings: {
     distance: number;
     duration: number;
@@ -17,15 +17,22 @@ interface OptimizationSuggestion {
   };
 }
 
+const OSRM_PROFILES: Record<TransportMode, string> = {
+  driving: 'driving',
+  cycling: 'bike',
+  walking: 'foot',
+};
+
 export function useRouteOptimization() {
   const [suggestions, setSuggestions] = useState<OptimizationSuggestion[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const analyzeRoutes = useCallback(async (routes: SavedRoute[]) => {
+  const analyzeRoutes = useCallback(async (routes: SavedRoute[], mode: TransportMode = 'driving') => {
     if (routes.length === 0) return;
 
     setLoading(true);
     const newSuggestions: OptimizationSuggestion[] = [];
+    const profile = OSRM_PROFILES[mode];
 
     try {
       for (const route of routes) {
@@ -37,9 +44,9 @@ export function useRouteOptimization() {
           `${route.end_location.lng},${route.end_location.lat}`
         ].join(';');
 
-        // Fetch alternative routes from OSRM
+        // Fetch alternative routes from OSRM with appropriate profile
         const response = await fetch(
-          `https://router.project-osrm.org/route/v1/driving/${coordinates}?alternatives=3&overview=full&geometries=geojson&steps=true`
+          `https://router.project-osrm.org/route/v1/${profile}/${coordinates}?alternatives=3&overview=full&geometries=geojson&steps=true`
         );
 
         if (!response.ok) continue;
@@ -68,17 +75,14 @@ export function useRouteOptimization() {
                   duration: currentRoute.duration
                 },
                 suggestedRoute: {
-                  coordinates: alternative.geometry.coordinates.map(([lng, lat]) => ({ lat, lng })),
+                  coordinates: alternative.geometry.coordinates.map(([lng, lat]: [number, number]) => [lat, lng] as [number, number]),
                   distance: alternative.distance,
                   duration: alternative.duration,
-                  steps: alternative.legs[0]?.steps.map(step => ({
+                  transportMode: mode,
+                  steps: alternative.legs[0]?.steps.map((step: any) => ({
                     instruction: step.maneuver.type,
                     distance: step.distance,
                     duration: step.duration,
-                    location: {
-                      lat: step.maneuver.location[1],
-                      lng: step.maneuver.location[0]
-                    },
                     maneuver: {
                       type: step.maneuver.type,
                       modifier: step.maneuver.modifier

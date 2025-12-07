@@ -1,6 +1,8 @@
 import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
 
+export type TransportMode = 'driving' | 'cycling' | 'walking';
+
 export interface RouteStep {
   instruction: string;
   distance: number;
@@ -18,19 +20,30 @@ export interface Route {
   duration: number;
   index?: number;
   type?: 'fastest' | 'shortest' | 'alternative';
+  transportMode?: TransportMode;
 }
+
+const OSRM_PROFILES: Record<TransportMode, string> = {
+  driving: 'driving',
+  cycling: 'bike',
+  walking: 'foot',
+};
 
 export function useRouting() {
   const [route, setRoute] = useState<Route | null>(null);
   const [routeAlternatives, setRouteAlternatives] = useState<Route[]>([]);
   const [loading, setLoading] = useState(false);
+  const [transportMode, setTransportMode] = useState<TransportMode>('driving');
 
   const getRoute = useCallback(async (
     start: { lat: number; lng: number },
     end: { lat: number; lng: number },
-    waypoints?: { lat: number; lng: number }[]
+    waypoints?: { lat: number; lng: number }[],
+    mode?: TransportMode
   ) => {
+    const activeMode = mode || transportMode;
     setLoading(true);
+    
     try {
       // Build coordinates string with waypoints
       const coordsString = [
@@ -39,8 +52,9 @@ export function useRouting() {
         `${end.lng},${end.lat}`
       ].join(';');
       
-      // Using OSRM public API for routing with waypoints and alternatives
-      const url = `https://router.project-osrm.org/route/v1/driving/${coordsString}?overview=full&geometries=geojson&steps=true&alternatives=true&alternatives=2`;
+      // Use OSRM public API with appropriate profile for transport mode
+      const profile = OSRM_PROFILES[activeMode];
+      const url = `https://router.project-osrm.org/route/v1/${profile}/${coordsString}?overview=full&geometries=geojson&steps=true&alternatives=true`;
       
       const response = await fetch(url);
       const data = await response.json();
@@ -51,13 +65,15 @@ export function useRouting() {
 
       // Parse all available routes
       const allRoutes: Route[] = data.routes.map((routeData: any, index: number) => {
-        const coordinates: [number, number][] = routeData.geometry.coordinates.map((coord: number[]) => [coord[1], coord[0]] as [number, number]);
+        const coordinates: [number, number][] = routeData.geometry.coordinates.map(
+          (coord: number[]) => [coord[1], coord[0]] as [number, number]
+        );
         
         const steps: RouteStep[] = [];
         routeData.legs.forEach((leg: any) => {
           leg.steps.forEach((step: any) => {
             steps.push({
-              instruction: step.maneuver.instruction || getInstructionText(step.maneuver),
+              instruction: step.maneuver.instruction || getInstructionText(step.maneuver, activeMode),
               distance: step.distance,
               duration: step.duration,
               maneuver: {
@@ -73,7 +89,6 @@ export function useRouting() {
         if (index === 0) {
           type = 'fastest';
         } else if (data.routes.length > 1) {
-          // Check if this route is shorter in distance
           const firstRoute = data.routes[0];
           if (routeData.distance < firstRoute.distance) {
             type = 'shortest';
@@ -87,6 +102,7 @@ export function useRouting() {
           duration: routeData.duration,
           index,
           type,
+          transportMode: activeMode,
         };
       });
 
@@ -101,7 +117,7 @@ export function useRouting() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [transportMode]);
 
   const clearRoute = useCallback(() => {
     setRoute(null);
@@ -115,21 +131,29 @@ export function useRouting() {
     }
   }, [routeAlternatives]);
 
+  const changeTransportMode = useCallback((mode: TransportMode) => {
+    setTransportMode(mode);
+  }, []);
+
   return {
     route,
     routeAlternatives,
     loading,
+    transportMode,
     getRoute,
     clearRoute,
     selectRoute,
+    changeTransportMode,
   };
 }
 
-function getInstructionText(maneuver: any): string {
+function getInstructionText(maneuver: any, mode: TransportMode): string {
   const type = maneuver.type;
   const modifier = maneuver.modifier;
 
-  if (type === 'depart') return 'Head ' + (modifier || 'straight');
+  const modeVerb = mode === 'walking' ? 'Walk' : mode === 'cycling' ? 'Cycle' : 'Drive';
+
+  if (type === 'depart') return `${modeVerb} ${modifier || 'straight'}`;
   if (type === 'arrive') return 'You have arrived at your destination';
   if (type === 'turn') {
     if (modifier === 'left') return 'Turn left';
