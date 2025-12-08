@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,6 +7,15 @@ import { Card } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Eye, EyeOff, Lock, CheckCircle } from "lucide-react";
+import { z } from "zod";
+
+// Password schema matching signUpSchema requirements
+const passwordSchema = z.string()
+  .min(8, 'Password must be at least 8 characters')
+  .max(128, 'Password is too long')
+  .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+  .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
+  .regex(/[0-9]/, 'Password must contain at least one number');
 
 export default function ResetPasswordForm() {
   const [password, setPassword] = useState("");
@@ -28,10 +37,13 @@ export default function ResetPasswordForm() {
       return;
     }
 
-    if (password.length < 6) {
+    // Validate password with Zod schema
+    const result = passwordSchema.safeParse(password);
+    if (!result.success) {
+      const firstError = result.error.errors[0];
       toast({
-        title: "Password too short",
-        description: "Password must be at least 6 characters long.",
+        title: "Invalid Password",
+        description: firstError.message,
         variant: "destructive",
       });
       return;

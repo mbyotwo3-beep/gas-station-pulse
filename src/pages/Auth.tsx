@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { Eye, EyeOff, Fuel, Car, Shield, User } from "lucide-react";
+import { signUpSchema, signInSchema } from "@/lib/validations";
 import ForgotPasswordDialog from "@/components/auth/ForgotPasswordDialog";
 import ResetPasswordForm from "@/components/auth/ResetPasswordForm";
 
@@ -35,6 +36,25 @@ export default function Auth() {
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate input using Zod schemas
+    const schema = isLogin ? signInSchema : signUpSchema;
+    const validationData = isLogin 
+      ? { email, password }
+      : { email, password, display_name: displayName || undefined, primary_role: primaryRole };
+    
+    const result = schema.safeParse(validationData);
+    
+    if (!result.success) {
+      const firstError = result.error.errors[0];
+      toast({
+        title: "Validation Error",
+        description: firstError.message,
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setLoading(true);
 
     try {
