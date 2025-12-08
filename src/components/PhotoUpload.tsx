@@ -48,7 +48,8 @@ export function PhotoUpload({
 
       setUploading(true);
       const fileExt = file.name.split('.').pop();
-      const fileName = `${Math.random()}.${fileExt}`;
+      // Use crypto.randomUUID() for secure, unpredictable file names
+      const fileName = `${crypto.randomUUID()}.${fileExt}`;
       const filePath = folder ? `${folder}/${fileName}` : fileName;
 
       const { error: uploadError } = await supabase.storage
