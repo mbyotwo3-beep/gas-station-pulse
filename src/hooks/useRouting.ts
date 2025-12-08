@@ -24,7 +24,7 @@ export interface Route {
 }
 
 const OSRM_PROFILES: Record<TransportMode, string> = {
-  driving: 'driving',
+  driving: 'car',
   cycling: 'bike',
   walking: 'foot',
 };
@@ -54,13 +54,24 @@ export function useRouting() {
       
       // Use OSRM public API with appropriate profile for transport mode
       const profile = OSRM_PROFILES[activeMode];
-      const url = `https://router.project-osrm.org/route/v1/${profile}/${coordsString}?overview=full&geometries=geojson&steps=true&alternatives=true`;
+      // Using OSRM demo server - for production, you should use your own instance
+      const url = `https://routing.openstreetmap.de/routed-${profile}/route/v1/${activeMode}/${coordsString}?overview=full&geometries=geojson&steps=true&alternatives=true`;
+      
+      console.log('Fetching route from:', url);
       
       const response = await fetch(url);
+      
+      if (!response.ok) {
+        console.error('Route API error:', response.status, response.statusText);
+        throw new Error(`Route API returned ${response.status}`);
+      }
+      
       const data = await response.json();
+      console.log('Route API response:', data);
 
       if (data.code !== 'Ok' || !data.routes || data.routes.length === 0) {
-        throw new Error('No route found');
+        console.error('No route found in response:', data);
+        throw new Error(data.message || 'No route found');
       }
 
       // Parse all available routes
@@ -68,6 +79,8 @@ export function useRouting() {
         const coordinates: [number, number][] = routeData.geometry.coordinates.map(
           (coord: number[]) => [coord[1], coord[0]] as [number, number]
         );
+        
+        console.log(`Route ${index} has ${coordinates.length} coordinate points`);
         
         const steps: RouteStep[] = [];
         routeData.legs.forEach((leg: any) => {
@@ -109,10 +122,11 @@ export function useRouting() {
       // Set the fastest route as the primary route
       setRoute(allRoutes[0]);
       setRouteAlternatives(allRoutes);
+      toast.success(`Route found: ${(allRoutes[0].distance / 1000).toFixed(1)}km via ${activeMode}`);
       return allRoutes[0];
     } catch (error) {
       console.error('Routing error:', error);
-      toast.error('Failed to get route directions');
+      toast.error('Failed to get route directions. Please try again.');
       return null;
     } finally {
       setLoading(false);
