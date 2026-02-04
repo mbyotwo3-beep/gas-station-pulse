@@ -8,10 +8,12 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
-import { Navigation, MapPin, Clock, DollarSign, User } from 'lucide-react';
+import { Navigation, MapPin, Clock, DollarSign, User, Calculator } from 'lucide-react';
 import LocationSearch from '@/components/map/LocationSearch';
 import ActiveRideTracker from './ActiveRideTracker';
 import RideHistory from './RideHistory';
+import FareEstimateCard from './FareEstimateCard';
+import { useFareEstimation } from '@/hooks/useFareEstimation';
 
 interface RideRequest {
   id: string;
@@ -41,6 +43,9 @@ export default function PassengerDashboard() {
   const [activeRide, setActiveRide] = useState<ActiveRide | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  
+  // Fare estimation
+  const { estimate, loading: estimatingFare, calculateFare, clearEstimate } = useFareEstimation();
 
   // Form state
   const [pickupLocation, setPickupLocation] = useState<{ lat: number; lng: number; address: string } | null>(null);
@@ -181,8 +186,16 @@ export default function PassengerDashboard() {
       setMaxFare('');
       setPassengerCount(1);
       setNotes('');
+      clearEstimate();
     }
     setSubmitting(false);
+  };
+
+  // Calculate fare when both locations are set
+  const handleEstimateFare = async () => {
+    if (pickupLocation && destinationLocation) {
+      await calculateFare(pickupLocation, destinationLocation, 'ride');
+    }
   };
 
   const cancelRideRequest = async () => {
@@ -316,6 +329,22 @@ export default function PassengerDashboard() {
               </p>
             )}
           </div>
+
+          {/* Fare Estimation Button & Display */}
+          {pickupLocation && destinationLocation && (
+            <div className="space-y-3">
+              <Button
+                variant="outline"
+                onClick={handleEstimateFare}
+                disabled={estimatingFare}
+                className="w-full"
+              >
+                <Calculator className="h-4 w-4 mr-2" />
+                {estimatingFare ? 'Calculating...' : 'Estimate Fare'}
+              </Button>
+              <FareEstimateCard estimate={estimate} loading={estimatingFare} />
+            </div>
+          )}
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -324,10 +353,15 @@ export default function PassengerDashboard() {
                 type="number"
                 value={maxFare}
                 onChange={(e) => setMaxFare(e.target.value)}
-                placeholder="25.00"
+                placeholder={estimate ? estimate.totalFare.toFixed(2) : "25.00"}
                 min="0"
                 step="0.01"
               />
+              {estimate && !maxFare && (
+                <p className="text-xs text-muted-foreground">
+                  Suggested: ${estimate.totalFare.toFixed(2)}
+                </p>
+              )}
             </div>
             <div className="space-y-2">
               <Label>Number of Passengers</Label>

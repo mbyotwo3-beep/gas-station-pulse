@@ -162,6 +162,16 @@ export default function DriverDashboard() {
   const toggleDriverStatus = async () => {
     if (!driverProfile || !user) return;
     
+    // Prevent unverified drivers from going online
+    if (!driverProfile.is_active && driverProfile.verification_status !== 'approved') {
+      toast({ 
+        title: 'Cannot Go Online', 
+        description: 'Your driver profile must be verified before you can accept rides.',
+        variant: 'destructive'
+      });
+      return;
+    }
+    
     const newStatus = !driverProfile.is_active;
     const { error } = await supabase
       .from('driver_profiles')
@@ -283,6 +293,55 @@ export default function DriverDashboard() {
 
   return (
     <div className="space-y-6">
+      {/* Verification Status Banner */}
+      {isPending && (
+        <Card className="border-warning bg-warning/10">
+          <CardContent className="py-4">
+            <div className="flex items-center gap-3">
+              <Clock className="h-5 w-5 text-warning" />
+              <div>
+                <p className="font-medium text-warning-foreground">Verification Pending</p>
+                <p className="text-sm text-muted-foreground">
+                  Your driver profile is under review. You'll be able to go online once verified.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {isRejected && (
+        <Card className="border-destructive bg-destructive/10">
+          <CardContent className="py-4">
+            <div className="flex items-center gap-3">
+              <XCircle className="h-5 w-5 text-destructive" />
+              <div>
+                <p className="font-medium text-destructive">Verification Rejected</p>
+                <p className="text-sm text-muted-foreground">
+                  Your driver application was not approved. Please contact support for more information.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {isVerified && (
+        <Card className="border-success bg-success/10">
+          <CardContent className="py-4">
+            <div className="flex items-center gap-3">
+              <CheckCircle className="h-5 w-5 text-success" />
+              <div>
+                <p className="font-medium text-success">Verified Driver</p>
+                <p className="text-sm text-muted-foreground">
+                  Your account is verified. You can accept ride requests.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Active Ride Tracker */}
       <ActiveRideTracker />
       
@@ -304,12 +363,15 @@ export default function DriverDashboard() {
             <div>
               <p className="font-medium">Go Online</p>
               <p className="text-sm text-muted-foreground">
-                Start receiving ride requests
+                {isVerified 
+                  ? 'Start receiving ride requests' 
+                  : 'You must be verified to go online'}
               </p>
             </div>
             <Switch 
               checked={driverProfile.is_active}
               onCheckedChange={toggleDriverStatus}
+              disabled={!isVerified}
             />
           </div>
           

@@ -6,13 +6,17 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import EnhancedLocationSearch from '../map/EnhancedLocationSearch';
+import OrderHistory from './OrderHistory';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Package } from 'lucide-react';
+import { useFareEstimation } from '@/hooks/useFareEstimation';
+import FareEstimateCard from '../rideshare/FareEstimateCard';
 
 export default function PackageDeliveryForm() {
   const { user } = useAuth();
+  const { estimate, loading: estimatingFare, calculateFare, clearEstimate } = useFareEstimation();
   const [pickupLocation, setPickupLocation] = useState<any>(null);
   const [deliveryLocation, setDeliveryLocation] = useState<any>(null);
   const [packageSize, setPackageSize] = useState('small');
@@ -23,10 +27,22 @@ export default function PackageDeliveryForm() {
   const [submitting, setSubmitting] = useState(false);
 
   const packageSizes = {
-    small: { label: 'Small', price: 5, description: 'Up to 5 lbs' },
-    medium: { label: 'Medium', price: 10, description: '5-20 lbs' },
-    large: { label: 'Large', price: 20, description: '20-50 lbs' },
-    xlarge: { label: 'Extra Large', price: 35, description: '50+ lbs' }
+    small: { label: 'Small', basePrice: 5, description: 'Up to 5 lbs' },
+    medium: { label: 'Medium', basePrice: 10, description: '5-20 lbs' },
+    large: { label: 'Large', basePrice: 20, description: '20-50 lbs' },
+    xlarge: { label: 'Extra Large', basePrice: 35, description: '50+ lbs' }
+  };
+
+  const calculateTotalPrice = () => {
+    const basePrice = packageSizes[packageSize as keyof typeof packageSizes].basePrice;
+    const distancePrice = estimate?.totalFare || 0;
+    return basePrice + distancePrice;
+  };
+
+  const handleEstimateFare = async () => {
+    if (pickupLocation && deliveryLocation) {
+      await calculateFare(pickupLocation, deliveryLocation, 'package_delivery');
+    }
   };
 
   const handleSubmit = async () => {
@@ -47,7 +63,7 @@ export default function PackageDeliveryForm() {
 
     setSubmitting(true);
     try {
-      const deliveryFee = packageSizes[packageSize as keyof typeof packageSizes].price;
+      const totalPrice = calculateTotalPrice();
 
       const { error } = await supabase.from('orders').insert({
         customer_id: user.id,
@@ -69,9 +85,9 @@ export default function PackageDeliveryForm() {
           recipient_name: recipientName,
           recipient_phone: recipientPhone
         }],
-        subtotal: deliveryFee,
-        delivery_fee: 0,
-        total_amount: deliveryFee,
+        subtotal: totalPrice,
+        delivery_fee: estimate?.distanceFare || 0,
+        total_amount: totalPrice,
         special_instructions: specialInstructions || null,
         status: 'pending'
       });
@@ -88,6 +104,7 @@ export default function PackageDeliveryForm() {
       setRecipientName('');
       setRecipientPhone('');
       setSpecialInstructions('');
+      clearEstimate();
     } catch (error) {
       console.error('Error requesting delivery:', error);
       toast.error('Failed to request delivery');
@@ -97,6 +114,7 @@ export default function PackageDeliveryForm() {
   };
 
   return (
+    <div className="space-y-6">
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
@@ -122,9 +140,9 @@ export default function PackageDeliveryForm() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {Object.entries(packageSizes).map(([key, { label, price, description }]) => (
+              {Object.entries(packageSizes).map(([key, { label, basePrice, description }]) => (
                 <SelectItem key={key} value={key}>
-                  {label} - ${price} ({description})
+                  {label} - ${basePrice} base ({description})
                 </SelectItem>
               ))}
             </SelectContent>
@@ -170,11 +188,36 @@ export default function PackageDeliveryForm() {
           />
         </div>
 
-        <div className="bg-muted p-4 rounded-lg">
-          <div className="flex justify-between items-center">
+        {/* Fare Estimation */}
+        {pickupLocation && deliveryLocation && (
+          <div className="space-y-3">
+            <Button
+              variant="outline"
+              onClick={handleEstimateFare}
+              disabled={estimatingFare}
+              className="w-full"
+            >
+              {estimatingFare ? 'Calculating...' : 'Estimate Delivery Cost'}
+            </Button>
+            <FareEstimateCard estimate={estimate} loading={estimatingFare} />
+          </div>
+        )}
+
+        <div className="bg-muted p-4 rounded-lg space-y-2">
+          <div className="flex justify-between items-center text-sm">
+            <span>Package base fee ({packageSizes[packageSize as keyof typeof packageSizes].label}):</span>
+            <span>${packageSizes[packageSize as keyof typeof packageSizes].basePrice.toFixed(2)}</span>
+          </div>
+          {estimate && (
+            <div className="flex justify-between items-center text-sm">
+              <span>Distance & time fee:</span>
+              <span>${estimate.totalFare.toFixed(2)}</span>
+            </div>
+          )}
+          <div className="flex justify-between items-center pt-2 border-t">
             <span className="font-semibold">Total Cost:</span>
             <span className="text-2xl font-bold text-primary">
-              ${packageSizes[packageSize as keyof typeof packageSizes].price}
+              ${calculateTotalPrice().toFixed(2)}
             </span>
           </div>
         </div>
@@ -189,5 +232,7 @@ export default function PackageDeliveryForm() {
         </Button>
       </CardContent>
     </Card>
+    <OrderHistory />
+    </div>
   );
 }
