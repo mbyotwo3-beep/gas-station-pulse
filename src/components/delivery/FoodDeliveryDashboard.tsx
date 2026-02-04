@@ -5,6 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import RestaurantList from './RestaurantList';
 import MenuView from './MenuView';
+import OrderHistory from './OrderHistory';
 import EnhancedLocationSearch from '../map/EnhancedLocationSearch';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -171,7 +172,7 @@ export default function FoodDeliveryDashboard() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <Card>
         <CardHeader>
           <CardTitle>Order Food</CardTitle>
@@ -180,6 +181,7 @@ export default function FoodDeliveryDashboard() {
           <RestaurantList onSelectRestaurant={setSelectedRestaurant} />
         </CardContent>
       </Card>
+      <OrderHistory />
     </div>
   );
 }
