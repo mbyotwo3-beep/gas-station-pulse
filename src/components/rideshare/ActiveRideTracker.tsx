@@ -10,6 +10,7 @@ import { useState } from 'react';
 import { RideRatingDialog } from './RideRatingDialog';
 import { RidePaymentDialog } from './RidePaymentDialog';
 import { RideChatDialog } from './RideChatDialog';
+import DriverLocationMap from './DriverLocationMap';
 
 export default function ActiveRideTracker() {
   const { user } = useAuth();
@@ -92,6 +93,17 @@ export default function ActiveRideTracker() {
             </div>
           </div>
         </div>
+
+        {/* Real-time Driver Location Map (visible to passengers) */}
+        {!isDriver && activeRide.driver_id && (
+          <DriverLocationMap
+            driverId={activeRide.driver_id}
+            pickupLocation={activeRide.pickup_location}
+            destinationLocation={activeRide.destination_location}
+            rideStatus={activeRide.status}
+            className="h-[200px]"
+          />
+        )}
 
         {/* Ride Details */}
         <div className="grid grid-cols-2 gap-4 pt-4 border-t">
