@@ -809,25 +809,6 @@ export default function Index() {
 
             {/* Turn by Turn Directions */}
             {route && !showRouteAlternatives && (
-              <div className="fixed top-20 right-4 z-30 animate-slide-up">
-                <TurnByTurnDirections 
-                  route={route}
-                  onClose={() => {
-                    clearRoute();
-                    stopNavigation();
-                    setVoiceEnabled(false);
-                  }}
-                  destinationName={selectedStation?.name || ''}
-                  voiceEnabled={voiceEnabled}
-                  onVoiceToggle={handleVoiceToggle}
-                  waypoints={waypoints}
-                  autoRerouteEnabled={autoRerouteEnabled}
-                  onAutoRerouteToggle={() => setAutoRerouteEnabled(!autoRerouteEnabled)}
-                  isRerouting={isRerouting}
-                />
-              </div>
-            )}
-            {route && !showRouteAlternatives && (
               <div className="fixed top-24 left-4 right-4 z-20 md:left-auto md:right-4 md:w-96">
                 <TurnByTurnDirections 
                   route={route}
