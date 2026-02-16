@@ -54,8 +54,8 @@ export function useRouting() {
       
       // Use OSRM public API with appropriate profile for transport mode
       const profile = OSRM_PROFILES[activeMode];
-      // Using OSRM demo server - for production, you should use your own instance
-      const url = `https://routing.openstreetmap.de/routed-${profile}/route/v1/${activeMode}/${coordsString}?overview=full&geometries=geojson&steps=true&alternatives=true`;
+      // Using OSRM demo server - each routed-X instance uses 'driving' as the internal profile name
+      const url = `https://routing.openstreetmap.de/routed-${profile}/route/v1/driving/${coordsString}?overview=full&geometries=geojson&steps=true&alternatives=true`;
       
       console.log('Fetching route from:', url);
       
