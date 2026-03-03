@@ -23,11 +23,53 @@ export interface Route {
   transportMode?: TransportMode;
 }
 
-const OSRM_PROFILES: Record<TransportMode, string> = {
-  driving: 'car',
-  cycling: 'bike',
-  walking: 'foot',
+// OSRM routing endpoints - primary and fallback
+const OSRM_ENDPOINTS: Record<TransportMode, string[]> = {
+  driving: [
+    'https://router.project-osrm.org/route/v1/driving/',
+    'https://routing.openstreetmap.de/routed-car/route/v1/driving/',
+  ],
+  cycling: [
+    'https://routing.openstreetmap.de/routed-bike/route/v1/driving/',
+  ],
+  walking: [
+    'https://routing.openstreetmap.de/routed-foot/route/v1/driving/',
+  ],
 };
+
+async function fetchRouteFromOSRM(
+  coordsString: string,
+  endpoints: string[]
+): Promise<any> {
+  for (const baseUrl of endpoints) {
+    try {
+      const url = `${baseUrl}${coordsString}?overview=full&geometries=geojson&steps=true&alternatives=true`;
+      console.log('Fetching route from:', url);
+      
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000);
+      
+      const response = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeout);
+      
+      if (!response.ok) {
+        console.warn(`OSRM endpoint ${baseUrl} returned ${response.status}, trying next...`);
+        continue;
+      }
+      
+      const data = await response.json();
+      if (data.code === 'Ok' && data.routes?.length > 0) {
+        console.log(`Route found via ${baseUrl} with ${data.routes[0].geometry.coordinates.length} points`);
+        return data;
+      }
+      console.warn(`OSRM endpoint ${baseUrl} returned no routes, trying next...`);
+    } catch (err) {
+      console.warn(`OSRM endpoint ${baseUrl} failed:`, err);
+      continue;
+    }
+  }
+  return null;
+}
 
 export function useRouting() {
   const [route, setRoute] = useState<Route | null>(null);
@@ -52,26 +94,11 @@ export function useRouting() {
         `${end.lng},${end.lat}`
       ].join(';');
       
-      // Use OSRM public API with appropriate profile for transport mode
-      const profile = OSRM_PROFILES[activeMode];
-      // Using OSRM demo server - each routed-X instance uses 'driving' as the internal profile name
-      const url = `https://routing.openstreetmap.de/routed-${profile}/route/v1/driving/${coordsString}?overview=full&geometries=geojson&steps=true&alternatives=true`;
-      
-      console.log('Fetching route from:', url);
-      
-      const response = await fetch(url);
-      
-      if (!response.ok) {
-        console.error('Route API error:', response.status, response.statusText);
-        throw new Error(`Route API returned ${response.status}`);
-      }
-      
-      const data = await response.json();
-      console.log('Route API response:', data);
+      const endpoints = OSRM_ENDPOINTS[activeMode];
+      const data = await fetchRouteFromOSRM(coordsString, endpoints);
 
-      if (data.code !== 'Ok' || !data.routes || data.routes.length === 0) {
-        console.error('No route found in response:', data);
-        throw new Error(data.message || 'No route found');
+      if (!data) {
+        throw new Error('All routing servers failed. Please try again.');
       }
 
       // Parse all available routes
