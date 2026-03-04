@@ -120,29 +120,9 @@ export default function LeafletMap({ stations, onSelect, className, focusPoint, 
 
     const bounds = L.latLngBounds([]);
 
-    // Draw paths from focus point to all stations if focus point exists
-    // Hide distance lines when a navigation route is active
-    if (focusPoint && !route) {
-      stations.forEach((s) => {
-        const distance = calculateDistance(focusPoint.lat, focusPoint.lng, s.lat, s.lng);
-        
-        // Only draw paths to nearby stations (within 10km)
-        if (distance <= 10) {
-          const isSelected = selectedStation?.id === s.id;
-          
-          L.polyline(
-            [[focusPoint.lat, focusPoint.lng], [s.lat, s.lng]],
-            {
-              color: isSelected ? 'hsl(var(--primary))' : colorFor(s.status),
-              weight: isSelected ? 3 : 1.5,
-              opacity: isSelected ? 0.8 : 0.4,
-              dashArray: isSelected ? undefined : '5, 10',
-              className: 'station-path',
-            }
-          ).addTo(pathLayer);
-        }
-      });
-    }
+    // NOTE: We intentionally do NOT draw direct point-to-point helper lines here.
+    // Those geodesic lines can look like "routes" but they don't follow roads,
+    // which caused confusion. Only OSRM route geometry is rendered as navigation.
 
     stations.forEach((s) => {
       const isSelected = selectedStation?.id === s.id;
