@@ -184,9 +184,24 @@ export default function Index() {
     return true;
   });
 
-  const handleStationSelect = (station: Station) => {
+  const handleStationSelect = async (station: Station) => {
     setSelectedStation(station);
-    clearRoute(); // Clear route when selecting a new station
+    setShowRouteAlternatives(false);
+
+    if (!selectedLocation) {
+      clearRoute();
+      return;
+    }
+
+    const waypointCoords = waypoints.map(wp => ({ lat: wp.lat, lng: wp.lng }));
+    await getRoute(
+      selectedLocation,
+      {
+        lat: station.lat,
+        lng: station.lng,
+      },
+      waypointCoords
+    );
   };
 
   const handleGetDirections = async () => {
