@@ -194,7 +194,7 @@ export default function PassengerDashboard() {
   // Calculate fare when both locations are set
   const handleEstimateFare = async () => {
     if (pickupLocation && destinationLocation) {
-      await calculateFare(pickupLocation, destinationLocation, 'ride');
+      await calculateDynamicFare(pickupLocation, destinationLocation, 'ride');
     }
   };
 
