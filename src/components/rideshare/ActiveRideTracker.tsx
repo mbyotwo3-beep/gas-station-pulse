@@ -11,6 +11,8 @@ import { RideRatingDialog } from './RideRatingDialog';
 import { RidePaymentDialog } from './RidePaymentDialog';
 import { RideChatDialog } from './RideChatDialog';
 import DriverLocationMap from './DriverLocationMap';
+import RideSafetyPanel from './RideSafetyPanel';
+import RideVerificationOTP from './RideVerificationOTP';
 
 export default function ActiveRideTracker() {
   const { user } = useAuth();
