@@ -79,6 +79,26 @@ export default function ActiveRideTracker() {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Safety Panel */}
+        <RideSafetyPanel
+          rideId={activeRide.id}
+          isDriver={isDriver}
+          pickupAddress={activeRide.pickup_location.address}
+          destinationAddress={activeRide.destination_location.address}
+          rideStatus={activeRide.status}
+          driverId={activeRide.driver_id || undefined}
+          passengerId={activeRide.passenger_id || undefined}
+        />
+
+        {/* OTP Verification */}
+        {activeRide.status === 'accepted' && !rideVerified && (
+          <RideVerificationOTP
+            rideId={activeRide.id}
+            isDriver={isDriver}
+            onVerified={() => setRideVerified(true)}
+          />
+        )}
+
         {/* Route Information */}
         <div className="space-y-3">
           <div className="flex items-start gap-2">
