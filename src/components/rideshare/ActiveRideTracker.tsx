@@ -11,6 +11,8 @@ import { RideRatingDialog } from './RideRatingDialog';
 import { RidePaymentDialog } from './RidePaymentDialog';
 import { RideChatDialog } from './RideChatDialog';
 import DriverLocationMap from './DriverLocationMap';
+import RideSafetyPanel from './RideSafetyPanel';
+import RideVerificationOTP from './RideVerificationOTP';
 
 export default function ActiveRideTracker() {
   const { user } = useAuth();
@@ -20,6 +22,7 @@ export default function ActiveRideTracker() {
   const [showRating, setShowRating] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
   const [showChat, setShowChat] = useState(false);
+  const [rideVerified, setRideVerified] = useState(false);
 
   if (loading) {
     return <div className="text-center text-muted-foreground">Loading...</div>;
@@ -76,6 +79,26 @@ export default function ActiveRideTracker() {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Safety Panel */}
+        <RideSafetyPanel
+          rideId={activeRide.id}
+          isDriver={isDriver}
+          pickupAddress={activeRide.pickup_location.address}
+          destinationAddress={activeRide.destination_location.address}
+          rideStatus={activeRide.status}
+          driverId={activeRide.driver_id || undefined}
+          passengerId={activeRide.passenger_id || undefined}
+        />
+
+        {/* OTP Verification */}
+        {activeRide.status === 'accepted' && !rideVerified && (
+          <RideVerificationOTP
+            rideId={activeRide.id}
+            isDriver={isDriver}
+            onVerified={() => setRideVerified(true)}
+          />
+        )}
+
         {/* Route Information */}
         <div className="space-y-3">
           <div className="flex items-start gap-2">

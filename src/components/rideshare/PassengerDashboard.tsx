@@ -12,8 +12,8 @@ import { Navigation, MapPin, Clock, DollarSign, User, Calculator } from 'lucide-
 import LocationSearch from '@/components/map/LocationSearch';
 import ActiveRideTracker from './ActiveRideTracker';
 import RideHistory from './RideHistory';
-import FareEstimateCard from './FareEstimateCard';
-import { useFareEstimation } from '@/hooks/useFareEstimation';
+import DynamicFareCard from './DynamicFareCard';
+import { useDynamicPricing } from '@/hooks/useDynamicPricing';
 
 interface RideRequest {
   id: string;
@@ -45,7 +45,7 @@ export default function PassengerDashboard() {
   const [submitting, setSubmitting] = useState(false);
   
   // Fare estimation
-  const { estimate, loading: estimatingFare, calculateFare, clearEstimate } = useFareEstimation();
+  const { estimate, loading: estimatingFare, calculateDynamicFare, clearEstimate } = useDynamicPricing();
 
   // Form state
   const [pickupLocation, setPickupLocation] = useState<{ lat: number; lng: number; address: string } | null>(null);
@@ -194,7 +194,7 @@ export default function PassengerDashboard() {
   // Calculate fare when both locations are set
   const handleEstimateFare = async () => {
     if (pickupLocation && destinationLocation) {
-      await calculateFare(pickupLocation, destinationLocation, 'ride');
+      await calculateDynamicFare(pickupLocation, destinationLocation, 'ride');
     }
   };
 
@@ -342,7 +342,7 @@ export default function PassengerDashboard() {
                 <Calculator className="h-4 w-4 mr-2" />
                 {estimatingFare ? 'Calculating...' : 'Estimate Fare'}
               </Button>
-              <FareEstimateCard estimate={estimate} loading={estimatingFare} />
+              <DynamicFareCard estimate={estimate} loading={estimatingFare} />
             </div>
           )}
           
