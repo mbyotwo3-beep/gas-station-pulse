@@ -22,6 +22,7 @@ export default function ActiveRideTracker() {
   const [showRating, setShowRating] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
   const [showChat, setShowChat] = useState(false);
+  const [rideVerified, setRideVerified] = useState(false);
 
   if (loading) {
     return <div className="text-center text-muted-foreground">Loading...</div>;
