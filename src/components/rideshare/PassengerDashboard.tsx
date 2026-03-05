@@ -12,8 +12,8 @@ import { Navigation, MapPin, Clock, DollarSign, User, Calculator } from 'lucide-
 import LocationSearch from '@/components/map/LocationSearch';
 import ActiveRideTracker from './ActiveRideTracker';
 import RideHistory from './RideHistory';
-import FareEstimateCard from './FareEstimateCard';
-import { useFareEstimation } from '@/hooks/useFareEstimation';
+import DynamicFareCard from './DynamicFareCard';
+import { useDynamicPricing } from '@/hooks/useDynamicPricing';
 
 interface RideRequest {
   id: string;
