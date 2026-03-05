@@ -213,22 +213,30 @@ export default function LeafletMap({ stations, onSelect, className, focusPoint, 
     const map = mapRef.current;
     if (!map) return;
 
-    // Remove previous route
+    // Remove previous route layers
     if (routeLayerRef.current) {
       map.removeLayer(routeLayerRef.current);
       routeLayerRef.current = null;
+    }
+    // Remove previous outline
+    if ((map as any)._routeOutline) {
+      map.removeLayer((map as any)._routeOutline);
+      (map as any)._routeOutline = null;
     }
 
     if (!route) return;
 
     // Draw dark outline first for maximum contrast
-    L.polyline(route.coordinates, {
+    const outline = L.polyline(route.coordinates, {
       color: '#1a1a2e',
       weight: 10,
       opacity: 0.7,
       smoothFactor: 1,
+      lineCap: 'round',
+      lineJoin: 'round',
       pane: 'shadowPane',
     }).addTo(map);
+    (map as any)._routeOutline = outline;
 
     // Draw the main route polyline — bold blue for high visibility
     const routeLine = L.polyline(route.coordinates, {
@@ -236,6 +244,8 @@ export default function LeafletMap({ stations, onSelect, className, focusPoint, 
       weight: 6,
       opacity: 1,
       smoothFactor: 1,
+      lineCap: 'round',
+      lineJoin: 'round',
       className: 'route-line',
       pane: 'overlayPane',
     }).addTo(map);
