@@ -456,6 +456,9 @@ export default function DriverDashboard() {
         </CardContent>
       </Card>
 
+      {/* Driver Benefits Calculator */}
+      <DriverBenefitsCalculator />
+
       {/* Ride History */}
       <RideHistory />
     </div>
