@@ -13,6 +13,7 @@ import { Car, Star, Navigation, DollarSign, CheckCircle, Clock, XCircle } from '
 import { useDriverLocation } from '@/hooks/useDriverLocation';
 import ActiveRideTracker from './ActiveRideTracker';
 import RideHistory from './RideHistory';
+import DriverBenefitsCalculator from './DriverBenefitsCalculator';
 
 interface DriverProfile {
   id: string;
