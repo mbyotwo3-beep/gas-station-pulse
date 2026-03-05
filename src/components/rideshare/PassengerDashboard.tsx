@@ -342,7 +342,7 @@ export default function PassengerDashboard() {
                 <Calculator className="h-4 w-4 mr-2" />
                 {estimatingFare ? 'Calculating...' : 'Estimate Fare'}
               </Button>
-              <FareEstimateCard estimate={estimate} loading={estimatingFare} />
+              <DynamicFareCard estimate={estimate} loading={estimatingFare} />
             </div>
           )}
           
