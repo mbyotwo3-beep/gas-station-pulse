@@ -45,7 +45,7 @@ export default function PassengerDashboard() {
   const [submitting, setSubmitting] = useState(false);
   
   // Fare estimation
-  const { estimate, loading: estimatingFare, calculateFare, clearEstimate } = useFareEstimation();
+  const { estimate, loading: estimatingFare, calculateDynamicFare, clearEstimate } = useDynamicPricing();
 
   // Form state
   const [pickupLocation, setPickupLocation] = useState<{ lat: number; lng: number; address: string } | null>(null);
