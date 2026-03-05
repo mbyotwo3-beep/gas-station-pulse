@@ -221,24 +221,23 @@ export default function LeafletMap({ stations, onSelect, className, focusPoint, 
 
     if (!route) return;
 
-    // Draw the route polyline with enhanced visibility
-    const routeLine = L.polyline(route.coordinates, {
-      color: 'hsl(var(--primary))',
-      weight: 6,
-      opacity: 0.9,
-      smoothFactor: 1,
-      className: 'route-line',
-      // Add a white outline for better visibility
-      pane: 'overlayPane',
-    }).addTo(map);
-
-    // Add a shadow/outline effect
+    // Draw dark outline first for maximum contrast
     L.polyline(route.coordinates, {
-      color: '#ffffff',
-      weight: 8,
-      opacity: 0.5,
+      color: '#1a1a2e',
+      weight: 10,
+      opacity: 0.7,
       smoothFactor: 1,
       pane: 'shadowPane',
+    }).addTo(map);
+
+    // Draw the main route polyline — bold blue for high visibility
+    const routeLine = L.polyline(route.coordinates, {
+      color: '#2563eb',
+      weight: 6,
+      opacity: 1,
+      smoothFactor: 1,
+      className: 'route-line',
+      pane: 'overlayPane',
     }).addTo(map);
 
     routeLayerRef.current = routeLine;
