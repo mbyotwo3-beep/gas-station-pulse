@@ -72,7 +72,7 @@ export default function LeafletMap({ stations, onSelect, className, focusPoint, 
           zoom: 12,
           zoomControl: true,
           scrollWheelZoom: true,
-          attributionControl: true,
+          attributionControl: false,
         });
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
