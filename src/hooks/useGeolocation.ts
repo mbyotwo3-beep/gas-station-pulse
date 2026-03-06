@@ -30,8 +30,8 @@ export function useGeolocation(enableHighAccuracy = true) {
 
     const options: PositionOptions = {
       enableHighAccuracy,
-      timeout: 10000,
-      maximumAge: 300000 // 5 minutes
+      timeout: 15000,
+      maximumAge: 0 // Always get fresh position
     };
 
     navigator.geolocation.getCurrentPosition(
@@ -81,8 +81,8 @@ export function useGeolocation(enableHighAccuracy = true) {
 
     const options: PositionOptions = {
       enableHighAccuracy,
-      timeout: 10000,
-      maximumAge: 60000 // 1 minute
+      timeout: 15000,
+      maximumAge: 0 // Always get fresh position for tracking
     };
 
     return navigator.geolocation.watchPosition(
