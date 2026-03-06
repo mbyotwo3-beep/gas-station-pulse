@@ -51,6 +51,7 @@ export default function RideShareMap({
       zoom: 12,
       zoomControl: true,
       scrollWheelZoom: true,
+      attributionControl: false,
     });
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
