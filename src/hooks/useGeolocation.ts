@@ -77,6 +77,14 @@ export function useGeolocation(enableHighAccuracy = true, autoRequest = false) {
     );
   }, [enableHighAccuracy]);
 
+  // Auto-request location on mount if enabled
+  useEffect(() => {
+    if (autoRequest && !hasAutoRequested.current) {
+      hasAutoRequested.current = true;
+      requestLocation();
+    }
+  }, [autoRequest, requestLocation]);
+
   const watchLocation = useCallback(() => {
     if (!navigator.geolocation) return null;
 
