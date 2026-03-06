@@ -74,7 +74,7 @@ export default function Index() {
   const { user, signOut } = useAuth();
   const { stations, loading: stationsLoading } = useStations();
   const { profile, toggleFavoriteStation, isFavorite } = useProfile();
-  const { position, requestLocation, getLocationOrDefault } = useGeolocation();
+  const { position, requestLocation, getLocationOrDefault } = useGeolocation(true, true);
   const { roles, hasRole, canManageStations, canDrive, canRequestRides } = useRoles();
   const { hasPermission, requestNotificationPermission } = useNotifications();
   useRealtimeNotifications(); // Enable realtime notifications

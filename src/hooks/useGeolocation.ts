@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from '@/hooks/use-toast';
 
 export interface GeolocationState {
@@ -7,12 +7,13 @@ export interface GeolocationState {
   loading: boolean;
 }
 
-export function useGeolocation(enableHighAccuracy = true) {
+export function useGeolocation(enableHighAccuracy = true, autoRequest = false) {
   const [state, setState] = useState<GeolocationState>({
     position: null,
     error: null,
     loading: false
   });
+  const hasAutoRequested = useRef(false);
 
   const requestLocation = useCallback(() => {
     if (!navigator.geolocation) {
@@ -75,6 +76,14 @@ export function useGeolocation(enableHighAccuracy = true) {
       options
     );
   }, [enableHighAccuracy]);
+
+  // Auto-request location on mount if enabled
+  useEffect(() => {
+    if (autoRequest && !hasAutoRequested.current) {
+      hasAutoRequested.current = true;
+      requestLocation();
+    }
+  }, [autoRequest, requestLocation]);
 
   const watchLocation = useCallback(() => {
     if (!navigator.geolocation) return null;
