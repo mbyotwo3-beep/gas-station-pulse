@@ -7,12 +7,13 @@ export interface GeolocationState {
   loading: boolean;
 }
 
-export function useGeolocation(enableHighAccuracy = true) {
+export function useGeolocation(enableHighAccuracy = true, autoRequest = false) {
   const [state, setState] = useState<GeolocationState>({
     position: null,
     error: null,
     loading: false
   });
+  const hasAutoRequested = useRef(false);
 
   const requestLocation = useCallback(() => {
     if (!navigator.geolocation) {
