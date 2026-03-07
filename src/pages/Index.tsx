@@ -74,7 +74,7 @@ export default function Index() {
   const { user, signOut } = useAuth();
   const { stations, loading: stationsLoading } = useStations();
   const { profile, toggleFavoriteStation, isFavorite } = useProfile();
-  const { position, requestLocation, getLocationOrDefault } = useGeolocation(true, true);
+  const { position, requestLocation } = useGeolocation(true, true);
   const { roles, hasRole, canManageStations, canDrive, canRequestRides } = useRoles();
   const { hasPermission, requestNotificationPermission } = useNotifications();
   useRealtimeNotifications(); // Enable realtime notifications
@@ -87,6 +87,7 @@ export default function Index() {
   const [selectedService, setSelectedService] = useState<'ride' | 'food_delivery' | 'package_delivery'>('ride');
   const [selectedStation, setSelectedStation] = useState<Station | null>(null);
   const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number; label?: string } | null>(null);
+  const [locationSource, setLocationSource] = useState<'gps' | 'manual' | null>(null);
   const [showSearch, setShowSearch] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -145,16 +146,7 @@ export default function Index() {
     }
   );
 
-  // Initialize with Lusaka as default location
-  useEffect(() => {
-    if (!selectedLocation) {
-      setSelectedLocation({
-        lat: -15.3875,
-        lng: 28.3228,
-        label: 'Lusaka, Zambia'
-      });
-    }
-  }, [selectedLocation]);
+  // Keep location empty until GPS or manual input is provided
 
   const filteredStations = stations.filter(station => {
     // Search query filter
@@ -361,24 +353,26 @@ export default function Index() {
       });
     } else {
       setSelectedLocation(location);
+      setLocationSource('manual');
       setShowSearch(false);
     }
   };
 
   const handleGetMyLocation = () => {
+    setLocationSource('gps');
     requestLocation();
   };
 
-  // Update selected location when geolocation changes
+  // Update selected location from geolocation unless user has manually pinned a location
   useEffect(() => {
-    if (position) {
-      setSelectedLocation({
-        lat: position.coords.latitude,
-        lng: position.coords.longitude,
-        label: 'Your Location'
-      });
-    }
-  }, [position]);
+    if (!position || locationSource === 'manual') return;
+
+    setSelectedLocation({
+      lat: position.coords.latitude,
+      lng: position.coords.longitude,
+      label: 'Your Location'
+    });
+  }, [position, locationSource]);
 
   const getRoleDisplayInfo = () => {
     if (hasRole('admin')) return { label: 'Admin', color: 'bg-red-500', icon: Crown };
@@ -410,7 +404,7 @@ export default function Index() {
                 {mode === 'fuel' ? 'FuelFinder' : 'RideShare'}
               </h1>
               <p className="text-xs text-muted-foreground">
-                {selectedLocation?.label || 'Lusaka, Zambia'}
+                {selectedLocation?.label || 'Location not set'}
               </p>
             </div>
           </div>
@@ -556,6 +550,7 @@ export default function Index() {
         {selectedLocation && (
           <p className="text-xs text-muted-foreground mt-1 ml-6">
             📍 {selectedLocation.label || `${selectedLocation.lat.toFixed(4)}, ${selectedLocation.lng.toFixed(4)}`}
+            {locationSource && <span className="ml-2">({locationSource === 'manual' ? 'manual pin' : 'GPS'})</span>}
           </p>
         )}
       </div>
@@ -583,6 +578,7 @@ export default function Index() {
                 variant="outline"
                 className="absolute top-4 left-4 z-10 bg-background/95 backdrop-blur-sm shadow-md"
                 onClick={() => {
+                  setLocationSource('gps');
                   if (position) {
                     setSelectedLocation({
                       lat: position.coords.latitude,
@@ -935,6 +931,7 @@ export default function Index() {
                     variant="outline"
                     className="absolute top-4 left-4 z-10 bg-background/95 backdrop-blur-sm shadow-md"
                     onClick={() => {
+                      setLocationSource('gps');
                       if (position) {
                         setSelectedLocation({
                           lat: position.coords.latitude,
