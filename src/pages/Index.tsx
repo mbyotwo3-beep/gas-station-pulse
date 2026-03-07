@@ -908,11 +908,30 @@ export default function Index() {
             ) : (
               <div className="flex flex-col h-[calc(100vh-240px)]">
                 {/* Rideshare Map */}
-                <div className="flex-1 min-h-[300px]">
+                <div className="flex-1 min-h-[300px] relative">
                   <RideShareMap
                     focusPoint={selectedLocation}
                     className="h-full w-full"
                   />
+                  <Button
+                    size="icon"
+                    variant="outline"
+                    className="absolute top-4 left-4 z-10 bg-background/95 backdrop-blur-sm shadow-md"
+                    onClick={() => {
+                      if (position) {
+                        setSelectedLocation({
+                          lat: position.coords.latitude,
+                          lng: position.coords.longitude,
+                          label: 'Your Location'
+                        });
+                      } else {
+                        requestLocation();
+                      }
+                    }}
+                    title="Center on my location"
+                  >
+                    <LocateFixed className="h-5 w-5" />
+                  </Button>
                 </div>
                 
                 {/* Dashboard */}
