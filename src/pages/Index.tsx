@@ -550,6 +550,7 @@ export default function Index() {
         {selectedLocation && (
           <p className="text-xs text-muted-foreground mt-1 ml-6">
             📍 {selectedLocation.label || `${selectedLocation.lat.toFixed(4)}, ${selectedLocation.lng.toFixed(4)}`}
+            {locationSource && <span className="ml-2">({locationSource === 'manual' ? 'manual pin' : 'GPS'})</span>}
           </p>
         )}
       </div>
