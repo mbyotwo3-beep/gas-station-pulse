@@ -74,7 +74,7 @@ export default function Index() {
   const { user, signOut } = useAuth();
   const { stations, loading: stationsLoading } = useStations();
   const { profile, toggleFavoriteStation, isFavorite } = useProfile();
-  const { position, requestLocation, getLocationOrDefault } = useGeolocation(true, true);
+  const { position, requestLocation } = useGeolocation(true, true);
   const { roles, hasRole, canManageStations, canDrive, canRequestRides } = useRoles();
   const { hasPermission, requestNotificationPermission } = useNotifications();
   useRealtimeNotifications(); // Enable realtime notifications
@@ -87,6 +87,7 @@ export default function Index() {
   const [selectedService, setSelectedService] = useState<'ride' | 'food_delivery' | 'package_delivery'>('ride');
   const [selectedStation, setSelectedStation] = useState<Station | null>(null);
   const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number; label?: string } | null>(null);
+  const [locationSource, setLocationSource] = useState<'gps' | 'manual' | null>(null);
   const [showSearch, setShowSearch] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
