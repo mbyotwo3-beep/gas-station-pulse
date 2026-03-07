@@ -561,6 +561,25 @@ export default function Index() {
                   className="h-full"
                 />
               )}
+              <Button
+                size="icon"
+                variant="outline"
+                className="absolute top-4 left-4 z-10 bg-background/95 backdrop-blur-sm shadow-md"
+                onClick={() => {
+                  if (position) {
+                    setSelectedLocation({
+                      lat: position.coords.latitude,
+                      lng: position.coords.longitude,
+                      label: 'Your Location'
+                    });
+                  } else {
+                    requestLocation();
+                  }
+                }}
+                title="Center on my location"
+              >
+                <LocateFixed className="h-5 w-5" />
+              </Button>
             </div>
             {/* Actions Bar */}
             <div className="flex items-center justify-between px-4 py-3 bg-background/95 backdrop-blur-md sticky top-0 z-20 border-b border-border/50">
