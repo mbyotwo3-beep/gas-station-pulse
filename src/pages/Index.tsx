@@ -930,6 +930,7 @@ export default function Index() {
                     variant="outline"
                     className="absolute top-4 left-4 z-10 bg-background/95 backdrop-blur-sm shadow-md"
                     onClick={() => {
+                      setLocationSource('gps');
                       if (position) {
                         setSelectedLocation({
                           lat: position.coords.latitude,
