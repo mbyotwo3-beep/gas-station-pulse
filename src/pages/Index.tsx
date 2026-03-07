@@ -404,7 +404,7 @@ export default function Index() {
                 {mode === 'fuel' ? 'FuelFinder' : 'RideShare'}
               </h1>
               <p className="text-xs text-muted-foreground">
-                {selectedLocation?.label || 'Lusaka, Zambia'}
+                {selectedLocation?.label || 'Location not set'}
               </p>
             </div>
           </div>
