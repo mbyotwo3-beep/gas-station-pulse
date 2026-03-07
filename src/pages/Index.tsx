@@ -353,24 +353,26 @@ export default function Index() {
       });
     } else {
       setSelectedLocation(location);
+      setLocationSource('manual');
       setShowSearch(false);
     }
   };
 
   const handleGetMyLocation = () => {
+    setLocationSource('gps');
     requestLocation();
   };
 
-  // Update selected location when geolocation changes
+  // Update selected location from geolocation unless user has manually pinned a location
   useEffect(() => {
-    if (position) {
-      setSelectedLocation({
-        lat: position.coords.latitude,
-        lng: position.coords.longitude,
-        label: 'Your Location'
-      });
-    }
-  }, [position]);
+    if (!position || locationSource === 'manual') return;
+
+    setSelectedLocation({
+      lat: position.coords.latitude,
+      lng: position.coords.longitude,
+      label: 'Your Location'
+    });
+  }, [position, locationSource]);
 
   const getRoleDisplayInfo = () => {
     if (hasRole('admin')) return { label: 'Admin', color: 'bg-red-500', icon: Crown };
