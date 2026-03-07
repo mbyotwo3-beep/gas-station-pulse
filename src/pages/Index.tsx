@@ -146,16 +146,7 @@ export default function Index() {
     }
   );
 
-  // Initialize with Lusaka as default location
-  useEffect(() => {
-    if (!selectedLocation) {
-      setSelectedLocation({
-        lat: -15.3875,
-        lng: 28.3228,
-        label: 'Lusaka, Zambia'
-      });
-    }
-  }, [selectedLocation]);
+  // Keep location empty until GPS or manual input is provided
 
   const filteredStations = stations.filter(station => {
     // Search query filter
