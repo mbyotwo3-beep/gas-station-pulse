@@ -543,6 +543,23 @@ export default function Index() {
         )}
       </header>
 
+      {/* Manual Location Input */}
+      <div className="px-4 py-2 bg-background border-b border-border/50">
+        <div className="flex items-center gap-2">
+          <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+          <EnhancedLocationSearch
+            onSelectLocation={handleLocationSelect}
+            placeholder="Type your address if GPS is inaccurate..."
+            className="flex-1"
+          />
+        </div>
+        {selectedLocation && (
+          <p className="text-xs text-muted-foreground mt-1 ml-6">
+            📍 {selectedLocation.label || `${selectedLocation.lat.toFixed(4)}, ${selectedLocation.lng.toFixed(4)}`}
+          </p>
+        )}
+      </div>
+
       {/* Main Content */}
       <main className="flex-1 relative">
         {mode === 'fuel' ? (
