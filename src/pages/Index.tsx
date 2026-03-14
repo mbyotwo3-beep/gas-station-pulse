@@ -539,7 +539,7 @@ export default function Index() {
       </header>
 
       {/* Manual Location Input */}
-      <div className="px-4 py-2 bg-background border-b border-border/50">
+      <div className="px-4 py-2 bg-background border-b border-border/50 space-y-1">
         <div className="flex items-center gap-2">
           <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
           <EnhancedLocationSearch
@@ -548,8 +548,12 @@ export default function Index() {
             className="flex-1"
           />
         </div>
+        <SavedLocationsBar
+          currentLocation={selectedLocation}
+          onSelectLocation={handleLocationSelect}
+        />
         {selectedLocation && (
-          <div className="mt-1 ml-6 flex flex-wrap items-center gap-2">
+          <div className="ml-6 flex flex-wrap items-center gap-2">
             <p className="text-xs text-muted-foreground">
               📍 {selectedLocation.label || `${selectedLocation.lat.toFixed(4)}, ${selectedLocation.lng.toFixed(4)}`}
               {locationSource && <span className="ml-1">({locationSource === 'manual' ? 'manual pin' : 'GPS'})</span>}
