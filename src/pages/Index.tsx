@@ -8,6 +8,7 @@ import StationListSkeleton from "@/components/StationListSkeleton";
 import StationMapSkeleton from "@/components/StationMapSkeleton";
 import AdvancedFilters from "@/components/AdvancedFilters";
 import EnhancedLocationSearch from "@/components/map/EnhancedLocationSearch";
+import SavedLocationsBar from "@/components/map/SavedLocationsBar";
 import ManagerLogin from "@/components/ManagerLogin";
 import ThemeToggle from "@/components/ThemeToggle";
 import DriverDashboard from "@/components/rideshare/DriverDashboard";
