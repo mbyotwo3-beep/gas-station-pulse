@@ -5,13 +5,15 @@ export interface GeolocationState {
   position: GeolocationPosition | null;
   error: GeolocationPositionError | null;
   loading: boolean;
+  accuracy: number | null;
 }
 
 export function useGeolocation(enableHighAccuracy = true, autoRequest = false) {
   const [state, setState] = useState<GeolocationState>({
     position: null,
     error: null,
-    loading: false
+    loading: false,
+    accuracy: null
   });
   const hasAutoRequested = useRef(false);
 
@@ -40,7 +42,8 @@ export function useGeolocation(enableHighAccuracy = true, autoRequest = false) {
         setState({
           position,
           error: null,
-          loading: false
+          loading: false,
+          accuracy: position.coords.accuracy
         });
         toast({
           title: 'Location Found',
@@ -116,7 +119,8 @@ export function useGeolocation(enableHighAccuracy = true, autoRequest = false) {
     setState({
       position: null,
       error: null,
-      loading: false
+      loading: false,
+      accuracy: null
     });
   }, []);
 

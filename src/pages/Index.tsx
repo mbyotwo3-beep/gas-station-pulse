@@ -74,7 +74,7 @@ export default function Index() {
   const { user, signOut } = useAuth();
   const { stations, loading: stationsLoading } = useStations();
   const { profile, toggleFavoriteStation, isFavorite } = useProfile();
-  const { position, requestLocation } = useGeolocation(true, true);
+  const { position, accuracy, requestLocation } = useGeolocation(true, true);
   const { roles, hasRole, canManageStations, canDrive, canRequestRides } = useRoles();
   const { hasPermission, requestNotificationPermission } = useNotifications();
   useRealtimeNotifications(); // Enable realtime notifications
@@ -548,10 +548,25 @@ export default function Index() {
           />
         </div>
         {selectedLocation && (
-          <p className="text-xs text-muted-foreground mt-1 ml-6">
-            📍 {selectedLocation.label || `${selectedLocation.lat.toFixed(4)}, ${selectedLocation.lng.toFixed(4)}`}
-            {locationSource && <span className="ml-2">({locationSource === 'manual' ? 'manual pin' : 'GPS'})</span>}
-          </p>
+          <div className="mt-1 ml-6 flex flex-wrap items-center gap-2">
+            <p className="text-xs text-muted-foreground">
+              📍 {selectedLocation.label || `${selectedLocation.lat.toFixed(4)}, ${selectedLocation.lng.toFixed(4)}`}
+              {locationSource && <span className="ml-1">({locationSource === 'manual' ? 'manual pin' : 'GPS'})</span>}
+            </p>
+            {locationSource === 'gps' && accuracy !== null && (
+              <Badge
+                variant={accuracy <= 30 ? 'default' : accuracy <= 100 ? 'secondary' : 'destructive'}
+                className="text-[10px] px-1.5 py-0"
+              >
+                ±{Math.round(accuracy)}m
+              </Badge>
+            )}
+            {locationSource === 'gps' && accuracy !== null && accuracy > 100 && (
+              <p className="text-[10px] text-destructive w-full">
+                ⚠️ GPS accuracy is low. Consider using the manual address search above for a more precise location.
+              </p>
+            )}
+          </div>
         )}
       </div>
 
