@@ -42,7 +42,8 @@ export function useGeolocation(enableHighAccuracy = true, autoRequest = false) {
         setState({
           position,
           error: null,
-          loading: false
+          loading: false,
+          accuracy: position.coords.accuracy
         });
         toast({
           title: 'Location Found',
