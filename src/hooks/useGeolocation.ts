@@ -119,7 +119,8 @@ export function useGeolocation(enableHighAccuracy = true, autoRequest = false) {
     setState({
       position: null,
       error: null,
-      loading: false
+      loading: false,
+      accuracy: null
     });
   }, []);
 
