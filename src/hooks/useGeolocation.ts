@@ -5,6 +5,7 @@ export interface GeolocationState {
   position: GeolocationPosition | null;
   error: GeolocationPositionError | null;
   loading: boolean;
+  accuracy: number | null;
 }
 
 export function useGeolocation(enableHighAccuracy = true, autoRequest = false) {
