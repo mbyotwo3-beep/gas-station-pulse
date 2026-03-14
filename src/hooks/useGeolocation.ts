@@ -12,7 +12,8 @@ export function useGeolocation(enableHighAccuracy = true, autoRequest = false) {
   const [state, setState] = useState<GeolocationState>({
     position: null,
     error: null,
-    loading: false
+    loading: false,
+    accuracy: null
   });
   const hasAutoRequested = useRef(false);
 
