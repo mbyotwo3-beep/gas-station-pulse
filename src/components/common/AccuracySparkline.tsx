@@ -26,6 +26,7 @@ export default function AccuracySparkline({
   windowMs = 60_000,
   width = 80,
   height = 24,
+  smoothingWindow = 5,
   className,
 }: AccuracySparklineProps) {
   const { path, areaPath, latest, min, max, strokeColor } = useMemo(() => {
