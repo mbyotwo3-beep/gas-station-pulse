@@ -64,10 +64,23 @@ export default function AccuracySparkline({
       return [x, y] as const;
     });
 
-    // Build smoothed line path
-    const d = coords
-      .map(([x, y], i) => (i === 0 ? `M ${x.toFixed(1)} ${y.toFixed(1)}` : `L ${x.toFixed(1)} ${y.toFixed(1)}`))
-      .join(' ');
+    // Build a smooth path using quadratic curves between midpoints (Catmull-Rom-like).
+    let d = '';
+    if (coords.length === 1) {
+      d = `M ${coords[0][0].toFixed(1)} ${coords[0][1].toFixed(1)}`;
+    } else {
+      d = `M ${coords[0][0].toFixed(1)} ${coords[0][1].toFixed(1)}`;
+      for (let i = 1; i < coords.length; i++) {
+        const [px, py] = coords[i - 1];
+        const [cx, cy] = coords[i];
+        const mx = (px + cx) / 2;
+        const my = (py + cy) / 2;
+        d += ` Q ${px.toFixed(1)} ${py.toFixed(1)} ${mx.toFixed(1)} ${my.toFixed(1)}`;
+        if (i === coords.length - 1) {
+          d += ` T ${cx.toFixed(1)} ${cy.toFixed(1)}`;
+        }
+      }
+    }
 
     // Area fill underneath
     const last = coords[coords.length - 1];
