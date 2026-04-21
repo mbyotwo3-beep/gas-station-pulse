@@ -43,6 +43,8 @@ export interface LeafletMapProps {
   focusPoint?: { lat: number; lng: number; label?: string } | null;
   route?: Route | null;
   waypoints?: Waypoint[];
+  /** Radius in meters for GPS accuracy circle around focusPoint. */
+  accuracyRadius?: number | null;
 }
 
 function colorFor(status: Station['status']) {
@@ -51,7 +53,7 @@ function colorFor(status: Station['status']) {
   return 'hsl(var(--destructive))';
 }
 
-export default function LeafletMap({ stations, onSelect, className, focusPoint, route, waypoints = [] }: LeafletMapProps) {
+export default function LeafletMap({ stations, onSelect, className, focusPoint, route, waypoints = [], accuracyRadius = null }: LeafletMapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<LeafletMapType | null>(null);
   const stationLayerRef = useRef<L.LayerGroup | null>(null);
@@ -59,6 +61,7 @@ export default function LeafletMap({ stations, onSelect, className, focusPoint, 
   const routeLayerRef = useRef<L.Polyline | null>(null);
   const waypointMarkersRef = useRef<L.CircleMarker[]>([]);
   const focusMarkerRef = useRef<L.CircleMarker | null>(null);
+  const accuracyCircleRef = useRef<L.Circle | null>(null);
   const [selectedStation, setSelectedStation] = useState<Station | null>(null);
   const errorRef = useRef<HTMLDivElement | null>(null);
 
@@ -207,6 +210,33 @@ export default function LeafletMap({ stations, onSelect, className, focusPoint, 
     const currentZoom = map.getZoom();
     map.setView([focusPoint.lat, focusPoint.lng], Math.max(currentZoom, targetZoom), { animate: true });
   }, [focusPoint]);
+
+  // Draw GPS accuracy circle around focusPoint
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    if (accuracyCircleRef.current) {
+      map.removeLayer(accuracyCircleRef.current);
+      accuracyCircleRef.current = null;
+    }
+
+    if (!focusPoint || !accuracyRadius || accuracyRadius <= 0) return;
+
+    const circle = L.circle([focusPoint.lat, focusPoint.lng], {
+      radius: accuracyRadius,
+      color: 'hsl(var(--primary))',
+      weight: 1,
+      opacity: 0.6,
+      fillColor: 'hsl(var(--primary))',
+      fillOpacity: 0.12,
+      className: 'gps-accuracy-circle',
+      pane: 'overlayPane',
+      interactive: false,
+    }).addTo(map);
+
+    accuracyCircleRef.current = circle;
+  }, [focusPoint, accuracyRadius]);
 
   // Draw navigation route
   useEffect(() => {
