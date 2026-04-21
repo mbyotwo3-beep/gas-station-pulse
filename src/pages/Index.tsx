@@ -375,6 +375,23 @@ export default function Index() {
     });
   }, [position, locationSource]);
 
+  // Auto-prompt manual search when GPS accuracy is very poor (>500m)
+  const lowAccuracyPromptedRef = useRef(false);
+  useEffect(() => {
+    if (locationSource !== 'gps' || accuracy === null) return;
+    if (accuracy <= 500) {
+      lowAccuracyPromptedRef.current = false;
+      return;
+    }
+    if (lowAccuracyPromptedRef.current) return;
+    lowAccuracyPromptedRef.current = true;
+    toast.warning(
+      `GPS is off by ±${Math.round(accuracy)}m. Search your address manually for a precise location.`,
+      { duration: 6000 }
+    );
+    setShowSearch(true);
+  }, [accuracy, locationSource]);
+
   const getRoleDisplayInfo = () => {
     if (hasRole('admin')) return { label: 'Admin', color: 'bg-red-500', icon: Crown };
     if (hasRole('manager')) return { label: 'Manager', color: 'bg-purple-500', icon: Shield };
