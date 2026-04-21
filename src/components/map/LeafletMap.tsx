@@ -53,7 +53,7 @@ function colorFor(status: Station['status']) {
   return 'hsl(var(--destructive))';
 }
 
-export default function LeafletMap({ stations, onSelect, className, focusPoint, route, waypoints = [] }: LeafletMapProps) {
+export default function LeafletMap({ stations, onSelect, className, focusPoint, route, waypoints = [], accuracyRadius = null }: LeafletMapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<LeafletMapType | null>(null);
   const stationLayerRef = useRef<L.LayerGroup | null>(null);
@@ -61,6 +61,7 @@ export default function LeafletMap({ stations, onSelect, className, focusPoint, 
   const routeLayerRef = useRef<L.Polyline | null>(null);
   const waypointMarkersRef = useRef<L.CircleMarker[]>([]);
   const focusMarkerRef = useRef<L.CircleMarker | null>(null);
+  const accuracyCircleRef = useRef<L.Circle | null>(null);
   const [selectedStation, setSelectedStation] = useState<Station | null>(null);
   const errorRef = useRef<HTMLDivElement | null>(null);
 
