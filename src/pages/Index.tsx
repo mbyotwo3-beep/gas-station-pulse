@@ -647,17 +647,24 @@ export default function Index() {
                 />
               )}
 
-              {/* Live GPS accuracy badge */}
+              {/* Live GPS accuracy badge + 60s sparkline */}
               {locationSource === 'gps' && accuracy !== null && (
-                <div className="absolute top-4 right-4 z-10">
+                <div className="absolute top-4 right-4 z-10 flex items-center gap-2 bg-background/95 backdrop-blur-sm border rounded-md shadow-md px-2 py-1">
                   <Badge
                     variant={accuracy <= 30 ? 'default' : accuracy <= 100 ? 'secondary' : 'destructive'}
-                    className="shadow-md backdrop-blur-sm bg-background/95 border gap-1.5 px-2.5 py-1"
+                    className="gap-1.5 px-2 py-0.5"
                     title="Live GPS accuracy radius"
                   >
                     <LocateFixed className="h-3 w-3" />
                     <span className="font-mono text-xs">±{Math.round(accuracy)}m</span>
                   </Badge>
+                  <AccuracySparkline
+                    points={accuracyHistory}
+                    width={70}
+                    height={20}
+                    className="opacity-90"
+                  />
+                  <span className="text-[9px] text-muted-foreground font-mono">60s</span>
                 </div>
               )}
               <Button
