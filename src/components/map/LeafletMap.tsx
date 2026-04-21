@@ -211,6 +211,33 @@ export default function LeafletMap({ stations, onSelect, className, focusPoint, 
     map.setView([focusPoint.lat, focusPoint.lng], Math.max(currentZoom, targetZoom), { animate: true });
   }, [focusPoint]);
 
+  // Draw GPS accuracy circle around focusPoint
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    if (accuracyCircleRef.current) {
+      map.removeLayer(accuracyCircleRef.current);
+      accuracyCircleRef.current = null;
+    }
+
+    if (!focusPoint || !accuracyRadius || accuracyRadius <= 0) return;
+
+    const circle = L.circle([focusPoint.lat, focusPoint.lng], {
+      radius: accuracyRadius,
+      color: 'hsl(var(--primary))',
+      weight: 1,
+      opacity: 0.6,
+      fillColor: 'hsl(var(--primary))',
+      fillOpacity: 0.12,
+      className: 'gps-accuracy-circle',
+      pane: 'overlayPane',
+      interactive: false,
+    }).addTo(map);
+
+    accuracyCircleRef.current = circle;
+  }, [focusPoint, accuracyRadius]);
+
   // Draw navigation route
   useEffect(() => {
     const map = mapRef.current;
