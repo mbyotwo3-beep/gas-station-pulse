@@ -38,17 +38,29 @@ export default function AccuracySparkline({
     }
 
     const values = windowed.map(p => p.v);
-    const minV = Math.min(...values);
-    const maxV = Math.max(...values);
+
+    // Centered moving average for a smoother trend line.
+    const w = Math.max(1, Math.floor(smoothingWindow));
+    const half = Math.floor(w / 2);
+    const smoothed = values.map((_, i) => {
+      const start = Math.max(0, i - half);
+      const end = Math.min(values.length, i + half + 1);
+      let sum = 0;
+      for (let k = start; k < end; k++) sum += values[k];
+      return sum / (end - start);
+    });
+
+    const minV = Math.min(...smoothed);
+    const maxV = Math.max(...smoothed);
     const range = Math.max(maxV - minV, 1); // avoid divide-by-zero
 
     const tMin = now - windowMs;
     const tRange = windowMs;
 
-    const coords = windowed.map(p => {
+    const coords = windowed.map((p, i) => {
       const x = ((p.t - tMin) / tRange) * width;
       // Invert Y: lower meters (better) -> higher on chart
-      const y = height - ((p.v - minV) / range) * (height - 4) - 2;
+      const y = height - ((smoothed[i] - minV) / range) * (height - 4) - 2;
       return [x, y] as const;
     });
 
