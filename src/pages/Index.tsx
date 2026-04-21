@@ -31,6 +31,7 @@ import SavedRoutesList from "@/components/map/SavedRoutesList";
 import RouteOptimizationSuggestions from "@/components/map/RouteOptimizationSuggestions";
 import AdminPanel from "@/components/admin/AdminPanel";
 import NotificationCenter from "@/components/common/NotificationCenter";
+import AccuracySparkline, { type AccuracyPoint } from "@/components/common/AccuracySparkline";
 import { useAuth } from "@/contexts/AuthContext";
 import { useStations } from "@/hooks/useStations";
 import { useProfile } from "@/hooks/useProfile";
@@ -385,6 +386,30 @@ export default function Index() {
     };
   }, [watchLocation]);
 
+  // Rolling 60s history of GPS accuracy values for sparkline
+  const [accuracyHistory, setAccuracyHistory] = useState<AccuracyPoint[]>([]);
+  useEffect(() => {
+    if (locationSource !== 'gps' || accuracy === null) return;
+    const now = Date.now();
+    setAccuracyHistory(prev => {
+      const next = [...prev, { t: now, v: accuracy }];
+      const cutoff = now - 60_000;
+      return next.filter(p => p.t >= cutoff);
+    });
+  }, [accuracy, locationSource]);
+
+  // Tick to drop expired points even if GPS stops emitting
+  useEffect(() => {
+    const id = setInterval(() => {
+      setAccuracyHistory(prev => {
+        const cutoff = Date.now() - 60_000;
+        const filtered = prev.filter(p => p.t >= cutoff);
+        return filtered.length === prev.length ? prev : filtered;
+      });
+    }, 2000);
+    return () => clearInterval(id);
+  }, []);
+
   // Auto-prompt manual search when GPS accuracy is very poor (>500m)
   const lowAccuracyPromptedRef = useRef(false);
   useEffect(() => {
@@ -622,17 +647,24 @@ export default function Index() {
                 />
               )}
 
-              {/* Live GPS accuracy badge */}
+              {/* Live GPS accuracy badge + 60s sparkline */}
               {locationSource === 'gps' && accuracy !== null && (
-                <div className="absolute top-4 right-4 z-10">
+                <div className="absolute top-4 right-4 z-10 flex items-center gap-2 bg-background/95 backdrop-blur-sm border rounded-md shadow-md px-2 py-1">
                   <Badge
                     variant={accuracy <= 30 ? 'default' : accuracy <= 100 ? 'secondary' : 'destructive'}
-                    className="shadow-md backdrop-blur-sm bg-background/95 border gap-1.5 px-2.5 py-1"
+                    className="gap-1.5 px-2 py-0.5"
                     title="Live GPS accuracy radius"
                   >
                     <LocateFixed className="h-3 w-3" />
                     <span className="font-mono text-xs">±{Math.round(accuracy)}m</span>
                   </Badge>
+                  <AccuracySparkline
+                    points={accuracyHistory}
+                    width={70}
+                    height={20}
+                    className="opacity-90"
+                  />
+                  <span className="text-[9px] text-muted-foreground font-mono">60s</span>
                 </div>
               )}
               <Button
