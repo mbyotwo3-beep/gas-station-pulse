@@ -386,6 +386,30 @@ export default function Index() {
     };
   }, [watchLocation]);
 
+  // Rolling 60s history of GPS accuracy values for sparkline
+  const [accuracyHistory, setAccuracyHistory] = useState<AccuracyPoint[]>([]);
+  useEffect(() => {
+    if (locationSource !== 'gps' || accuracy === null) return;
+    const now = Date.now();
+    setAccuracyHistory(prev => {
+      const next = [...prev, { t: now, v: accuracy }];
+      const cutoff = now - 60_000;
+      return next.filter(p => p.t >= cutoff);
+    });
+  }, [accuracy, locationSource]);
+
+  // Tick to drop expired points even if GPS stops emitting
+  useEffect(() => {
+    const id = setInterval(() => {
+      setAccuracyHistory(prev => {
+        const cutoff = Date.now() - 60_000;
+        const filtered = prev.filter(p => p.t >= cutoff);
+        return filtered.length === prev.length ? prev : filtered;
+      });
+    }, 2000);
+    return () => clearInterval(id);
+  }, []);
+
   // Auto-prompt manual search when GPS accuracy is very poor (>500m)
   const lowAccuracyPromptedRef = useRef(false);
   useEffect(() => {
