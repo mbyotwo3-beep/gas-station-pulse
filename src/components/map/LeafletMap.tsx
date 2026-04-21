@@ -43,6 +43,8 @@ export interface LeafletMapProps {
   focusPoint?: { lat: number; lng: number; label?: string } | null;
   route?: Route | null;
   waypoints?: Waypoint[];
+  /** Radius in meters for GPS accuracy circle around focusPoint. */
+  accuracyRadius?: number | null;
 }
 
 function colorFor(status: Station['status']) {
