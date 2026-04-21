@@ -31,6 +31,7 @@ import SavedRoutesList from "@/components/map/SavedRoutesList";
 import RouteOptimizationSuggestions from "@/components/map/RouteOptimizationSuggestions";
 import AdminPanel from "@/components/admin/AdminPanel";
 import NotificationCenter from "@/components/common/NotificationCenter";
+import AccuracySparkline, { type AccuracyPoint } from "@/components/common/AccuracySparkline";
 import { useAuth } from "@/contexts/AuthContext";
 import { useStations } from "@/hooks/useStations";
 import { useProfile } from "@/hooks/useProfile";
