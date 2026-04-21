@@ -75,7 +75,7 @@ export default function Index() {
   const { user, signOut } = useAuth();
   const { stations, loading: stationsLoading } = useStations();
   const { profile, toggleFavoriteStation, isFavorite } = useProfile();
-  const { position, accuracy, requestLocation } = useGeolocation(true, true);
+  const { position, accuracy, requestLocation, watchLocation } = useGeolocation(true, true);
   const { roles, hasRole, canManageStations, canDrive, canRequestRides } = useRoles();
   const { hasPermission, requestNotificationPermission } = useNotifications();
   useRealtimeNotifications(); // Enable realtime notifications
@@ -375,6 +375,16 @@ export default function Index() {
     });
   }, [position, locationSource]);
 
+  // Continuously watch GPS so accuracy updates live
+  useEffect(() => {
+    const watchId = watchLocation();
+    return () => {
+      if (watchId !== null && watchId !== undefined) {
+        navigator.geolocation?.clearWatch(watchId);
+      }
+    };
+  }, [watchLocation]);
+
   // Auto-prompt manual search when GPS accuracy is very poor (>500m)
   const lowAccuracyPromptedRef = useRef(false);
   useEffect(() => {
@@ -610,6 +620,20 @@ export default function Index() {
                   accuracyRadius={locationSource === 'gps' ? accuracy : null}
                   className="h-full"
                 />
+              )}
+
+              {/* Live GPS accuracy badge */}
+              {locationSource === 'gps' && accuracy !== null && (
+                <div className="absolute top-4 right-4 z-10">
+                  <Badge
+                    variant={accuracy <= 30 ? 'default' : accuracy <= 100 ? 'secondary' : 'destructive'}
+                    className="shadow-md backdrop-blur-sm bg-background/95 border gap-1.5 px-2.5 py-1"
+                    title="Live GPS accuracy radius"
+                  >
+                    <LocateFixed className="h-3 w-3" />
+                    <span className="font-mono text-xs">±{Math.round(accuracy)}m</span>
+                  </Badge>
+                </div>
               )}
               <Button
                 size="icon"
