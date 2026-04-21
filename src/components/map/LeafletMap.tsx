@@ -205,11 +205,21 @@ export default function LeafletMap({ stations, onSelect, className, focusPoint, 
     marker.bindTooltip(`<strong>${focusPoint.label ?? 'Selected location'}</strong>`, { permanent: false, opacity: 1 });
     focusMarkerRef.current = marker;
 
-    // Zoom in but don't reduce if user is already closer
-    const targetZoom = 14;
-    const currentZoom = map.getZoom();
-    map.setView([focusPoint.lat, focusPoint.lng], Math.max(currentZoom, targetZoom), { animate: true });
-  }, [focusPoint]);
+    // If we have a GPS accuracy radius, zoom so the circle fits the viewport.
+    // Otherwise fall back to a default zoom-in (without zooming out).
+    if (accuracyRadius && accuracyRadius > 0) {
+      const center = L.latLng(focusPoint.lat, focusPoint.lng);
+      const circleBounds = center.toBounds(accuracyRadius * 2.2); // 10% padding around the circle
+      const fitZoom = map.getBoundsZoom(circleBounds, false);
+      // Clamp to sensible range so we never zoom in past street-level or out past city-level
+      const targetZoom = Math.min(17, Math.max(11, fitZoom));
+      map.setView(center, targetZoom, { animate: true });
+    } else {
+      const targetZoom = 14;
+      const currentZoom = map.getZoom();
+      map.setView([focusPoint.lat, focusPoint.lng], Math.max(currentZoom, targetZoom), { animate: true });
+    }
+  }, [focusPoint, accuracyRadius]);
 
   // Draw GPS accuracy circle around focusPoint
   useEffect(() => {
