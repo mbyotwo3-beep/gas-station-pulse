@@ -375,6 +375,16 @@ export default function Index() {
     });
   }, [position, locationSource]);
 
+  // Continuously watch GPS so accuracy updates live
+  useEffect(() => {
+    const watchId = watchLocation();
+    return () => {
+      if (watchId !== null && watchId !== undefined) {
+        navigator.geolocation?.clearWatch(watchId);
+      }
+    };
+  }, [watchLocation]);
+
   // Auto-prompt manual search when GPS accuracy is very poor (>500m)
   const lowAccuracyPromptedRef = useRef(false);
   useEffect(() => {
