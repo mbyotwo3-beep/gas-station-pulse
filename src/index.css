@@ -533,3 +533,12 @@ img.leaflet-tile {
     transform: scale(1);
   }
 }
+/* GPS accuracy circle pulse */
+.gps-accuracy-circle {
+  animation: gps-accuracy-pulse 2.5s ease-in-out infinite;
+  transform-origin: center;
+}
+@keyframes gps-accuracy-pulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 0.9; }
+}
