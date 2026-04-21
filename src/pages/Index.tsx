@@ -590,6 +590,7 @@ export default function Index() {
                   focusPoint={selectedLocation}
                   route={route}
                   waypoints={waypoints}
+                  accuracyRadius={locationSource === 'gps' ? accuracy : null}
                   className="h-full"
                 />
               )}
