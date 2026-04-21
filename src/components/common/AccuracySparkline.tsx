@@ -12,6 +12,8 @@ interface AccuracySparklineProps {
   windowMs?: number;
   width?: number;
   height?: number;
+  /** Centered moving-average window size (samples). Set to 1 to disable smoothing. */
+  smoothingWindow?: number;
   className?: string;
 }
 
