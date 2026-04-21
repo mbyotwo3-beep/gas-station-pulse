@@ -621,6 +621,20 @@ export default function Index() {
                   className="h-full"
                 />
               )}
+
+              {/* Live GPS accuracy badge */}
+              {locationSource === 'gps' && accuracy !== null && (
+                <div className="absolute top-4 right-4 z-10">
+                  <Badge
+                    variant={accuracy <= 30 ? 'default' : accuracy <= 100 ? 'secondary' : 'destructive'}
+                    className="shadow-md backdrop-blur-sm bg-background/95 border gap-1.5 px-2.5 py-1"
+                    title="Live GPS accuracy radius"
+                  >
+                    <LocateFixed className="h-3 w-3" />
+                    <span className="font-mono text-xs">±{Math.round(accuracy)}m</span>
+                  </Badge>
+                </div>
+              )}
               <Button
                 size="icon"
                 variant="outline"
