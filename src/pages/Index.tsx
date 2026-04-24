@@ -13,7 +13,9 @@ import ManagerLogin from "@/components/ManagerLogin";
 import ThemeToggle from "@/components/ThemeToggle";
 import DriverDashboard from "@/components/rideshare/DriverDashboard";
 import PassengerDashboard from "@/components/rideshare/PassengerDashboard";
-import BottomBar from "@/components/mobile/BottomBar";
+import AppBottomNav, { type AppTab } from "@/components/mobile/AppBottomNav";
+import MapBottomSheet, { type SheetSnap } from "@/components/mobile/MapBottomSheet";
+import ErrandsForm from "@/components/errands/ErrandsForm";
 import ServiceSelector from "@/components/delivery/ServiceSelector";
 import FoodDeliveryDashboard from "@/components/delivery/FoodDeliveryDashboard";
 import PackageDeliveryForm from "@/components/delivery/PackageDeliveryForm";
@@ -84,7 +86,9 @@ export default function Index() {
   const { savedRoutes, loading: savedRoutesLoading, saveRoute, deleteRoute, updateRoute } = useSavedRoutes();
   const { suggestions, loading: optimizationLoading, analyzeRoutes, clearSuggestions } = useRouteOptimization();
   
-  const [mode, setMode] = useState<'fuel' | 'rideshare' | 'admin'>('fuel');
+  const [activeTab, setActiveTab] = useState<AppTab>('fuel');
+  const [sheetSnap, setSheetSnap] = useState<SheetSnap>('half');
+  const [adminOpen, setAdminOpen] = useState(false);
   const [rideShareMode, setRideShareMode] = useState<'passenger' | 'driver'>('passenger');
   const [selectedService, setSelectedService] = useState<'ride' | 'food_delivery' | 'package_delivery'>('ride');
   const [selectedStation, setSelectedStation] = useState<Station | null>(null);
