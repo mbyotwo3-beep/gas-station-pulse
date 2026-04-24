@@ -643,6 +643,7 @@ export default function Index() {
                   route={route}
                   waypoints={waypoints}
                   accuracyRadius={locationSource === 'gps' ? accuracy : null}
+                  isLiveLocation={locationSource === 'gps'}
                   className="h-full"
                 />
               )}
