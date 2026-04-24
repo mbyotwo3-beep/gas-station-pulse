@@ -4,6 +4,8 @@ import 'leaflet/dist/leaflet.css';
 import { Station } from '@/hooks/useStations';
 import { cn } from '@/lib/utils';
 import { Route } from '@/hooks/useRouting';
+import { Button } from '@/components/ui/button';
+import { LocateFixed } from 'lucide-react';
 
 // Fix for default markers in Leaflet
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -12,9 +14,10 @@ L.Icon.Default.mergeOptions({
   iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
 });
+
 // Haversine formula to calculate distance in km
 function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
-  const R = 6371; // Earth's radius in km
+  const R = 6371;
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLng = (lng2 - lng1) * Math.PI / 180;
   const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
@@ -27,6 +30,18 @@ function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: numbe
 function formatDistance(km: number): string {
   if (km < 1) return `${Math.round(km * 1000)}m`;
   return `${km.toFixed(1)}km`;
+}
+
+// Bearing in degrees from point A to point B
+function bearing(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const toDeg = (r: number) => (r * 180) / Math.PI;
+  const φ1 = toRad(lat1);
+  const φ2 = toRad(lat2);
+  const Δλ = toRad(lng2 - lng1);
+  const y = Math.sin(Δλ) * Math.cos(φ2);
+  const x = Math.cos(φ1) * Math.sin(φ2) - Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
+  return (toDeg(Math.atan2(y, x)) + 360) % 360;
 }
 
 export interface Waypoint {
@@ -45,6 +60,8 @@ export interface LeafletMapProps {
   waypoints?: Waypoint[];
   /** Radius in meters for GPS accuracy circle around focusPoint. */
   accuracyRadius?: number | null;
+  /** When true, the focus point represents a live GPS reading and gets directional arrow + follow mode. */
+  isLiveLocation?: boolean;
 }
 
 function colorFor(status: Station['status']) {
@@ -53,25 +70,82 @@ function colorFor(status: Station['status']) {
   return 'hsl(var(--destructive))';
 }
 
-export default function LeafletMap({ stations, onSelect, className, focusPoint, route, waypoints = [], accuracyRadius = null }: LeafletMapProps) {
+// Build a divIcon with a directional arrow that rotates with heading
+function buildLiveLocationIcon(heading: number | null): L.DivIcon {
+  const rotation = heading ?? 0;
+  const showArrow = heading !== null && !Number.isNaN(heading);
+  return L.divIcon({
+    className: 'live-location-icon',
+    html: `
+      <div style="position:relative;width:36px;height:36px;transform:translate(-50%,-50%);left:50%;top:50%;">
+        ${showArrow ? `
+          <div style="
+            position:absolute;left:50%;top:50%;
+            width:0;height:0;
+            border-left:9px solid transparent;
+            border-right:9px solid transparent;
+            border-bottom:18px solid hsl(217 91% 60%);
+            transform:translate(-50%,-130%) rotate(${rotation}deg);
+            transform-origin:50% 130%;
+            filter: drop-shadow(0 1px 2px rgba(0,0,0,0.4));
+            transition: transform 250ms ease-out;
+            pointer-events:none;
+          "></div>` : ''}
+        <div style="
+          position:absolute;left:50%;top:50%;
+          width:18px;height:18px;border-radius:9999px;
+          background: hsl(217 91% 60%);
+          border:3px solid #fff;
+          transform:translate(-50%,-50%);
+          box-shadow:0 0 0 1px rgba(0,0,0,0.15), 0 2px 6px rgba(0,0,0,0.35);
+        "></div>
+      </div>`,
+    iconSize: [36, 36],
+    iconAnchor: [18, 18],
+  });
+}
+
+export default function LeafletMap({
+  stations,
+  onSelect,
+  className,
+  focusPoint,
+  route,
+  waypoints = [],
+  accuracyRadius = null,
+  isLiveLocation = false,
+}: LeafletMapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<LeafletMapType | null>(null);
   const stationLayerRef = useRef<L.LayerGroup | null>(null);
   const pathLayerRef = useRef<L.LayerGroup | null>(null);
   const routeLayerRef = useRef<L.Polyline | null>(null);
   const waypointMarkersRef = useRef<L.CircleMarker[]>([]);
-  const focusMarkerRef = useRef<L.CircleMarker | null>(null);
+  const focusMarkerRef = useRef<L.Marker | L.CircleMarker | null>(null);
   const accuracyCircleRef = useRef<L.Circle | null>(null);
   const [selectedStation, setSelectedStation] = useState<Station | null>(null);
   const errorRef = useRef<HTMLDivElement | null>(null);
 
+  // Follow-me mode: ON by default for live GPS, OFF as soon as the user pans/zooms.
+  const [followMode, setFollowMode] = useState(true);
+  const followModeRef = useRef(followMode);
+  useEffect(() => { followModeRef.current = followMode; }, [followMode]);
+
+  // Heading state: from device orientation if available, else derived from successive GPS points.
+  const headingRef = useRef<number | null>(null);
+  const [, forceRender] = useState(0);
+  const lastPosRef = useRef<{ lat: number; lng: number } | null>(null);
+
+  // Smooth marker animation refs
+  const animFrameRef = useRef<number | null>(null);
+
+  // Initialize map
   useEffect(() => {
-    console.log("LeafletMap: rendering and initializing");
-    let map;
+    let map: LeafletMapType | undefined;
     try {
       if (containerRef.current && !mapRef.current) {
         map = L.map(containerRef.current, {
-          center: [-15.3875, 28.3228], // Lusaka, Zambia
+          center: [-15.3875, 28.3228],
           zoom: 12,
           zoomControl: true,
           scrollWheelZoom: true,
@@ -79,29 +153,35 @@ export default function LeafletMap({ stations, onSelect, className, focusPoint, 
         });
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+          attribution: '&copy; OpenStreetMap',
           fadeAnimation: false,
           className: 'map-tile-layer',
         }).addTo(map);
 
-        // Initialize layers in correct z-order (bottom to top)
-        const pathLayer = L.layerGroup().addTo(map);
-        pathLayerRef.current = pathLayer;
-        
-        const stationLayer = L.layerGroup().addTo(map);
-        stationLayerRef.current = stationLayer;
+        pathLayerRef.current = L.layerGroup().addTo(map);
+        stationLayerRef.current = L.layerGroup().addTo(map);
+
+        // Disengage follow mode the moment the user interacts with the map.
+        const disengageFollow = () => {
+          if (followModeRef.current) setFollowMode(false);
+        };
+        map.on('dragstart', disengageFollow);
+        map.on('zoomstart', (e: any) => {
+          // Only disengage on user-initiated zoom (mouse wheel, +/- buttons, pinch).
+          // Programmatic setView during follow uses animate:true but we guard via a flag.
+          if ((map as any)._programmaticZoom) return;
+          disengageFollow();
+        });
 
         mapRef.current = map;
-        console.log("LeafletMap: map initialized");
       }
-    } catch (err) {
-      console.error("LeafletMap: map initialization error", err);
-      if (errorRef.current) {
-        errorRef.current.textContent = "Map failed to initialize: " + err.message;
-      }
+    } catch (err: any) {
+      console.error('LeafletMap init error', err);
+      if (errorRef.current) errorRef.current.textContent = 'Map failed: ' + err.message;
     }
-    // Cleanup function
+
     return () => {
+      if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
       if (mapRef.current) {
         mapRef.current.remove();
         mapRef.current = null;
@@ -109,34 +189,52 @@ export default function LeafletMap({ stations, onSelect, className, focusPoint, 
     };
   }, []);
 
+  // Device orientation -> heading (mobile compass)
+  useEffect(() => {
+    if (!isLiveLocation) return;
+    const handler = (e: DeviceOrientationEvent) => {
+      // iOS exposes webkitCompassHeading (true heading, 0=N clockwise)
+      const wch = (e as any).webkitCompassHeading;
+      if (typeof wch === 'number' && !Number.isNaN(wch)) {
+        headingRef.current = wch;
+        forceRender(n => n + 1);
+        return;
+      }
+      // Standard alpha is 0..360 counter-clockwise from device frame; convert.
+      if (typeof e.alpha === 'number' && !Number.isNaN(e.alpha)) {
+        headingRef.current = (360 - e.alpha) % 360;
+        forceRender(n => n + 1);
+      }
+    };
+    window.addEventListener('deviceorientationabsolute' as any, handler as any, true);
+    window.addEventListener('deviceorientation', handler, true);
+    return () => {
+      window.removeEventListener('deviceorientationabsolute' as any, handler as any, true);
+      window.removeEventListener('deviceorientation', handler, true);
+    };
+  }, [isLiveLocation]);
+
+  // Stations layer
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
-    
     const stationLayer = stationLayerRef.current;
     const pathLayer = pathLayerRef.current;
     if (!stationLayer || !pathLayer) return;
 
-    // Clear existing station markers and paths
     stationLayer.clearLayers();
     pathLayer.clearLayers();
 
     const bounds = L.latLngBounds([]);
 
-    // NOTE: We intentionally do NOT draw direct point-to-point helper lines here.
-    // Those geodesic lines can look like "routes" but they don't follow roads,
-    // which caused confusion. Only OSRM route geometry is rendered as navigation.
-
     stations.forEach((s) => {
       const isSelected = selectedStation?.id === s.id;
-      
-      // Calculate distance if focusPoint is available
       let distanceText = '';
       if (focusPoint) {
         const distance = calculateDistance(focusPoint.lat, focusPoint.lng, s.lat, s.lng);
         distanceText = `<br><span class="text-xs">${formatDistance(distance)} away</span>`;
       }
-      
+
       const marker = L.circleMarker([s.lat, s.lng], {
         radius: isSelected ? 14 : 10,
         color: colorFor(s.status),
@@ -144,37 +242,24 @@ export default function LeafletMap({ stations, onSelect, className, focusPoint, 
         fillOpacity: isSelected ? 1 : 0.85,
         weight: isSelected ? 3 : 2,
         className: 'station-marker animate-scale-in',
-        pane: 'markerPane', // Ensure markers are on top
+        pane: 'markerPane',
       }).addTo(stationLayer);
 
-      // Enhanced tooltip with status and distance
       const statusText = s.status === 'available' ? 'Available' : s.status === 'low' ? 'Low Supply' : 'Out of Fuel';
       marker.bindTooltip(
-        `<div class="text-center">
-          <strong>${s.name}</strong><br>
-          <span class="text-xs" style="color: ${colorFor(s.status)}">${statusText}</span>${distanceText}
-        </div>`, 
+        `<div class="text-center"><strong>${s.name}</strong><br><span class="text-xs" style="color:${colorFor(s.status)}">${statusText}</span>${distanceText}</div>`,
         { permanent: false, opacity: 0.9 }
       );
-      
+
       marker.on('click', () => {
         setSelectedStation(s);
         onSelect?.(s);
       });
-      
-      // Add hover effects
-      marker.on('mouseover', () => {
-        marker.setRadius(12);
-        marker.setStyle({ weight: 3 });
-      });
-      
+      marker.on('mouseover', () => { marker.setRadius(12); marker.setStyle({ weight: 3 }); });
       marker.on('mouseout', () => {
-        if (!isSelected) {
-          marker.setRadius(10);
-          marker.setStyle({ weight: 2 });
-        }
+        if (!isSelected) { marker.setRadius(10); marker.setStyle({ weight: 2 }); }
       });
-      
+
       bounds.extend([s.lat, s.lng]);
     });
 
@@ -183,45 +268,89 @@ export default function LeafletMap({ stations, onSelect, className, focusPoint, 
     }
   }, [stations, onSelect, focusPoint, selectedStation]);
 
+  // Focus marker + follow logic
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !focusPoint) return;
 
-    // Remove previous focus marker
-    if (focusMarkerRef.current) {
-      map.removeLayer(focusMarkerRef.current);
-      focusMarkerRef.current = null;
+    const target = L.latLng(focusPoint.lat, focusPoint.lng);
+
+    // Derive heading from successive GPS positions if device orientation isn't providing it
+    if (isLiveLocation && lastPosRef.current && headingRef.current === null) {
+      const dist = calculateDistance(
+        lastPosRef.current.lat, lastPosRef.current.lng,
+        focusPoint.lat, focusPoint.lng
+      ) * 1000; // meters
+      if (dist > 3) {
+        headingRef.current = bearing(
+          lastPosRef.current.lat, lastPosRef.current.lng,
+          focusPoint.lat, focusPoint.lng
+        );
+      }
+    }
+    if (isLiveLocation) lastPosRef.current = { lat: focusPoint.lat, lng: focusPoint.lng };
+
+    // Build / update marker
+    if (isLiveLocation) {
+      const icon = buildLiveLocationIcon(headingRef.current);
+      if (focusMarkerRef.current && (focusMarkerRef.current as any).setIcon) {
+        const m = focusMarkerRef.current as L.Marker;
+        // Smooth animate position
+        const start = m.getLatLng();
+        const startTime = performance.now();
+        const dur = 400;
+        if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+        const step = (now: number) => {
+          const t = Math.min(1, (now - startTime) / dur);
+          const lat = start.lat + (target.lat - start.lat) * t;
+          const lng = start.lng + (target.lng - start.lng) * t;
+          m.setLatLng([lat, lng]);
+          if (t < 1) animFrameRef.current = requestAnimationFrame(step);
+        };
+        animFrameRef.current = requestAnimationFrame(step);
+        m.setIcon(icon);
+      } else {
+        if (focusMarkerRef.current) map.removeLayer(focusMarkerRef.current);
+        const m = L.marker(target, { icon, pane: 'markerPane', interactive: false }).addTo(map);
+        focusMarkerRef.current = m;
+      }
+    } else {
+      // Manual pin: simple circle marker (no rotation)
+      if (focusMarkerRef.current) {
+        map.removeLayer(focusMarkerRef.current);
+        focusMarkerRef.current = null;
+      }
+      const m = L.circleMarker(target, {
+        radius: 12,
+        color: 'hsl(var(--primary))',
+        fillColor: 'hsl(var(--primary))',
+        fillOpacity: 0.9,
+        weight: 2,
+        pane: 'markerPane',
+      }).addTo(map);
+      m.bindTooltip(`<strong>${focusPoint.label ?? 'Selected location'}</strong>`, { permanent: false, opacity: 1 });
+      focusMarkerRef.current = m;
     }
 
-    const marker = L.circleMarker([focusPoint.lat, focusPoint.lng], {
-      radius: 12,
-      color: 'hsl(var(--primary))',
-      fillColor: 'hsl(var(--primary))',
-      fillOpacity: 0.9,
-      weight: 2,
-      pane: 'markerPane', // Ensure markers are on top
-    }).addTo(map);
-
-    marker.bindTooltip(`<strong>${focusPoint.label ?? 'Selected location'}</strong>`, { permanent: false, opacity: 1 });
-    focusMarkerRef.current = marker;
-
-    // If we have a GPS accuracy radius, zoom so the circle fits the viewport.
-    // Otherwise fall back to a default zoom-in (without zooming out).
-    if (accuracyRadius && accuracyRadius > 0) {
-      const center = L.latLng(focusPoint.lat, focusPoint.lng);
-      const circleBounds = center.toBounds(accuracyRadius * 2.2); // 10% padding around the circle
-      const fitZoom = map.getBoundsZoom(circleBounds, false);
-      // Clamp to sensible range so we never zoom in past street-level or out past city-level
-      const targetZoom = Math.min(17, Math.max(11, fitZoom));
-      map.setView(center, targetZoom, { animate: true });
+    // Camera behavior:
+    //  - Live GPS + follow mode: recenter at navigation zoom (17), no big zoom-out fights.
+    //  - Manual pin: only zoom in if needed, never zoom out.
+    //  - Live GPS + follow OFF: do nothing — respect the user's view.
+    if (isLiveLocation) {
+      if (followModeRef.current) {
+        const navZoom = 17;
+        (map as any)._programmaticZoom = true;
+        map.setView(target, Math.max(map.getZoom(), navZoom), { animate: true, duration: 0.4 });
+        setTimeout(() => { (map as any)._programmaticZoom = false; }, 600);
+      }
     } else {
       const targetZoom = 14;
       const currentZoom = map.getZoom();
-      map.setView([focusPoint.lat, focusPoint.lng], Math.max(currentZoom, targetZoom), { animate: true });
+      map.setView(target, Math.max(currentZoom, targetZoom), { animate: true });
     }
-  }, [focusPoint, accuracyRadius]);
+  }, [focusPoint, isLiveLocation, accuracyRadius]);
 
-  // Draw GPS accuracy circle around focusPoint
+  // GPS accuracy circle
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
@@ -233,7 +362,7 @@ export default function LeafletMap({ stations, onSelect, className, focusPoint, 
 
     if (!focusPoint || !accuracyRadius || accuracyRadius <= 0) return;
 
-    const circle = L.circle([focusPoint.lat, focusPoint.lng], {
+    accuracyCircleRef.current = L.circle([focusPoint.lat, focusPoint.lng], {
       radius: accuracyRadius,
       color: 'hsl(var(--primary))',
       weight: 1,
@@ -244,119 +373,93 @@ export default function LeafletMap({ stations, onSelect, className, focusPoint, 
       pane: 'overlayPane',
       interactive: false,
     }).addTo(map);
-
-    accuracyCircleRef.current = circle;
   }, [focusPoint, accuracyRadius]);
 
-  // Draw navigation route
+  // Route
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
 
-    // Remove previous route layers
-    if (routeLayerRef.current) {
-      map.removeLayer(routeLayerRef.current);
-      routeLayerRef.current = null;
-    }
-    // Remove previous outline
-    if ((map as any)._routeOutline) {
-      map.removeLayer((map as any)._routeOutline);
-      (map as any)._routeOutline = null;
-    }
+    if (routeLayerRef.current) { map.removeLayer(routeLayerRef.current); routeLayerRef.current = null; }
+    if ((map as any)._routeOutline) { map.removeLayer((map as any)._routeOutline); (map as any)._routeOutline = null; }
 
     if (!route) return;
 
-    // Draw dark outline first for maximum contrast
     const outline = L.polyline(route.coordinates, {
-      color: '#1a1a2e',
-      weight: 10,
-      opacity: 0.7,
-      smoothFactor: 1,
-      lineCap: 'round',
-      lineJoin: 'round',
-      pane: 'shadowPane',
+      color: '#1a1a2e', weight: 10, opacity: 0.7,
+      smoothFactor: 1, lineCap: 'round', lineJoin: 'round', pane: 'shadowPane',
     }).addTo(map);
     (map as any)._routeOutline = outline;
 
-    // Draw the main route polyline — bold blue for high visibility
     const routeLine = L.polyline(route.coordinates, {
-      color: '#2563eb',
-      weight: 6,
-      opacity: 1,
-      smoothFactor: 1,
-      lineCap: 'round',
-      lineJoin: 'round',
-      className: 'route-line',
-      pane: 'overlayPane',
+      color: '#2563eb', weight: 6, opacity: 1,
+      smoothFactor: 1, lineCap: 'round', lineJoin: 'round',
+      className: 'route-line', pane: 'overlayPane',
     }).addTo(map);
-
     routeLayerRef.current = routeLine;
 
-    // Fit map to show the entire route
-    map.fitBounds(routeLine.getBounds().pad(0.1));
-  }, [route]);
+    // Only fit-to-route when we're NOT in live-follow mode (otherwise it fights navigation).
+    if (!(isLiveLocation && followModeRef.current)) {
+      map.fitBounds(routeLine.getBounds().pad(0.1));
+    }
+  }, [route, isLiveLocation]);
 
-  // Draw waypoint markers
+  // Waypoints
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
 
-    // Remove previous waypoint markers
-    waypointMarkersRef.current.forEach(marker => {
-      map.removeLayer(marker);
-    });
+    waypointMarkersRef.current.forEach(m => map.removeLayer(m));
     waypointMarkersRef.current = [];
 
-    // Add waypoint markers
     waypoints.forEach((waypoint, index) => {
       const marker = L.circleMarker([waypoint.lat, waypoint.lng], {
-        radius: 10,
-        color: 'hsl(var(--primary))',
-        fillColor: '#ffffff',
-        fillOpacity: 1,
-        weight: 3,
-        pane: 'markerPane',
+        radius: 10, color: 'hsl(var(--primary))', fillColor: '#ffffff',
+        fillOpacity: 1, weight: 3, pane: 'markerPane',
       }).addTo(map);
 
-      // Add number label
       const divIcon = L.divIcon({
-        html: `<div style="
-          width: 24px;
-          height: 24px;
-          border-radius: 50%;
-          background: hsl(var(--primary));
-          color: white;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 12px;
-          font-weight: bold;
-          border: 2px solid white;
-        ">${index + 1}</div>`,
-        className: 'waypoint-marker',
-        iconSize: [24, 24],
-        iconAnchor: [12, 12],
+        html: `<div style="width:24px;height:24px;border-radius:50%;background:hsl(var(--primary));color:white;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:bold;border:2px solid white;">${index + 1}</div>`,
+        className: 'waypoint-marker', iconSize: [24, 24], iconAnchor: [12, 12],
       });
-
-      const labelMarker = L.marker([waypoint.lat, waypoint.lng], {
-        icon: divIcon,
-        pane: 'markerPane',
-      }).addTo(map);
-
-      labelMarker.bindTooltip(`<strong>Stop ${index + 1}</strong><br>${waypoint.label}`, {
-        permanent: false,
-        opacity: 0.9,
-      });
+      const labelMarker = L.marker([waypoint.lat, waypoint.lng], { icon: divIcon, pane: 'markerPane' }).addTo(map);
+      labelMarker.bindTooltip(`<strong>Stop ${index + 1}</strong><br>${waypoint.label}`, { permanent: false, opacity: 0.9 });
 
       waypointMarkersRef.current.push(marker);
       waypointMarkersRef.current.push(labelMarker as any);
     });
   }, [waypoints]);
 
+  const handleRecenter = () => {
+    const map = mapRef.current;
+    if (!map || !focusPoint) return;
+    setFollowMode(true);
+    (map as any)._programmaticZoom = true;
+    map.setView([focusPoint.lat, focusPoint.lng], 17, { animate: true, duration: 0.5 });
+    setTimeout(() => { (map as any)._programmaticZoom = false; }, 700);
+  };
+
   return (
-    <div className={cn("relative w-full", className)}>
-      <div ref={containerRef} className="absolute inset-0 w-full h-full rounded-2xl overflow-hidden shadow-mobile z-0" style={{ minHeight: '300px' }} />
-      
+    <div className={cn('relative w-full', className)}>
+      <div
+        ref={containerRef}
+        className="absolute inset-0 w-full h-full rounded-2xl overflow-hidden shadow-mobile z-0"
+        style={{ minHeight: '300px' }}
+      />
+
+      {/* Recenter button — only meaningful for live GPS */}
+      {isLiveLocation && focusPoint && (
+        <Button
+          size="icon"
+          variant={followMode ? 'default' : 'outline'}
+          onClick={handleRecenter}
+          className="absolute bottom-4 right-4 z-10 shadow-lg rounded-full h-12 w-12 bg-background/95 backdrop-blur-md"
+          title={followMode ? 'Following your location' : 'Recenter on me'}
+        >
+          <LocateFixed className={cn('h-5 w-5', followMode && 'text-primary')} />
+        </Button>
+      )}
+
       {/* Map legend */}
       <div className="absolute bottom-4 left-4 bg-background/95 backdrop-blur-md rounded-xl p-3 shadow-md border border-border/30 z-10">
         <div className="text-xs font-medium mb-2">Station Status</div>
@@ -376,8 +479,7 @@ export default function LeafletMap({ stations, onSelect, className, focusPoint, 
         </div>
       </div>
 
-      {/* Error display */}
-      <div ref={errorRef} style={{ position: "absolute", top: 10, left: 10, color: "red", fontWeight: "bold", zIndex: 10000 }}></div>
+      <div ref={errorRef} style={{ position: 'absolute', top: 10, left: 10, color: 'red', fontWeight: 'bold', zIndex: 10000 }} />
     </div>
   );
 }
