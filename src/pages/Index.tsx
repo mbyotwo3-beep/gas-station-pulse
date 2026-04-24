@@ -13,7 +13,9 @@ import ManagerLogin from "@/components/ManagerLogin";
 import ThemeToggle from "@/components/ThemeToggle";
 import DriverDashboard from "@/components/rideshare/DriverDashboard";
 import PassengerDashboard from "@/components/rideshare/PassengerDashboard";
-import BottomBar from "@/components/mobile/BottomBar";
+import AppBottomNav, { type AppTab } from "@/components/mobile/AppBottomNav";
+import MapBottomSheet, { type SheetSnap } from "@/components/mobile/MapBottomSheet";
+import ErrandsForm from "@/components/errands/ErrandsForm";
 import ServiceSelector from "@/components/delivery/ServiceSelector";
 import FoodDeliveryDashboard from "@/components/delivery/FoodDeliveryDashboard";
 import PackageDeliveryForm from "@/components/delivery/PackageDeliveryForm";
@@ -84,7 +86,9 @@ export default function Index() {
   const { savedRoutes, loading: savedRoutesLoading, saveRoute, deleteRoute, updateRoute } = useSavedRoutes();
   const { suggestions, loading: optimizationLoading, analyzeRoutes, clearSuggestions } = useRouteOptimization();
   
-  const [mode, setMode] = useState<'fuel' | 'rideshare' | 'admin'>('fuel');
+  const [activeTab, setActiveTab] = useState<AppTab>('fuel');
+  const [sheetSnap, setSheetSnap] = useState<SheetSnap>('half');
+  const [adminOpen, setAdminOpen] = useState(false);
   const [rideShareMode, setRideShareMode] = useState<'passenger' | 'driver'>('passenger');
   const [selectedService, setSelectedService] = useState<'ride' | 'food_delivery' | 'package_delivery'>('ride');
   const [selectedStation, setSelectedStation] = useState<Station | null>(null);
@@ -437,78 +441,75 @@ export default function Index() {
 
   const roleInfo = getRoleDisplayInfo();
 
+  // ── Tab metadata for sheet header ──────────────────────────────────────────
+  const tabMeta: Record<AppTab, { title: string; subtitle: string }> = {
+    fuel: { title: 'Find Fuel', subtitle: 'Stations near you' },
+    rides: { title: 'Get a Ride', subtitle: 'Around Zambia' },
+    food: { title: 'Order Food', subtitle: 'Restaurants nearby' },
+    packages: { title: 'Send a Package', subtitle: 'Same-day delivery' },
+    errands: { title: 'Run an Errand', subtitle: 'A runner handles it' },
+  };
+
+  // Whether the active tab is map-centric (full-screen map behind sheet)
+  const isMapTab = activeTab === 'fuel' || activeTab === 'rides';
+
+  const handleRecenterFab = () => {
+    setLocationSource('gps');
+    if (position) {
+      setSelectedLocation({
+        lat: position.coords.latitude,
+        lng: position.coords.longitude,
+        label: 'Your Location',
+      });
+    } else {
+      requestLocation();
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-background relative">
+    <div className="h-[100dvh] w-full bg-background relative overflow-hidden">
       <Toaster />
-      
-      {/* Mobile Header */}
-      <header className="mobile-header mobile-safe-top">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-primary rounded-2xl flex items-center justify-center">
-              {mode === 'fuel' ? (
-                <Fuel className="h-5 w-5 text-primary-foreground" />
-              ) : (
-                <Car className="h-5 w-5 text-primary-foreground" />
-              )}
-            </div>
-            <div>
-              <h1 className="text-lg font-semibold">
-                {mode === 'fuel' ? 'FuelFinder' : 'RideShare'}
-              </h1>
-              <p className="text-xs text-muted-foreground">
-                {selectedLocation?.label || 'Location not set'}
-              </p>
-            </div>
-          </div>
-          
-          <div className="flex items-center space-x-2">
-            {user && (
-              <>
-                <NotificationCenter />
-                {!hasPermission && (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="w-10 h-10 rounded-xl"
-                    onClick={requestNotificationPermission}
-                    title="Enable notifications"
-                  >
-                    <BellOff className="h-4 w-4" />
-                  </Button>
-                )}
-                <div className={`${roleInfo.color} rounded-lg px-2 py-1 flex items-center gap-1`}>
-                  <roleInfo.icon className="h-3 w-3 text-white" />
-                  <span className="text-xs text-white font-medium">{roleInfo.label}</span>
-                </div>
-              </>
+
+      {/* ── SLIM TOP BAR ────────────────────────────────────────────────── */}
+      <header
+        className="absolute top-0 inset-x-0 z-50 px-3 pt-3"
+        style={{ paddingTop: 'calc(env(safe-area-inset-top) + 0.5rem)' }}
+      >
+        <div className="flex items-center gap-2">
+          {/* Search pill — replaces the giant header search */}
+          <button
+            onClick={() => setShowSearch(true)}
+            className="flex-1 flex items-center gap-2 h-11 px-4 rounded-full bg-background/95 backdrop-blur-md border shadow-md text-left text-sm text-muted-foreground hover:bg-background transition-colors"
+          >
+            <Search className="h-4 w-4 shrink-0" />
+            <span className="truncate">
+              {selectedLocation?.label
+                ? `📍 ${selectedLocation.label}`
+                : `Where are you, ${tabMeta[activeTab].title.toLowerCase()}?`}
+            </span>
+            {locationSource === 'gps' && accuracy !== null && (
+              <Badge
+                variant={accuracy <= 30 ? 'default' : accuracy <= 100 ? 'secondary' : 'destructive'}
+                className="ml-auto text-[10px] px-1.5 py-0 font-mono"
+              >
+                ±{Math.round(accuracy)}m
+              </Badge>
             )}
-            <Button
-              size="sm"
-              variant="ghost"
-              className="w-10 h-10 rounded-xl"
-              onClick={handleGetMyLocation}
-              title="Get my location"
-            >
-              <LocateFixed className="h-4 w-4" />
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              className="w-10 h-10 rounded-xl"
-              onClick={() => setShowSearch(!showSearch)}
-            >
-              <Search className="h-4 w-4" />
-            </Button>
+          </button>
+
+          {/* Right-side circular controls */}
+          <div className="flex items-center gap-1.5">
+            {user && <NotificationCenter />}
             <ThemeToggle />
             {user ? (
               <ProfileDialog />
             ) : (
               <Button
-                size="sm"
-                variant="ghost"
-                className="w-10 h-10 rounded-xl"
-                onClick={() => window.location.href = '/auth'}
+                size="icon"
+                variant="outline"
+                className="h-11 w-11 rounded-full bg-background/95 backdrop-blur-md shadow-md"
+                onClick={() => (window.location.href = '/auth')}
+                title="Sign in"
               >
                 <User className="h-4 w-4" />
               </Button>
@@ -516,443 +517,317 @@ export default function Index() {
           </div>
         </div>
 
-        {/* Search Bar */}
-        {showSearch && (
-          <div className="mt-4 animate-slide-up space-y-3">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search stations by name, brand, or address..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 pr-10"
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              )}
+        {/* Role badge + admin entry — small, secondary */}
+        {user && (
+          <div className="mt-2 flex items-center gap-2">
+            <div className={cn(roleInfo.color, 'rounded-full px-2 py-0.5 flex items-center gap-1 shadow-sm')}>
+              <roleInfo.icon className="h-3 w-3 text-white" />
+              <span className="text-[10px] text-white font-medium">{roleInfo.label}</span>
             </div>
-            <EnhancedLocationSearch onSelectLocation={handleLocationSelect} />
-          </div>
-        )}
-
-        {/* Mode Toggle */}
-        <div className="mt-4 flex bg-secondary rounded-2xl p-1">
-          <button
-            onClick={() => setMode('fuel')}
-            className={`mobile-tab ${mode === 'fuel' ? 'mobile-tab-active' : 'mobile-tab-inactive'}`}
-          >
-            <Fuel className="h-4 w-4 mr-2" />
-            Fuel
-          </button>
-          <button
-            onClick={() => setMode('rideshare')}
-            className={`mobile-tab ${mode === 'rideshare' ? 'mobile-tab-active' : 'mobile-tab-inactive'}`}
-          >
-            <Car className="h-4 w-4 mr-2" />
-            Rides
-          </button>
-          {hasRole('admin') && (
-            <button
-              onClick={() => setMode('admin')}
-              className={`mobile-tab ${mode === 'admin' ? 'mobile-tab-active' : 'mobile-tab-inactive'}`}
-            >
-              <Shield className="h-4 w-4 mr-2" />
-              Admin
-            </button>
-          )}
-        </div>
-
-        {/* Rideshare Sub-tabs */}
-        {mode === 'rideshare' && user && canRequestRides() && (
-          <div className="mt-3 flex bg-secondary rounded-2xl p-1">
-            <button
-              onClick={() => setRideShareMode('passenger')}
-              className={`mobile-tab ${rideShareMode === 'passenger' ? 'mobile-tab-active' : 'mobile-tab-inactive'}`}
-            >
-              <MapPin className="h-4 w-4 mr-2" />
-              Need Ride
-            </button>
-            {canDrive() && (
-              <button
-                onClick={() => setRideShareMode('driver')}
-                className={`mobile-tab ${rideShareMode === 'driver' ? 'mobile-tab-active' : 'mobile-tab-inactive'}`}
+            {hasRole('admin') && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 px-2 rounded-full bg-background/95 backdrop-blur-md text-[10px]"
+                onClick={() => setAdminOpen((v) => !v)}
               >
-                <Navigation className="h-4 w-4 mr-2" />
-                Drive
-              </button>
+                <Shield className="h-3 w-3 mr-1" />
+                Admin
+              </Button>
+            )}
+            {!hasPermission && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 px-2 rounded-full bg-background/95 backdrop-blur-md text-[10px]"
+                onClick={requestNotificationPermission}
+                title="Enable notifications"
+              >
+                <BellOff className="h-3 w-3 mr-1" />
+                Alerts
+              </Button>
             )}
           </div>
         )}
       </header>
 
-      {/* Manual Location Input */}
-      <div className="px-4 py-2 bg-background border-b border-border/50 space-y-1">
-        <div className="flex items-center gap-2">
-          <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-          <EnhancedLocationSearch
-            onSelectLocation={handleLocationSelect}
-            placeholder="Type your address if GPS is inaccurate..."
-            className="flex-1"
-          />
+      {/* ── FULL-SCREEN MAP (for fuel + rides) ──────────────────────────── */}
+      {isMapTab && (
+        <div className="absolute inset-0">
+          {activeTab === 'fuel' ? (
+            stationsLoading ? (
+              <StationMapSkeleton />
+            ) : (
+              <LeafletMap
+                stations={filteredStations}
+                onSelect={handleStationSelect}
+                focusPoint={selectedLocation}
+                route={route}
+                waypoints={waypoints}
+                accuracyRadius={locationSource === 'gps' ? accuracy : null}
+                isLiveLocation={locationSource === 'gps'}
+                className="h-full"
+              />
+            )
+          ) : (
+            <RideShareMap focusPoint={selectedLocation} className="h-full w-full" />
+          )}
+
+          {/* Floating recenter FAB (above the sheet) */}
+          <Button
+            size="icon"
+            variant="outline"
+            className="absolute right-4 z-40 h-12 w-12 rounded-full bg-background/95 backdrop-blur-md shadow-lg"
+            style={{ bottom: `calc(env(safe-area-inset-bottom) + 64px + 16px + 50dvh)` }}
+            onClick={handleRecenterFab}
+            title="Center on my location"
+          >
+            <LocateFixed className="h-5 w-5" />
+          </Button>
         </div>
-        <SavedLocationsBar
-          currentLocation={selectedLocation}
-          onSelectLocation={handleLocationSelect}
-        />
-        {selectedLocation && (
-          <div className="ml-6 flex flex-wrap items-center gap-2">
-            <p className="text-xs text-muted-foreground">
-              📍 {selectedLocation.label || `${selectedLocation.lat.toFixed(4)}, ${selectedLocation.lng.toFixed(4)}`}
-              {locationSource && <span className="ml-1">({locationSource === 'manual' ? 'manual pin' : 'GPS'})</span>}
-            </p>
-            {locationSource === 'gps' && accuracy !== null && (
-              <Badge
-                variant={accuracy <= 30 ? 'default' : accuracy <= 100 ? 'secondary' : 'destructive'}
-                className="text-[10px] px-1.5 py-0"
-              >
-                ±{Math.round(accuracy)}m
-              </Badge>
-            )}
-            {locationSource === 'gps' && accuracy !== null && accuracy > 100 && (
-              <p className="text-[10px] text-destructive w-full">
-                ⚠️ GPS accuracy is low. Consider using the manual address search above for a more precise location.
-              </p>
-            )}
-          </div>
-        )}
-      </div>
+      )}
 
-      {/* Main Content */}
-      <main className="flex-1 relative">
-        {mode === 'fuel' ? (
-          <div className="flex flex-col h-full w-full">
-            {/* Map Section */}
-            <div className="w-full h-[45vh] min-h-[300px] relative bg-muted/30">
-              {stationsLoading ? (
-                <StationMapSkeleton />
-              ) : (
-                <LeafletMap
-                  stations={filteredStations}
-                  onSelect={handleStationSelect}
-                  focusPoint={selectedLocation}
-                  route={route}
-                  waypoints={waypoints}
-                  accuracyRadius={locationSource === 'gps' ? accuracy : null}
-                  isLiveLocation={locationSource === 'gps'}
-                  className="h-full"
-                />
-              )}
-
-              {/* Live GPS accuracy badge + 60s sparkline */}
-              {locationSource === 'gps' && accuracy !== null && (
-                <div className="absolute top-4 right-4 z-10 flex items-center gap-2 bg-background/95 backdrop-blur-sm border rounded-md shadow-md px-2 py-1">
-                  <Badge
-                    variant={accuracy <= 30 ? 'default' : accuracy <= 100 ? 'secondary' : 'destructive'}
-                    className="gap-1.5 px-2 py-0.5"
-                    title="Live GPS accuracy radius"
-                  >
-                    <LocateFixed className="h-3 w-3" />
-                    <span className="font-mono text-xs">±{Math.round(accuracy)}m</span>
-                  </Badge>
-                  <AccuracySparkline
-                    points={accuracyHistory}
-                    width={70}
-                    height={20}
-                    className="opacity-90"
-                  />
-                  <span className="text-[9px] text-muted-foreground font-mono">60s</span>
-                </div>
-              )}
-              <Button
-                size="icon"
-                variant="outline"
-                className="absolute top-4 left-4 z-10 bg-background/95 backdrop-blur-sm shadow-md"
-                onClick={() => {
-                  setLocationSource('gps');
-                  if (position) {
-                    setSelectedLocation({
-                      lat: position.coords.latitude,
-                      lng: position.coords.longitude,
-                      label: 'Your Location'
-                    });
-                  } else {
-                    requestLocation();
-                  }
-                }}
-                title="Center on my location"
-              >
-                <LocateFixed className="h-5 w-5" />
-              </Button>
+      {/* ── NON-MAP TABS: scrollable content area ───────────────────────── */}
+      {!isMapTab && (
+        <main
+          className="absolute inset-0 overflow-y-auto bg-gradient-to-b from-primary/5 via-background to-background"
+          style={{
+            paddingTop: 'calc(env(safe-area-inset-top) + 5rem)',
+            paddingBottom: 'calc(env(safe-area-inset-bottom) + 80px)',
+          }}
+        >
+          <div className="px-4 pb-6 max-w-2xl mx-auto">
+            <div className="mb-5">
+              <h1 className="text-2xl font-bold">{tabMeta[activeTab].title}</h1>
+              <p className="text-sm text-muted-foreground">{tabMeta[activeTab].subtitle}</p>
             </div>
-            {/* Actions Bar */}
-            <div className="flex items-center justify-between px-4 py-3 bg-background/95 backdrop-blur-md sticky top-0 z-20 border-b border-border/50">
-              <div className="flex items-center gap-3">
+
+            {!user ? (
+              <Card className="p-6 text-center space-y-4">
+                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
+                  <User className="h-8 w-8 text-primary" />
+                </div>
                 <div>
-                  <h2 className="font-semibold text-base">Nearby Stations</h2>
-                  <p className="text-xs text-muted-foreground">From your chosen point</p>
+                  <h2 className="font-semibold text-lg">Sign in to continue</h2>
+                  <p className="text-sm text-muted-foreground">
+                    {tabMeta[activeTab].title} requires an account.
+                  </p>
                 </div>
-                <TransportModeSelector 
-                  value={transportMode} 
-                  onChange={(mode) => {
-                    changeTransportMode(mode);
-                    if (route && selectedStation && selectedLocation) {
-                      // Re-fetch route with new transport mode
-                      const waypointCoords = waypoints.map(wp => ({ lat: wp.lat, lng: wp.lng }));
-                      getRoute(selectedLocation, { lat: selectedStation.lat, lng: selectedStation.lng }, waypointCoords, mode);
-                    }
-                  }} 
-                />
-              </div>
-              <div className="flex gap-2">
-                {canManageStations() && <AddStationDialog onStationAdded={handleStationReported} />}
-                <Button size="sm" variant="outline" onClick={() => setShowFilters(true)} className="h-9 px-3">
-                  <Filter className="h-4 w-4 mr-1" />
-                  <span className="text-xs">Filter</span>
+                <Button onClick={() => (window.location.href = '/auth')} className="w-full">
+                  Get started
                 </Button>
+              </Card>
+            ) : activeTab === 'food' ? (
+              <FoodDeliveryDashboard />
+            ) : activeTab === 'packages' ? (
+              <PackageDeliveryForm />
+            ) : activeTab === 'errands' ? (
+              <ErrandsForm pickupLabel={selectedLocation?.label} />
+            ) : null}
+
+            {user && <div className="mt-6"><OrderTracker /></div>}
+          </div>
+        </main>
+      )}
+
+      {/* ── BOTTOM SHEET (fuel + rides) ─────────────────────────────────── */}
+      {isMapTab && (
+        <MapBottomSheet
+          snap={sheetSnap}
+          onSnapChange={setSheetSnap}
+          bottomInset={64}
+          header={
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <h2 className="font-semibold text-base truncate">
+                  {tabMeta[activeTab].title}
+                </h2>
+                <p className="text-xs text-muted-foreground truncate">
+                  {activeTab === 'fuel'
+                    ? `${filteredStations.length} stations near you`
+                    : tabMeta[activeTab].subtitle}
+                </p>
               </div>
-            </div>
-            {/* Station List - increased bottom padding to prevent overlap */}
-            <div className="flex-1 overflow-y-auto px-4 pb-64">
-              {filteredStations.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-48">
-                  <h2 className="text-lg font-semibold mb-2">No stations found</h2>
-                  <p className="text-muted-foreground mb-2">Try resetting your filters or zooming out.</p>
-                  <Button size="sm" variant="outline" onClick={() => setFilters({
-                    status: ['available', 'low'],
-                    maxDistance: 10,
-                    priceRange: [0, 200],
-                    amenities: [],
-                    brands: [],
-                    operatingHours: 'any',
-                    sortBy: 'distance'
-                  })}>Reset Filters</Button>
-                </div>
-              ) : (
-                <StationList
-                  stations={filteredStations}
-                  origin={selectedLocation}
-                  selectedId={selectedStation?.id}
-                  onSelect={handleStationSelect}
-                  favorites={new Set(profile?.preferences?.favorite_stations || [])}
-                  onToggleFavorite={toggleFavoriteStation}
-                />
-              )}
-            </div>
-            {/* Station Status Summary - adjusted positioning */}
-            <div className="fixed bottom-24 left-4 right-4 z-10 pointer-events-none md:hidden">
-              <div className="bg-background/98 backdrop-blur-xl rounded-2xl p-4 shadow-elegant border border-border/50 pointer-events-auto">
-                <div className="grid grid-cols-3 gap-4 text-center">
-                  <div className="space-y-1">
-                    <div className="text-2xl font-bold text-success">{filteredStations.filter(s => s.status === 'available').length}</div>
-                    <div className="text-xs text-muted-foreground font-medium">Available</div>
-                  </div>
-                  <div className="space-y-1 border-x border-border/50">
-                    <div className="text-2xl font-bold text-warning">{filteredStations.filter(s => s.status === 'low').length}</div>
-                    <div className="text-xs text-muted-foreground font-medium">Low Stock</div>
-                  </div>
-                  <div className="space-y-1">
-                    <div className="text-2xl font-bold text-destructive">{filteredStations.filter(s => s.status === 'out').length}</div>
-                    <div className="text-xs text-muted-foreground font-medium">Out of Stock</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            {/* Selected Station Dialog */}
-            {selectedStation && (
-              <div className="fixed bottom-44 left-4 right-4 z-20 animate-slide-up md:hidden">
-                <div className="bg-background/98 backdrop-blur-xl rounded-2xl p-4 shadow-elegant border border-primary/20">
-                  <div className="flex items-start gap-3 mb-3">
-                    <div className={cn(
-                      "w-3 h-3 rounded-full mt-1 flex-shrink-0 animate-pulse",
-                      selectedStation.status === 'available' && "bg-success",
-                      selectedStation.status === 'low' && "bg-warning", 
-                      selectedStation.status === 'out' && "bg-destructive"
-                    )} />
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-sm truncate">{selectedStation.name}</h3>
-                      <p className="text-xs text-muted-foreground line-clamp-1">{selectedStation.address}</p>
-                    </div>
+              <div className="flex items-center gap-1.5 shrink-0">
+                {activeTab === 'fuel' && (
+                  <>
+                    {canManageStations() && (
+                      <AddStationDialog onStationAdded={handleStationReported} />
+                    )}
                     <Button
                       size="sm"
+                      variant="outline"
+                      onClick={() => setShowFilters(true)}
+                      className="h-9 px-3"
+                    >
+                      <Filter className="h-4 w-4" />
+                    </Button>
+                  </>
+                )}
+                {activeTab === 'rides' && canDrive() && (
+                  <div className="flex bg-secondary rounded-full p-0.5">
+                    <button
+                      onClick={() => setRideShareMode('passenger')}
+                      className={cn(
+                        'px-3 py-1 text-xs rounded-full font-medium transition-colors',
+                        rideShareMode === 'passenger'
+                          ? 'bg-background shadow text-foreground'
+                          : 'text-muted-foreground'
+                      )}
+                    >
+                      Ride
+                    </button>
+                    <button
+                      onClick={() => setRideShareMode('driver')}
+                      className={cn(
+                        'px-3 py-1 text-xs rounded-full font-medium transition-colors',
+                        rideShareMode === 'driver'
+                          ? 'bg-background shadow text-foreground'
+                          : 'text-muted-foreground'
+                      )}
+                    >
+                      Drive
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          }
+        >
+          {activeTab === 'fuel' && (
+            <div className="space-y-4">
+              {/* Compact stats */}
+              <div className="grid grid-cols-3 gap-2">
+                <div className="rounded-xl bg-success/10 p-3 text-center">
+                  <div className="text-xl font-bold text-success">
+                    {filteredStations.filter((s) => s.status === 'available').length}
+                  </div>
+                  <div className="text-[10px] text-muted-foreground font-medium uppercase">
+                    Available
+                  </div>
+                </div>
+                <div className="rounded-xl bg-warning/10 p-3 text-center">
+                  <div className="text-xl font-bold text-warning">
+                    {filteredStations.filter((s) => s.status === 'low').length}
+                  </div>
+                  <div className="text-[10px] text-muted-foreground font-medium uppercase">
+                    Low
+                  </div>
+                </div>
+                <div className="rounded-xl bg-destructive/10 p-3 text-center">
+                  <div className="text-xl font-bold text-destructive">
+                    {filteredStations.filter((s) => s.status === 'out').length}
+                  </div>
+                  <div className="text-[10px] text-muted-foreground font-medium uppercase">
+                    Out
+                  </div>
+                </div>
+              </div>
+
+              <TransportModeSelector
+                value={transportMode}
+                onChange={(m) => {
+                  changeTransportMode(m);
+                  if (route && selectedStation && selectedLocation) {
+                    const wp = waypoints.map((w) => ({ lat: w.lat, lng: w.lng }));
+                    getRoute(
+                      selectedLocation,
+                      { lat: selectedStation.lat, lng: selectedStation.lng },
+                      wp,
+                      m
+                    );
+                  }
+                }}
+              />
+
+              {/* Selected station summary */}
+              {selectedStation && (
+                <Card className="p-3 border-primary/40">
+                  <div className="flex items-start gap-3">
+                    <div
+                      className={cn(
+                        'w-3 h-3 rounded-full mt-1.5 flex-shrink-0 animate-pulse',
+                        selectedStation.status === 'available' && 'bg-success',
+                        selectedStation.status === 'low' && 'bg-warning',
+                        selectedStation.status === 'out' && 'bg-destructive'
+                      )}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-sm truncate">
+                        {selectedStation.name}
+                      </h3>
+                      <p className="text-xs text-muted-foreground line-clamp-1">
+                        {selectedStation.address}
+                      </p>
+                    </div>
+                    <Button
+                      size="icon"
                       variant="ghost"
                       onClick={() => setSelectedStation(null)}
-                      className="w-8 h-8 rounded-full p-0 flex-shrink-0 hover:bg-destructive/10"
+                      className="w-7 h-7 -mt-1 -mr-1"
                     >
                       <X className="h-4 w-4" />
                     </Button>
                   </div>
-                  <div className="flex gap-2">
-                    <StationDetails 
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <StationDetails
                       station={selectedStation}
                       userLocation={selectedLocation || undefined}
                       onClose={() => setSelectedStation(null)}
                     />
-                    <Button 
-                      size="sm" 
-                      variant={showWaypoints ? 'secondary' : 'outline'}
-                      onClick={() => setShowWaypoints(!showWaypoints)}
-                      className="h-9 px-3"
-                    >
-                      <MapPin className="h-4 w-4 mr-1" />
-                      Stops{waypoints.length > 0 && ` (${waypoints.length})`}
-                    </Button>
-                    {user && (
-                      <>
-                        <Button 
-                          size="sm" 
-                          variant={showSavedRoutes ? 'secondary' : 'outline'}
-                          onClick={() => setShowSavedRoutes(!showSavedRoutes)}
-                          className="h-9 px-3"
-                        >
-                          <Bookmark className="h-4 w-4 mr-1" />
-                          Saved
-                        </Button>
-                        {savedRoutes.length > 0 && (
-                          <Button 
-                            size="sm" 
-                            variant={showOptimizationSuggestions ? 'secondary' : 'outline'}
-                            onClick={handleAnalyzeRoutes}
-                            disabled={optimizationLoading}
-                            className="h-9 px-3"
-                          >
-                            <Lightbulb className="h-4 w-4 mr-1" />
-                            {optimizationLoading ? 'Analyzing...' : 'Optimize'}
-                          </Button>
-                        )}
-                      </>
-                    )}
-                    <Button 
-                      size="sm" 
-                      variant="default"
-                      onClick={handleGetDirections}
-                      disabled={routeLoading || !selectedLocation}
-                      className="h-9 px-3"
-                    >
-                      <Navigation className="h-4 w-4 mr-1" />
-                      {routeLoading ? 'Loading...' : 'Route'}
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant="outline"
-                      onClick={() => {
-                        toggleFavoriteStation(selectedStation.id);
-                      }}
-                      className="px-3 hover:bg-warning/10"
-                    >
-                      <Star className={cn("h-4 w-4 transition-all",
-                        profile?.preferences?.favorite_stations?.includes(selectedStation.id)
-                          ? 'text-warning fill-warning'
-                          : 'text-muted-foreground'
-                      )} />
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            )}
-            
-            {/* Waypoints Manager */}
-            {showWaypoints && selectedStation && (
-              <div className="fixed bottom-44 left-4 right-4 z-20 animate-slide-up md:hidden">
-                <WaypointsManager
-                  waypoints={waypoints}
-                  onAddWaypoint={handleAddWaypoint}
-                  onRemoveWaypoint={handleRemoveWaypoint}
-                  onReorderWaypoints={handleReorderWaypoints}
-                  onSelectLocation={handleSelectWaypointLocation}
-                />
-              </div>
-            )}
-
-            {/* Adding Waypoint Prompt */}
-            {addingWaypoint && (
-              <div className="fixed top-20 left-4 right-4 z-30 animate-slide-up">
-                <Card className="bg-background/95 backdrop-blur-md border-primary/50 shadow-lg p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <MapPin className="w-5 h-5 text-primary" />
-                      <h3 className="font-semibold">Select Waypoint Location</h3>
-                    </div>
                     <Button
                       size="sm"
-                      variant="ghost"
-                      onClick={() => setAddingWaypoint(false)}
+                      onClick={handleGetDirections}
+                      disabled={routeLoading || !selectedLocation}
+                      className="h-9"
                     >
-                      <X className="w-4 h-4" />
+                      <Navigation className="h-4 w-4 mr-1" />
+                      {routeLoading ? 'Loading…' : 'Route'}
                     </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => toggleFavoriteStation(selectedStation.id)}
+                      className="h-9"
+                    >
+                      <Star
+                        className={cn(
+                          'h-4 w-4',
+                          profile?.preferences?.favorite_stations?.includes(selectedStation.id)
+                            ? 'text-warning fill-warning'
+                            : 'text-muted-foreground'
+                        )}
+                      />
+                    </Button>
+                    {user && (
+                      <Button
+                        size="sm"
+                        variant={showWaypoints ? 'secondary' : 'outline'}
+                        onClick={() => setShowWaypoints(!showWaypoints)}
+                        className="h-9"
+                      >
+                        <MapPin className="h-4 w-4 mr-1" />
+                        Stops{waypoints.length > 0 && ` (${waypoints.length})`}
+                      </Button>
+                    )}
+                    {user && (
+                      <Button
+                        size="sm"
+                        variant={showSavedRoutes ? 'secondary' : 'outline'}
+                        onClick={() => setShowSavedRoutes(!showSavedRoutes)}
+                        className="h-9"
+                      >
+                        <Bookmark className="h-4 w-4 mr-1" />
+                        Saved
+                      </Button>
+                    )}
                   </div>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    Search for a location to add as a stop on your route
-                  </p>
-                  <EnhancedLocationSearch onSelectLocation={handleLocationSelect} />
                 </Card>
-              </div>
-            )}
-            
-            {/* Route Alternatives */}
-            {showRouteAlternatives && routeAlternatives.length > 0 && (
-              <div className="fixed top-20 left-4 right-4 z-30 animate-slide-up md:left-auto md:right-4 md:w-96">
-                <RouteAlternatives
-                  routes={routeAlternatives}
-                  selectedRouteIndex={selectedRouteIndex}
-                  onSelectRoute={handleSelectRouteAlternative}
-                  onClose={() => setShowRouteAlternatives(false)}
-                  onConfirm={handleConfirmRoute}
-                />
-              </div>
-            )}
+              )}
 
-            {/* Saved Routes List */}
-            {showSavedRoutes && user && (
-              <div className="fixed top-20 left-4 right-4 z-30 animate-slide-up md:left-auto md:right-4 md:w-96">
-                <SavedRoutesList
-                  routes={savedRoutes}
-                  onLoadRoute={handleLoadSavedRoute}
-                  onDeleteRoute={deleteRoute}
-                  onUpdateRoute={updateRoute}
-                  onClose={() => setShowSavedRoutes(false)}
-                />
-              </div>
-            )}
-
-            {/* Route Optimization Suggestions */}
-            {showOptimizationSuggestions && user && (
-              <div className="fixed top-20 left-4 right-4 z-30 animate-slide-up md:left-auto md:right-4 md:w-96">
-                <RouteOptimizationSuggestions
-                  suggestions={suggestions}
-                  onApplySuggestion={handleApplyOptimization}
-                  onClose={() => {
-                    setShowOptimizationSuggestions(false);
-                    clearSuggestions();
-                  }}
-                />
-              </div>
-            )}
-
-            {/* Save Route Dialog - shown when route is active */}
-            {route && selectedStation && user && !showRouteAlternatives && (
-              <div className="fixed bottom-44 left-4 z-20 md:bottom-auto md:top-96 md:left-4">
-                <SaveRouteDialog
-                  startLocation={selectedLocation}
-                  endLocation={selectedStation ? {
-                    lat: selectedStation.lat,
-                    lng: selectedStation.lng,
-                    label: selectedStation.name
-                  } : null}
-                  waypoints={waypoints}
-                  onSave={handleSaveRoute}
-                />
-              </div>
-            )}
-
-            {/* Turn by Turn Directions */}
-            {route && !showRouteAlternatives && (
-              <div className="fixed top-24 left-4 right-4 z-20 md:left-auto md:right-4 md:w-96">
-                <TurnByTurnDirections 
+              {/* Active route — collapsible turn-by-turn */}
+              {route && !showRouteAlternatives && (
+                <TurnByTurnDirections
                   route={route}
                   onClose={() => {
                     clearRoute();
@@ -967,127 +842,252 @@ export default function Index() {
                   onAutoRerouteToggle={() => setAutoRerouteEnabled(!autoRerouteEnabled)}
                   isRerouting={isRerouting}
                 />
+              )}
+
+              {showRouteAlternatives && routeAlternatives.length > 0 && (
+                <RouteAlternatives
+                  routes={routeAlternatives}
+                  selectedRouteIndex={selectedRouteIndex}
+                  onSelectRoute={handleSelectRouteAlternative}
+                  onClose={() => setShowRouteAlternatives(false)}
+                  onConfirm={handleConfirmRoute}
+                />
+              )}
+
+              {showWaypoints && selectedStation && (
+                <WaypointsManager
+                  waypoints={waypoints}
+                  onAddWaypoint={handleAddWaypoint}
+                  onRemoveWaypoint={handleRemoveWaypoint}
+                  onReorderWaypoints={handleReorderWaypoints}
+                  onSelectLocation={handleSelectWaypointLocation}
+                />
+              )}
+
+              {showSavedRoutes && user && (
+                <SavedRoutesList
+                  routes={savedRoutes}
+                  onLoadRoute={handleLoadSavedRoute}
+                  onDeleteRoute={deleteRoute}
+                  onUpdateRoute={updateRoute}
+                  onClose={() => setShowSavedRoutes(false)}
+                />
+              )}
+
+              {showOptimizationSuggestions && user && (
+                <RouteOptimizationSuggestions
+                  suggestions={suggestions}
+                  onApplySuggestion={handleApplyOptimization}
+                  onClose={() => {
+                    setShowOptimizationSuggestions(false);
+                    clearSuggestions();
+                  }}
+                />
+              )}
+
+              {route && selectedStation && user && !showRouteAlternatives && (
+                <SaveRouteDialog
+                  startLocation={selectedLocation}
+                  endLocation={
+                    selectedStation
+                      ? {
+                          lat: selectedStation.lat,
+                          lng: selectedStation.lng,
+                          label: selectedStation.name,
+                        }
+                      : null
+                  }
+                  waypoints={waypoints}
+                  onSave={handleSaveRoute}
+                />
+              )}
+
+              {/* Station list */}
+              <div>
+                <h3 className="text-xs uppercase font-semibold text-muted-foreground mb-2">
+                  Nearby stations
+                </h3>
+                {filteredStations.length === 0 ? (
+                  <Card className="p-6 text-center">
+                    <p className="text-sm font-medium mb-1">No stations match</p>
+                    <p className="text-xs text-muted-foreground mb-3">
+                      Try adjusting your filters or zoom out.
+                    </p>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() =>
+                        setFilters({
+                          status: ['available', 'low'],
+                          maxDistance: 10,
+                          priceRange: [0, 200],
+                          amenities: [],
+                          brands: [],
+                          operatingHours: 'any',
+                          sortBy: 'distance',
+                        })
+                      }
+                    >
+                      Reset filters
+                    </Button>
+                  </Card>
+                ) : (
+                  <StationList
+                    stations={filteredStations}
+                    origin={selectedLocation}
+                    selectedId={selectedStation?.id}
+                    onSelect={handleStationSelect}
+                    favorites={new Set(profile?.preferences?.favorite_stations || [])}
+                    onToggleFavorite={toggleFavoriteStation}
+                  />
+                )}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'rides' && (
+            <div className="space-y-4">
+              {!user ? (
+                <Card className="p-6 text-center space-y-3">
+                  <Car className="h-10 w-10 text-primary mx-auto" />
+                  <h3 className="font-semibold">Sign in to ride</h3>
+                  <Button onClick={() => (window.location.href = '/auth')} className="w-full">
+                    Get started
+                  </Button>
+                </Card>
+              ) : !canRequestRides() ? (
+                <Card className="p-6 text-center space-y-3">
+                  <Car className="h-10 w-10 text-warning mx-auto" />
+                  <h3 className="font-semibold">Passenger role required</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Add the passenger role from your profile to request rides.
+                  </p>
+                  <ProfileDialog />
+                </Card>
+              ) : (
+                <>
+                  <ServiceSelector
+                    selectedService={selectedService}
+                    onServiceChange={setSelectedService}
+                  />
+                  <OrderTracker />
+                  {selectedService === 'ride' &&
+                    (rideShareMode === 'driver' && canDrive() ? (
+                      <DriverDashboard />
+                    ) : (
+                      <PassengerDashboard />
+                    ))}
+                  {selectedService === 'food_delivery' &&
+                    (rideShareMode === 'driver' && canDrive() ? (
+                      <DriverDeliveryDashboard />
+                    ) : (
+                      <FoodDeliveryDashboard />
+                    ))}
+                  {selectedService === 'package_delivery' &&
+                    (rideShareMode === 'driver' && canDrive() ? (
+                      <DriverDeliveryDashboard />
+                    ) : (
+                      <PackageDeliveryForm />
+                    ))}
+                </>
+              )}
+            </div>
+          )}
+        </MapBottomSheet>
+      )}
+
+      {/* ── SEARCH SHEET (full search overlay) ──────────────────────────── */}
+      {showSearch && (
+        <div className="fixed inset-0 z-[70] bg-background/95 backdrop-blur-md animate-fade-in" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+          <div className="px-4 pt-3 pb-4 border-b flex items-center gap-2">
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={() => setShowSearch(false)}
+              className="rounded-full"
+            >
+              <X className="h-5 w-5" />
+            </Button>
+            <h2 className="font-semibold">Search</h2>
+          </div>
+          <div className="p-4 space-y-4 overflow-y-auto" style={{ maxHeight: 'calc(100dvh - 80px)' }}>
+            {activeTab === 'fuel' && (
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search stations by name, brand, or address..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                  autoFocus
+                />
               </div>
             )}
+            <div>
+              <p className="text-xs uppercase font-semibold text-muted-foreground mb-2">
+                Set your location
+              </p>
+              <EnhancedLocationSearch
+                onSelectLocation={(loc) => {
+                  handleLocationSelect(loc);
+                  setShowSearch(false);
+                }}
+                placeholder="Type your address…"
+              />
+              <SavedLocationsBar
+                currentLocation={selectedLocation}
+                onSelectLocation={(loc) => {
+                  handleLocationSelect(loc);
+                  setShowSearch(false);
+                }}
+              />
+            </div>
+            <Button variant="outline" className="w-full" onClick={handleRecenterFab}>
+              <LocateFixed className="h-4 w-4 mr-2" />
+              Use my GPS location
+            </Button>
+            {locationSource === 'gps' && accuracy !== null && accuracy > 100 && (
+              <p className="text-xs text-destructive">
+                ⚠️ GPS accuracy is low (±{Math.round(accuracy)}m). Type your address for a precise pin.
+              </p>
+            )}
           </div>
-        ) : mode === 'admin' && hasRole('admin') ? (
-          <div className="pb-24 px-4 overflow-y-auto h-[calc(100vh-250px)]">
+        </div>
+      )}
+
+      {/* ── ADDING-WAYPOINT FULL-SCREEN PROMPT ──────────────────────────── */}
+      {addingWaypoint && (
+        <div className="fixed inset-0 z-[70] bg-background/95 backdrop-blur-md animate-fade-in" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+          <div className="px-4 pt-3 pb-4 border-b flex items-center justify-between gap-2">
+            <h2 className="font-semibold">Add a stop</h2>
+            <Button size="icon" variant="ghost" onClick={() => setAddingWaypoint(false)}>
+              <X className="h-5 w-5" />
+            </Button>
+          </div>
+          <div className="p-4">
+            <p className="text-sm text-muted-foreground mb-3">
+              Search for a location to add as a stop on your route.
+            </p>
+            <EnhancedLocationSearch onSelectLocation={handleLocationSelect} />
+          </div>
+        </div>
+      )}
+
+      {/* ── ADMIN OVERLAY ───────────────────────────────────────────────── */}
+      {adminOpen && hasRole('admin') && (
+        <div className="fixed inset-0 z-[70] bg-background overflow-y-auto" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+          <div className="sticky top-0 z-10 px-4 py-3 border-b bg-background/95 backdrop-blur-md flex items-center justify-between">
+            <h2 className="font-semibold flex items-center gap-2">
+              <Shield className="h-5 w-5 text-primary" /> Admin
+            </h2>
+            <Button size="icon" variant="ghost" onClick={() => setAdminOpen(false)}>
+              <X className="h-5 w-5" />
+            </Button>
+          </div>
+          <div className="p-4 pb-24">
             <AdminPanel />
           </div>
-        ) : (
-          <>
-            {/* Rideshare Content */}
-            {!user ? (
-              <div className="flex items-center justify-center min-h-[calc(100vh-240px)] p-8">
-            <div className="text-center space-y-6">
-              <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
-                <Car className="h-12 w-12 text-primary" />
-              </div>
-              <div>
-                <h2 className="text-2xl font-bold mb-2">Join the Community</h2>
-                <p className="text-muted-foreground mb-6">
-                  Sign in to request rides or become a driver
-                </p>
-              </div>
-              <Button
-                onClick={() => window.location.href = '/auth'}
-                className="w-full max-w-xs mx-auto"
-                size="lg"
-              >
-                Get Started
-              </Button>
-            </div>
-              </div>
-            ) : !canRequestRides() ? (
-              <div className="flex items-center justify-center min-h-[calc(100vh-240px)] p-8">
-                <div className="text-center space-y-6">
-                  <div className="w-24 h-24 bg-warning/10 rounded-full flex items-center justify-center mx-auto">
-                    <Car className="h-12 w-12 text-warning" />
-                  </div>
-                  <div>
-                    <h2 className="text-2xl font-bold mb-2">Passenger Role Required</h2>
-                    <p className="text-muted-foreground mb-6">
-                      You need passenger privileges to access rideshare features. Add the passenger role from your profile.
-                    </p>
-                  </div>
-                  <ProfileDialog />
-                </div>
-              </div>
-            ) : (
-              <div className="flex flex-col h-[calc(100vh-240px)]">
-                {/* Rideshare Map */}
-                <div className="flex-1 min-h-[300px] relative">
-                  <RideShareMap
-                    focusPoint={selectedLocation}
-                    className="h-full w-full"
-                  />
-                  <Button
-                    size="icon"
-                    variant="outline"
-                    className="absolute top-4 left-4 z-10 bg-background/95 backdrop-blur-sm shadow-md"
-                    onClick={() => {
-                      setLocationSource('gps');
-                      if (position) {
-                        setSelectedLocation({
-                          lat: position.coords.latitude,
-                          lng: position.coords.longitude,
-                          label: 'Your Location'
-                        });
-                      } else {
-                        requestLocation();
-                      }
-                    }}
-                    title="Center on my location"
-                  >
-                    <LocateFixed className="h-5 w-5" />
-                  </Button>
-                </div>
-                
-                {/* Dashboard */}
-                <div className="flex-1 p-4 bg-background overflow-y-auto pb-24">
-                  <div className="mobile-card space-y-4">
-                    <ServiceSelector 
-                      selectedService={selectedService}
-                      onServiceChange={setSelectedService}
-                    />
-                    <OrderTracker />
-                    {selectedService === 'ride' && (
-                      rideShareMode === 'driver' && canDrive() ? (
-                        <DriverDashboard />
-                      ) : (
-                        <PassengerDashboard />
-                      )
-                    )}
-                    {selectedService === 'food_delivery' && (
-                      rideShareMode === 'driver' && canDrive() ? (
-                        <DriverDeliveryDashboard />
-                      ) : (
-                        <FoodDeliveryDashboard />
-                      )
-                    )}
-                    {selectedService === 'package_delivery' && (
-                      rideShareMode === 'driver' && canDrive() ? (
-                        <DriverDeliveryDashboard />
-                      ) : (
-                        <PackageDeliveryForm />
-                      )
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-          </>
-        )}
-      </main>
-
-      {/* Floating Action Button */}
-      {mode === 'fuel' && (
-        <button
-          className="mobile-floating-button"
-          onClick={() => setShowSearch(true)}
-        >
-          <Plus className="h-6 w-6" />
-        </button>
+        </div>
       )}
 
       {/* Advanced Filters Modal */}
@@ -1097,19 +1097,21 @@ export default function Index() {
         filters={filters}
         onFiltersChange={setFilters}
         onApplyFilters={() => {}}
-        onClearFilters={() => setFilters({
-          status: ['available', 'low'],
-          maxDistance: 10,
-          priceRange: [0, 200],
-          amenities: [],
-          brands: [],
-          operatingHours: 'any',
-          sortBy: 'distance'
-        })}
+        onClearFilters={() =>
+          setFilters({
+            status: ['available', 'low'],
+            maxDistance: 10,
+            priceRange: [0, 200],
+            amenities: [],
+            brands: [],
+            operatingHours: 'any',
+            sortBy: 'distance',
+          })
+        }
       />
 
-      {/* Mobile Bottom Navigation */}
-      <BottomBar />
+      {/* ── BOTTOM TAB NAV (always on top) ──────────────────────────────── */}
+      <AppBottomNav active={activeTab} onChange={setActiveTab} />
     </div>
   );
 }
