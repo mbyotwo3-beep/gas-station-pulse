@@ -65,6 +65,8 @@ import {
   Filter,
   Plus,
   LocateFixed,
+  AlertTriangle,
+  Signal,
   Shield,
   Crown,
   X,
