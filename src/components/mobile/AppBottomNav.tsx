@@ -28,13 +28,22 @@ export default function AppBottomNav({ active, onChange }: AppBottomNavProps) {
           const Icon = t.icon;
           const isActive = active === t.id;
           return (
-            <li key={t.id}>
+            <li key={t.id} className="relative">
+              {/* Top accent bar for active tab */}
+              <span
+                aria-hidden
+                className={cn(
+                  "absolute top-0 left-1/2 -translate-x-1/2 h-1 rounded-b-full transition-all duration-300",
+                  isActive ? "w-10 bg-primary opacity-100" : "w-0 bg-transparent opacity-0"
+                )}
+              />
               <button
                 type="button"
                 onClick={() => onChange(t.id)}
                 aria-current={isActive ? "page" : undefined}
+                aria-label={`${t.label}${isActive ? " (current)" : ""}`}
                 className={cn(
-                  "w-full flex flex-col items-center gap-0.5 py-2.5 transition-colors",
+                  "w-full flex flex-col items-center gap-0.5 pt-2.5 pb-2 transition-colors",
                   "text-[10px] font-medium",
                   isActive
                     ? "text-primary"
@@ -43,13 +52,15 @@ export default function AppBottomNav({ active, onChange }: AppBottomNavProps) {
               >
                 <span
                   className={cn(
-                    "flex items-center justify-center h-7 w-12 rounded-full transition-all",
-                    isActive ? "bg-primary/12" : "bg-transparent"
+                    "flex items-center justify-center h-7 w-12 rounded-full transition-all duration-300",
+                    isActive
+                      ? "bg-primary text-primary-foreground shadow-md scale-105"
+                      : "bg-transparent"
                   )}
                 >
                   <Icon className={cn("h-5 w-5", isActive && "scale-110")} />
                 </span>
-                <span>{t.label}</span>
+                <span className={cn(isActive && "font-semibold")}>{t.label}</span>
               </button>
             </li>
           );
