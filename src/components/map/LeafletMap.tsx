@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react';
 import L, { Map as LeafletMapType } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Station } from '@/hooks/useStations';
@@ -105,7 +105,11 @@ function buildLiveLocationIcon(heading: number | null): L.DivIcon {
   });
 }
 
-export default function LeafletMap({
+export interface LeafletMapHandle {
+  recenter: (zoom?: number) => void;
+}
+
+const LeafletMap = forwardRef<LeafletMapHandle, LeafletMapProps>(function LeafletMap({
   stations,
   onSelect,
   className,
@@ -114,7 +118,7 @@ export default function LeafletMap({
   waypoints = [],
   accuracyRadius = null,
   isLiveLocation = false,
-}: LeafletMapProps) {
+}, ref) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<LeafletMapType | null>(null);
   const stationLayerRef = useRef<L.LayerGroup | null>(null);
@@ -430,14 +434,20 @@ export default function LeafletMap({
     });
   }, [waypoints]);
 
-  const handleRecenter = () => {
+  const handleRecenter = (zoomOverride?: number) => {
     const map = mapRef.current;
     if (!map || !focusPoint) return;
     setFollowMode(true);
     (map as any)._programmaticZoom = true;
-    map.setView([focusPoint.lat, focusPoint.lng], 17, { animate: true, duration: 0.5 });
-    setTimeout(() => { (map as any)._programmaticZoom = false; }, 700);
+    const z = zoomOverride ?? Math.max(map.getZoom(), 17);
+    map.flyTo([focusPoint.lat, focusPoint.lng], z, { animate: true, duration: 0.8 });
+    setTimeout(() => { (map as any)._programmaticZoom = false; }, 1000);
   };
+
+  useImperativeHandle(ref, () => ({
+    recenter: (zoom?: number) => handleRecenter(zoom),
+  }), [focusPoint]);
+
 
   return (
     <div className={cn('relative w-full', className)}>
@@ -470,7 +480,7 @@ export default function LeafletMap({
           </div>
           <Button
             size="icon"
-            onClick={handleRecenter}
+            onClick={() => handleRecenter()}
             aria-label={followMode ? "Following your location" : "Recenter on me"}
             title={followMode ? "Following your location" : "Recenter on me"}
             className={cn(
@@ -507,4 +517,6 @@ export default function LeafletMap({
       <div ref={errorRef} style={{ position: 'absolute', top: 10, left: 10, color: 'red', fontWeight: 'bold', zIndex: 10000 }} />
     </div>
   );
-}
+});
+
+export default LeafletMap;
