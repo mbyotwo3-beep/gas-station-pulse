@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { toast } from "sonner";
-import LeafletMap from "@/components/map/LeafletMap";
+import LeafletMap, { type LeafletMapHandle } from "@/components/map/LeafletMap";
 import RideShareMap from "@/components/rideshare/RideShareMap";
 import StationList from "@/components/StationList";
 import StationListSkeleton from "@/components/StationListSkeleton";
@@ -453,16 +453,22 @@ export default function Index() {
   // Whether the active tab is map-centric (full-screen map behind sheet)
   const isMapTab = activeTab === 'fuel' || activeTab === 'rides';
 
+  const mapHandleRef = useRef<LeafletMapHandle | null>(null);
+
   const handleRecenterFab = () => {
     setLocationSource('gps');
     if (position) {
-      setSelectedLocation({
+      const loc = {
         lat: position.coords.latitude,
         lng: position.coords.longitude,
         label: 'Your Location',
-      });
+      };
+      setSelectedLocation(loc);
+      // Zoom in close, like Google Maps "my location" button
+      requestAnimationFrame(() => mapHandleRef.current?.recenter(18));
     } else {
       requestLocation();
+      toast.info('Getting your location…');
     }
   };
 
@@ -559,6 +565,7 @@ export default function Index() {
               <StationMapSkeleton />
             ) : (
               <LeafletMap
+                ref={mapHandleRef}
                 stations={filteredStations}
                 onSelect={handleStationSelect}
                 focusPoint={selectedLocation}
