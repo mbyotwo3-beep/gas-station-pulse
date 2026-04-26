@@ -447,17 +447,42 @@ export default function LeafletMap({
         style={{ minHeight: '300px' }}
       />
 
-      {/* Recenter button — only meaningful for live GPS */}
+      {/* Follow-mode status chip + Recenter button — only meaningful for live GPS */}
       {isLiveLocation && focusPoint && (
-        <Button
-          size="icon"
-          variant={followMode ? 'default' : 'outline'}
-          onClick={handleRecenter}
-          className="absolute bottom-4 right-4 z-10 shadow-lg rounded-full h-12 w-12 bg-background/95 backdrop-blur-md"
-          title={followMode ? 'Following your location' : 'Recenter on me'}
-        >
-          <LocateFixed className={cn('h-5 w-5', followMode && 'text-primary')} />
-        </Button>
+        <div className="absolute bottom-4 right-4 z-10 flex flex-col items-end gap-2">
+          <div
+            role="status"
+            aria-live="polite"
+            className={cn(
+              "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold shadow-md backdrop-blur-md border transition-colors",
+              followMode
+                ? "bg-primary text-primary-foreground border-primary/40"
+                : "bg-background/95 text-muted-foreground border-border"
+            )}
+          >
+            <span
+              className={cn(
+                "h-1.5 w-1.5 rounded-full",
+                followMode ? "bg-primary-foreground animate-pulse" : "bg-muted-foreground"
+              )}
+            />
+            {followMode ? "Following" : "Free look"}
+          </div>
+          <Button
+            size="icon"
+            onClick={handleRecenter}
+            aria-label={followMode ? "Following your location" : "Recenter on me"}
+            title={followMode ? "Following your location" : "Recenter on me"}
+            className={cn(
+              "shadow-lg rounded-full h-12 w-12 backdrop-blur-md transition-colors",
+              followMode
+                ? "bg-primary text-primary-foreground hover:bg-primary/90 ring-2 ring-primary/30"
+                : "bg-background/95 text-foreground hover:bg-background border border-border"
+            )}
+          >
+            <LocateFixed className="h-5 w-5" />
+          </Button>
+        </div>
       )}
 
       {/* Map legend */}
