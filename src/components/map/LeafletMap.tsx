@@ -480,7 +480,7 @@ const LeafletMap = forwardRef<LeafletMapHandle, LeafletMapProps>(function Leafle
           </div>
           <Button
             size="icon"
-            onClick={handleRecenter}
+            onClick={() => handleRecenter()}
             aria-label={followMode ? "Following your location" : "Recenter on me"}
             title={followMode ? "Following your location" : "Recenter on me"}
             className={cn(
