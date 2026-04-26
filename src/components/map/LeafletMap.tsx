@@ -436,12 +436,20 @@ const LeafletMap = forwardRef<LeafletMapHandle, LeafletMapProps>(function Leafle
 
   const handleRecenter = () => {
     const map = mapRef.current;
+  const handleRecenter = (zoomOverride?: number) => {
+    const map = mapRef.current;
     if (!map || !focusPoint) return;
     setFollowMode(true);
     (map as any)._programmaticZoom = true;
-    map.setView([focusPoint.lat, focusPoint.lng], 17, { animate: true, duration: 0.5 });
-    setTimeout(() => { (map as any)._programmaticZoom = false; }, 700);
+    const z = zoomOverride ?? Math.max(map.getZoom(), 17);
+    map.flyTo([focusPoint.lat, focusPoint.lng], z, { animate: true, duration: 0.8 });
+    setTimeout(() => { (map as any)._programmaticZoom = false; }, 1000);
   };
+
+  useImperativeHandle(ref, () => ({
+    recenter: (zoom?: number) => handleRecenter(zoom),
+  }), [focusPoint]);
+
 
   return (
     <div className={cn('relative w-full', className)}>
