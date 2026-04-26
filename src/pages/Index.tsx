@@ -475,8 +475,9 @@ export default function Index() {
     return () => clearInterval(id);
   }, []);
 
-  // Auto-prompt manual search when GPS accuracy is very poor (>500m)
+  // Auto-prompt manual search ONCE when GPS accuracy is very poor (>500m)
   const lowAccuracyPromptedRef = useRef(false);
+  const [accuracyBannerDismissed, setAccuracyBannerDismissed] = useState(false);
   useEffect(() => {
     if (locationSource !== 'gps' || accuracy === null) return;
     if (accuracy <= 500) {
@@ -485,12 +486,29 @@ export default function Index() {
     }
     if (lowAccuracyPromptedRef.current) return;
     lowAccuracyPromptedRef.current = true;
+    setAccuracyBannerDismissed(false);
     toast.warning(
       `GPS is off by ±${Math.round(accuracy)}m. Search your address manually for a precise location.`,
       { duration: 6000 }
     );
-    setShowSearch(true);
   }, [accuracy, locationSource]);
+
+  // Reset banner dismiss when accuracy improves back to good
+  useEffect(() => {
+    if (accuracy !== null && accuracy <= 50) setAccuracyBannerDismissed(false);
+  }, [accuracy]);
+
+  // Classify GPS fix quality for UI
+  const gpsQuality = (() => {
+    if (locationSource !== 'gps' || accuracy === null) {
+      return null;
+    }
+    if (accuracy <= 20) return { tier: 'excellent' as const, label: 'Excellent', tone: 'success' as const, hint: 'GPS lock is sharp.' };
+    if (accuracy <= 50) return { tier: 'good' as const, label: 'Good', tone: 'success' as const, hint: 'Solid GPS fix.' };
+    if (accuracy <= 150) return { tier: 'fair' as const, label: 'Fair', tone: 'warning' as const, hint: 'Move outdoors or near a window for a better fix.' };
+    if (accuracy <= 500) return { tier: 'poor' as const, label: 'Poor', tone: 'warning' as const, hint: 'Position may be off by a city block.' };
+    return { tier: 'very-poor' as const, label: 'Very poor', tone: 'destructive' as const, hint: 'Search your address manually — GPS is unreliable here.' };
+  })();
 
   const getRoleDisplayInfo = () => {
     if (hasRole('admin')) return { label: 'Admin', color: 'bg-red-500', icon: Crown };
