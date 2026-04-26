@@ -479,6 +479,7 @@ export default function Index() {
   // Auto-prompt manual search ONCE when GPS accuracy is very poor (>500m)
   const lowAccuracyPromptedRef = useRef(false);
   const [accuracyBannerDismissed, setAccuracyBannerDismissed] = useState(false);
+  const [gpsTestOpen, setGpsTestOpen] = useState(false);
   useEffect(() => {
     if (locationSource !== 'gps' || accuracy === null) return;
     if (accuracy <= 500) {
