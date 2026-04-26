@@ -68,6 +68,7 @@ import {
   LocateFixed,
   AlertTriangle,
   Signal,
+  Activity,
   Shield,
   Crown,
   X,
@@ -656,6 +657,14 @@ export default function Index() {
               <span className="opacity-70">·</span>
               <span>{gpsQuality.label}</span>
             </div>
+            <button
+              onClick={() => setGpsTestOpen(true)}
+              className="rounded-full px-2.5 py-1 text-[11px] font-medium border bg-background/95 backdrop-blur-md shadow-sm hover:bg-muted transition-colors flex items-center gap-1"
+              title="Run a 20-second GPS accuracy test"
+            >
+              <Activity className="h-3 w-3" />
+              Test GPS
+            </button>
           </div>
         )}
 
