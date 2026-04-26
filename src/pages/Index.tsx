@@ -65,6 +65,8 @@ import {
   Filter,
   Plus,
   LocateFixed,
+  AlertTriangle,
+  Signal,
   Shield,
   Crown,
   X,
@@ -473,8 +475,9 @@ export default function Index() {
     return () => clearInterval(id);
   }, []);
 
-  // Auto-prompt manual search when GPS accuracy is very poor (>500m)
+  // Auto-prompt manual search ONCE when GPS accuracy is very poor (>500m)
   const lowAccuracyPromptedRef = useRef(false);
+  const [accuracyBannerDismissed, setAccuracyBannerDismissed] = useState(false);
   useEffect(() => {
     if (locationSource !== 'gps' || accuracy === null) return;
     if (accuracy <= 500) {
@@ -483,12 +486,29 @@ export default function Index() {
     }
     if (lowAccuracyPromptedRef.current) return;
     lowAccuracyPromptedRef.current = true;
+    setAccuracyBannerDismissed(false);
     toast.warning(
       `GPS is off by ±${Math.round(accuracy)}m. Search your address manually for a precise location.`,
       { duration: 6000 }
     );
-    setShowSearch(true);
   }, [accuracy, locationSource]);
+
+  // Reset banner dismiss when accuracy improves back to good
+  useEffect(() => {
+    if (accuracy !== null && accuracy <= 50) setAccuracyBannerDismissed(false);
+  }, [accuracy]);
+
+  // Classify GPS fix quality for UI
+  const gpsQuality = (() => {
+    if (locationSource !== 'gps' || accuracy === null) {
+      return null;
+    }
+    if (accuracy <= 20) return { tier: 'excellent' as const, label: 'Excellent', tone: 'success' as const, hint: 'GPS lock is sharp.' };
+    if (accuracy <= 50) return { tier: 'good' as const, label: 'Good', tone: 'success' as const, hint: 'Solid GPS fix.' };
+    if (accuracy <= 150) return { tier: 'fair' as const, label: 'Fair', tone: 'warning' as const, hint: 'Move outdoors or near a window for a better fix.' };
+    if (accuracy <= 500) return { tier: 'poor' as const, label: 'Poor', tone: 'warning' as const, hint: 'Position may be off by a city block.' };
+    return { tier: 'very-poor' as const, label: 'Very poor', tone: 'destructive' as const, hint: 'Search your address manually — GPS is unreliable here.' };
+  })();
 
   const getRoleDisplayInfo = () => {
     if (hasRole('admin')) return { label: 'Admin', color: 'bg-red-500', icon: Crown };
@@ -612,6 +632,62 @@ export default function Index() {
                 Alerts
               </Button>
             )}
+          </div>
+        )}
+
+        {/* GPS accuracy readout — always visible while GPS is active */}
+        {gpsQuality && (
+          <div className="mt-2 flex items-center gap-2">
+            <div
+              className={cn(
+                'flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium shadow-sm border backdrop-blur-md',
+                gpsQuality.tone === 'success' && 'bg-success/15 text-success border-success/30',
+                gpsQuality.tone === 'warning' && 'bg-warning/15 text-warning-foreground border-warning/40',
+                gpsQuality.tone === 'destructive' && 'bg-destructive/15 text-destructive border-destructive/40'
+              )}
+              title={gpsQuality.hint}
+              role="status"
+              aria-live="polite"
+            >
+              <Signal className="h-3 w-3" />
+              <span className="font-mono">±{Math.round(accuracy!)}m</span>
+              <span className="opacity-70">·</span>
+              <span>{gpsQuality.label}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Persistent low-accuracy banner */}
+        {gpsQuality && (gpsQuality.tier === 'poor' || gpsQuality.tier === 'very-poor') && !accuracyBannerDismissed && (
+          <div
+            className={cn(
+              'mt-2 flex items-start gap-2 rounded-xl border px-3 py-2 shadow-md backdrop-blur-md text-xs',
+              gpsQuality.tier === 'very-poor'
+                ? 'bg-destructive/10 border-destructive/40 text-destructive'
+                : 'bg-warning/10 border-warning/40 text-warning-foreground'
+            )}
+            role="alert"
+          >
+            <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <div className="font-semibold">
+                Low GPS accuracy (±{Math.round(accuracy!)}m)
+              </div>
+              <div className="opacity-90 leading-snug">{gpsQuality.hint}</div>
+              <button
+                onClick={() => setShowSearch(true)}
+                className="mt-1 underline underline-offset-2 font-medium"
+              >
+                Search address manually
+              </button>
+            </div>
+            <button
+              onClick={() => setAccuracyBannerDismissed(true)}
+              aria-label="Dismiss"
+              className="shrink-0 rounded p-0.5 hover:bg-background/40"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
           </div>
         )}
       </header>
