@@ -634,6 +634,62 @@ export default function Index() {
             )}
           </div>
         )}
+
+        {/* GPS accuracy readout — always visible while GPS is active */}
+        {gpsQuality && (
+          <div className="mt-2 flex items-center gap-2">
+            <div
+              className={cn(
+                'flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium shadow-sm border backdrop-blur-md',
+                gpsQuality.tone === 'success' && 'bg-success/15 text-success border-success/30',
+                gpsQuality.tone === 'warning' && 'bg-warning/15 text-warning-foreground border-warning/40',
+                gpsQuality.tone === 'destructive' && 'bg-destructive/15 text-destructive border-destructive/40'
+              )}
+              title={gpsQuality.hint}
+              role="status"
+              aria-live="polite"
+            >
+              <Signal className="h-3 w-3" />
+              <span className="font-mono">±{Math.round(accuracy!)}m</span>
+              <span className="opacity-70">·</span>
+              <span>{gpsQuality.label}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Persistent low-accuracy banner */}
+        {gpsQuality && (gpsQuality.tier === 'poor' || gpsQuality.tier === 'very-poor') && !accuracyBannerDismissed && (
+          <div
+            className={cn(
+              'mt-2 flex items-start gap-2 rounded-xl border px-3 py-2 shadow-md backdrop-blur-md text-xs',
+              gpsQuality.tier === 'very-poor'
+                ? 'bg-destructive/10 border-destructive/40 text-destructive'
+                : 'bg-warning/10 border-warning/40 text-warning-foreground'
+            )}
+            role="alert"
+          >
+            <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <div className="font-semibold">
+                Low GPS accuracy (±{Math.round(accuracy!)}m)
+              </div>
+              <div className="opacity-90 leading-snug">{gpsQuality.hint}</div>
+              <button
+                onClick={() => setShowSearch(true)}
+                className="mt-1 underline underline-offset-2 font-medium"
+              >
+                Search address manually
+              </button>
+            </div>
+            <button
+              onClick={() => setAccuracyBannerDismissed(true)}
+              aria-label="Dismiss"
+              className="shrink-0 rounded p-0.5 hover:bg-background/40"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        )}
       </header>
 
       {/* ── FULL-SCREEN MAP (for fuel + rides) ──────────────────────────── */}
