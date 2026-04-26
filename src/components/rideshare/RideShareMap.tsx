@@ -93,6 +93,10 @@ export default function RideShareMap({
 
     return () => {
       mapRef.current?.remove();
+      mapRef.current = null;
+      driversLayerRef.current = null;
+      requestsLayerRef.current = null;
+      focusMarkerRef.current = null;
       supabase.removeChannel(driversSubscription);
       supabase.removeChannel(requestsSubscription);
     };
@@ -138,7 +142,8 @@ export default function RideShareMap({
   useEffect(() => {
     const driversLayer = driversLayerRef.current;
     const map = mapRef.current;
-    if (!driversLayer || !map) return;
+    if (!driversLayer || !map || !(map as any)._loaded) return;
+    if (!map.hasLayer(driversLayer)) return;
 
     driversLayer.clearLayers();
 
@@ -190,7 +195,8 @@ export default function RideShareMap({
   useEffect(() => {
     const requestsLayer = requestsLayerRef.current;
     const map = mapRef.current;
-    if (!requestsLayer || !map) return;
+    if (!requestsLayer || !map || !(map as any)._loaded) return;
+    if (!map.hasLayer(requestsLayer)) return;
 
     requestsLayer.clearLayers();
 
@@ -222,7 +228,7 @@ export default function RideShareMap({
   // Handle focus point
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !focusPoint) return;
+    if (!map || !focusPoint || !(map as any)._loaded) return;
 
     // Remove previous focus marker
     if (focusMarkerRef.current) {
