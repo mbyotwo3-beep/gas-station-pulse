@@ -373,11 +373,70 @@ export default function Index() {
   useEffect(() => {
     if (!position || locationSource === 'manual') return;
 
-    setSelectedLocation({
+    setSelectedLocation((prev) => ({
       lat: position.coords.latitude,
       lng: position.coords.longitude,
-      label: 'Your Location'
-    });
+      // Preserve a previously resolved place name until reverse geocode resolves the new one
+      label: prev?.label && prev.label !== 'Your Location' ? prev.label : 'Your Location',
+    }));
+  }, [position, locationSource]);
+
+  // Reverse geocode the GPS position into a human-readable place name (debounced)
+  const lastGeocodedRef = useRef<{ lat: number; lng: number } | null>(null);
+  useEffect(() => {
+    if (!position || locationSource === 'manual') return;
+    const lat = position.coords.latitude;
+    const lng = position.coords.longitude;
+
+    // Skip if we already geocoded a point within ~15m
+    const last = lastGeocodedRef.current;
+    if (last) {
+      const dLat = (lat - last.lat) * 111000;
+      const dLng = (lng - last.lng) * 111000 * Math.cos((lat * Math.PI) / 180);
+      const moved = Math.sqrt(dLat * dLat + dLng * dLng);
+      if (moved < 15) return;
+    }
+
+    const ctrl = new AbortController();
+    const t = setTimeout(async () => {
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
+          { signal: ctrl.signal, headers: { Accept: 'application/json' } }
+        );
+        if (!res.ok) return;
+        const data = await res.json();
+        const a = data.address ?? {};
+        const place =
+          data.name ||
+          a.amenity ||
+          a.shop ||
+          a.building ||
+          a.road ||
+          a.neighbourhood ||
+          a.suburb ||
+          a.village ||
+          a.town ||
+          a.city ||
+          'Your Location';
+        const area = a.suburb || a.neighbourhood || a.city || a.town || a.village || '';
+        const label = area && area !== place ? `${place}, ${area}` : place;
+
+        lastGeocodedRef.current = { lat, lng };
+        setSelectedLocation((prev) =>
+          prev
+            ? { ...prev, label }
+            : { lat, lng, label }
+        );
+      } catch {
+        /* ignore aborts/network errors */
+      }
+    }, 800);
+
+    return () => {
+      ctrl.abort();
+      clearTimeout(t);
+    };
   }, [position, locationSource]);
 
   // Continuously watch GPS so accuracy updates live
