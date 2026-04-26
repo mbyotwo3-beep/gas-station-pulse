@@ -105,7 +105,11 @@ function buildLiveLocationIcon(heading: number | null): L.DivIcon {
   });
 }
 
-export default function LeafletMap({
+export interface LeafletMapHandle {
+  recenter: (zoom?: number) => void;
+}
+
+const LeafletMap = forwardRef<LeafletMapHandle, LeafletMapProps>(function LeafletMap({
   stations,
   onSelect,
   className,
@@ -114,7 +118,7 @@ export default function LeafletMap({
   waypoints = [],
   accuracyRadius = null,
   isLiveLocation = false,
-}: LeafletMapProps) {
+}, ref) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<LeafletMapType | null>(null);
   const stationLayerRef = useRef<L.LayerGroup | null>(null);
