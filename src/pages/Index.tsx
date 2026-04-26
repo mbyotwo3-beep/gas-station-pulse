@@ -1263,6 +1263,9 @@ export default function Index() {
         }
       />
 
+      {/* GPS accuracy test modal */}
+      <GpsAccuracyTest open={gpsTestOpen} onClose={() => setGpsTestOpen(false)} />
+
       {/* ── BOTTOM TAB NAV (always on top) ──────────────────────────────── */}
       <AppBottomNav active={activeTab} onChange={setActiveTab} />
     </div>
