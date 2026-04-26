@@ -434,8 +434,6 @@ const LeafletMap = forwardRef<LeafletMapHandle, LeafletMapProps>(function Leafle
     });
   }, [waypoints]);
 
-  const handleRecenter = () => {
-    const map = mapRef.current;
   const handleRecenter = (zoomOverride?: number) => {
     const map = mapRef.current;
     if (!map || !focusPoint) return;
@@ -519,4 +517,6 @@ const LeafletMap = forwardRef<LeafletMapHandle, LeafletMapProps>(function Leafle
       <div ref={errorRef} style={{ position: 'absolute', top: 10, left: 10, color: 'red', fontWeight: 'bold', zIndex: 10000 }} />
     </div>
   );
-}
+});
+
+export default LeafletMap;
