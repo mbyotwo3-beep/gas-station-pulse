@@ -34,6 +34,7 @@ import RouteOptimizationSuggestions from "@/components/map/RouteOptimizationSugg
 import AdminPanel from "@/components/admin/AdminPanel";
 import NotificationCenter from "@/components/common/NotificationCenter";
 import AccuracySparkline, { type AccuracyPoint } from "@/components/common/AccuracySparkline";
+import GpsAccuracyTest from "@/components/common/GpsAccuracyTest";
 import { useAuth } from "@/contexts/AuthContext";
 import { useStations } from "@/hooks/useStations";
 import { useProfile } from "@/hooks/useProfile";
@@ -67,6 +68,7 @@ import {
   LocateFixed,
   AlertTriangle,
   Signal,
+  Activity,
   Shield,
   Crown,
   X,
@@ -478,6 +480,7 @@ export default function Index() {
   // Auto-prompt manual search ONCE when GPS accuracy is very poor (>500m)
   const lowAccuracyPromptedRef = useRef(false);
   const [accuracyBannerDismissed, setAccuracyBannerDismissed] = useState(false);
+  const [gpsTestOpen, setGpsTestOpen] = useState(false);
   useEffect(() => {
     if (locationSource !== 'gps' || accuracy === null) return;
     if (accuracy <= 500) {
@@ -654,6 +657,14 @@ export default function Index() {
               <span className="opacity-70">·</span>
               <span>{gpsQuality.label}</span>
             </div>
+            <button
+              onClick={() => setGpsTestOpen(true)}
+              className="rounded-full px-2.5 py-1 text-[11px] font-medium border bg-background/95 backdrop-blur-md shadow-sm hover:bg-muted transition-colors flex items-center gap-1"
+              title="Run a 20-second GPS accuracy test"
+            >
+              <Activity className="h-3 w-3" />
+              Test GPS
+            </button>
           </div>
         )}
 
@@ -1251,6 +1262,9 @@ export default function Index() {
           })
         }
       />
+
+      {/* GPS accuracy test modal */}
+      <GpsAccuracyTest open={gpsTestOpen} onClose={() => setGpsTestOpen(false)} />
 
       {/* ── BOTTOM TAB NAV (always on top) ──────────────────────────────── */}
       <AppBottomNav active={activeTab} onChange={setActiveTab} />
