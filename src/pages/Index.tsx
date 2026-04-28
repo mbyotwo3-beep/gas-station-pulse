@@ -570,13 +570,16 @@ export default function Index() {
                 ? `📍 ${selectedLocation.label}`
                 : `Where are you, ${tabMeta[activeTab].title.toLowerCase()}?`}
             </span>
-            {locationSource === 'gps' && accuracy !== null && (
-              <Badge
-                variant={accuracy <= 30 ? 'default' : accuracy <= 100 ? 'secondary' : 'destructive'}
-                className="ml-auto text-[10px] px-1.5 py-0 font-mono"
+            {locationSource === 'gps' && accuracy !== null && gpsQuality && (
+              <span
+                className={cn(
+                  'ml-auto text-[10px] px-1.5 py-0.5 rounded-full font-mono border',
+                  gpsToneClasses[gpsQuality.tone].chip
+                )}
+                title={`${gpsQuality.label} — ${gpsQuality.hint}`}
               >
                 ±{Math.round(accuracy)}m
-              </Badge>
+              </span>
             )}
           </button>
 
