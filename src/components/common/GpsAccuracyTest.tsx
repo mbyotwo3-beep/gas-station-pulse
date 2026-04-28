@@ -227,14 +227,10 @@ export default function GpsAccuracyTest({
           {verdict && (
             <div
               className={cn(
-                "flex items-start gap-2 rounded-xl border p-3 text-xs",
-                verdict.tone === "success" &&
-                  "bg-success/10 border-success/40 text-success",
-                verdict.tone === "warning" &&
-                  "bg-warning/10 border-warning/40 text-warning-foreground",
-                verdict.tone === "destructive" &&
-                  "bg-destructive/10 border-destructive/40 text-destructive"
+                'flex items-start gap-2 rounded-xl border p-3 text-xs',
+                gpsToneClasses[verdict.tone].banner
               )}
+              role="status"
             >
               <verdict.icon className="h-4 w-4 shrink-0 mt-0.5" />
               <div>
