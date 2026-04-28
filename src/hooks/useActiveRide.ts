@@ -51,7 +51,7 @@ export function useActiveRide() {
       .from('rides')
       .select('*')
       .or(`driver_id.eq.${user.id},passenger_id.eq.${user.id}`)
-      .in('status', ['pending', 'accepted', 'in_progress'])
+      .in('status', ['pending', 'accepted', 'in_progress', 'arrived'])
       .order('created_at', { ascending: false })
       .limit(1)
       .single();
@@ -62,7 +62,8 @@ export function useActiveRide() {
       setActiveRide({
         ...data,
         pickup_location: data.pickup_location as { lat: number; lng: number; address: string },
-        destination_location: data.destination_location as { lat: number; lng: number; address: string }
+        destination_location: data.destination_location as { lat: number; lng: number; address: string },
+        fare_breakdown: (data.fare_breakdown as unknown) as FareBreakdown | null,
       });
     } else {
       setActiveRide(null);
