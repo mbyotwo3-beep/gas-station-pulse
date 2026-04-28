@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Activity, X, Check, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { classifyGpsAccuracy, gpsToneClasses } from "@/lib/gpsQuality";
 
 interface GpsAccuracyTestProps {
   open: boolean;
