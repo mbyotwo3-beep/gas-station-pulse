@@ -98,6 +98,11 @@ export function useActiveRide() {
               title: 'Ride Started',
               description: 'Enjoy your trip!'
             });
+          } else if (newData.status === 'arrived') {
+            toast({
+              title: 'Arrived at Destination',
+              description: 'Please review the trip and complete payment.'
+            });
           } else if (newData.status === 'completed') {
             toast({
               title: 'Ride Completed',
