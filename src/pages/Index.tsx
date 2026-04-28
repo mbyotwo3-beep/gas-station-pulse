@@ -480,7 +480,23 @@ export default function Index() {
 
   // Auto-prompt manual search ONCE when GPS accuracy is very poor (>500m)
   const lowAccuracyPromptedRef = useRef(false);
-  const [accuracyBannerDismissed, setAccuracyBannerDismissed] = useState(false);
+  const ACCURACY_BANNER_DISMISS_KEY = 'gps-accuracy-banner-dismissed';
+  const [accuracyBannerDismissed, setAccuracyBannerDismissed] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    try {
+      return window.sessionStorage.getItem(ACCURACY_BANNER_DISMISS_KEY) === '1';
+    } catch {
+      return false;
+    }
+  });
+  const dismissAccuracyBanner = () => {
+    setAccuracyBannerDismissed(true);
+    try {
+      window.sessionStorage.setItem(ACCURACY_BANNER_DISMISS_KEY, '1');
+    } catch {
+      /* ignore */
+    }
+  };
   const [gpsTestOpen, setGpsTestOpen] = useState(false);
   useEffect(() => {
     if (locationSource !== 'gps' || accuracy === null) return;
@@ -490,17 +506,13 @@ export default function Index() {
     }
     if (lowAccuracyPromptedRef.current) return;
     lowAccuracyPromptedRef.current = true;
-    setAccuracyBannerDismissed(false);
+    // Respect session-long dismissal — don't re-show toast if user already dismissed
+    if (accuracyBannerDismissed) return;
     toast.warning(
       `GPS is off by ±${Math.round(accuracy)}m. Search your address manually for precision.`,
       { duration: 6000 }
     );
-  }, [accuracy, locationSource]);
-
-  // Reset banner dismiss when accuracy improves back to good
-  useEffect(() => {
-    if (accuracy !== null && accuracy <= 50) setAccuracyBannerDismissed(false);
-  }, [accuracy]);
+  }, [accuracy, locationSource, accuracyBannerDismissed]);
 
   // Classify GPS fix quality for UI (shared with GPS test screen)
   const gpsQuality =
