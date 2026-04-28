@@ -77,6 +77,7 @@ import {
   Lightbulb
 } from "lucide-react";
 import type { Station } from "@/hooks/useStations";
+import { classifyGpsAccuracy, gpsToneClasses } from "@/lib/gpsQuality";
 
 export default function Index() {
   const { user, signOut } = useAuth();
@@ -491,7 +492,7 @@ export default function Index() {
     lowAccuracyPromptedRef.current = true;
     setAccuracyBannerDismissed(false);
     toast.warning(
-      `GPS is off by ±${Math.round(accuracy)}m. Search your address manually for a precise location.`,
+      `GPS is off by ±${Math.round(accuracy)}m. Search your address manually for precision.`,
       { duration: 6000 }
     );
   }, [accuracy, locationSource]);
@@ -501,17 +502,11 @@ export default function Index() {
     if (accuracy !== null && accuracy <= 50) setAccuracyBannerDismissed(false);
   }, [accuracy]);
 
-  // Classify GPS fix quality for UI
-  const gpsQuality = (() => {
-    if (locationSource !== 'gps' || accuracy === null) {
-      return null;
-    }
-    if (accuracy <= 20) return { tier: 'excellent' as const, label: 'Excellent', tone: 'success' as const, hint: 'GPS lock is sharp.' };
-    if (accuracy <= 50) return { tier: 'good' as const, label: 'Good', tone: 'success' as const, hint: 'Solid GPS fix.' };
-    if (accuracy <= 150) return { tier: 'fair' as const, label: 'Fair', tone: 'warning' as const, hint: 'Move outdoors or near a window for a better fix.' };
-    if (accuracy <= 500) return { tier: 'poor' as const, label: 'Poor', tone: 'warning' as const, hint: 'Position may be off by a city block.' };
-    return { tier: 'very-poor' as const, label: 'Very poor', tone: 'destructive' as const, hint: 'Search your address manually — GPS is unreliable here.' };
-  })();
+  // Classify GPS fix quality for UI (shared with GPS test screen)
+  const gpsQuality =
+    locationSource === 'gps' && accuracy !== null
+      ? classifyGpsAccuracy(accuracy)
+      : null;
 
   const getRoleDisplayInfo = () => {
     if (hasRole('admin')) return { label: 'Admin', color: 'bg-red-500', icon: Crown };
@@ -575,13 +570,16 @@ export default function Index() {
                 ? `📍 ${selectedLocation.label}`
                 : `Where are you, ${tabMeta[activeTab].title.toLowerCase()}?`}
             </span>
-            {locationSource === 'gps' && accuracy !== null && (
-              <Badge
-                variant={accuracy <= 30 ? 'default' : accuracy <= 100 ? 'secondary' : 'destructive'}
-                className="ml-auto text-[10px] px-1.5 py-0 font-mono"
+            {locationSource === 'gps' && accuracy !== null && gpsQuality && (
+              <span
+                className={cn(
+                  'ml-auto text-[10px] px-1.5 py-0.5 rounded-full font-mono border',
+                  gpsToneClasses[gpsQuality.tone].chip
+                )}
+                title={`${gpsQuality.label} — ${gpsQuality.hint}`}
               >
                 ±{Math.round(accuracy)}m
-              </Badge>
+              </span>
             )}
           </button>
 
@@ -644,9 +642,7 @@ export default function Index() {
             <div
               className={cn(
                 'flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium shadow-sm border backdrop-blur-md',
-                gpsQuality.tone === 'success' && 'bg-success/15 text-success border-success/30',
-                gpsQuality.tone === 'warning' && 'bg-warning/15 text-warning-foreground border-warning/40',
-                gpsQuality.tone === 'destructive' && 'bg-destructive/15 text-destructive border-destructive/40'
+                gpsToneClasses[gpsQuality.tone].chip
               )}
               title={gpsQuality.hint}
               role="status"
@@ -673,16 +669,14 @@ export default function Index() {
           <div
             className={cn(
               'mt-2 flex items-start gap-2 rounded-xl border px-3 py-2 shadow-md backdrop-blur-md text-xs',
-              gpsQuality.tier === 'very-poor'
-                ? 'bg-destructive/10 border-destructive/40 text-destructive'
-                : 'bg-warning/10 border-warning/40 text-warning-foreground'
+              gpsToneClasses[gpsQuality.tone].banner
             )}
             role="alert"
           >
             <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
             <div className="flex-1 min-w-0">
               <div className="font-semibold">
-                Low GPS accuracy (±{Math.round(accuracy!)}m)
+                {gpsQuality.label} GPS accuracy · ±{Math.round(accuracy!)}m
               </div>
               <div className="opacity-90 leading-snug">{gpsQuality.hint}</div>
               <button
@@ -694,7 +688,7 @@ export default function Index() {
             </div>
             <button
               onClick={() => setAccuracyBannerDismissed(true)}
-              aria-label="Dismiss"
+              aria-label="Dismiss low-accuracy banner"
               className="shrink-0 rounded p-0.5 hover:bg-background/40"
             >
               <X className="h-3.5 w-3.5" />

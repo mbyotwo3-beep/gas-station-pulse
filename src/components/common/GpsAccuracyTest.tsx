@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Activity, X, Check, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { classifyGpsAccuracy, gpsToneClasses } from "@/lib/gpsQuality";
 
 interface GpsAccuracyTestProps {
   open: boolean;
@@ -120,25 +121,35 @@ export default function GpsAccuracyTest({
 
   const verdict = (() => {
     if (!finished || avg === null) return null;
-    if (avg <= 20 && (drift ?? 0) < 25)
+    const quality = classifyGpsAccuracy(avg);
+    const driftOk = (drift ?? 0) < 25;
+
+    // Excellent + stable drift = trust
+    if (quality.tier === 'excellent' && driftOk) {
       return {
-        tone: "success" as const,
+        tone: 'success' as const,
         icon: Check,
-        title: "Trust this fix",
-        body: "GPS is locked tight. Position is reliable.",
+        title: 'Trust this fix',
+        body: 'GPS is locked tight and stable. Position is reliable.',
       };
-    if (avg <= 60)
+    }
+    // Good, or excellent with drift = usable but confirm pickups
+    if (quality.tier === 'excellent' || quality.tier === 'good') {
       return {
-        tone: "warning" as const,
+        tone: 'warning' as const,
         icon: AlertTriangle,
-        title: "Usable, but not precise",
-        body: "Fine for finding nearby places; confirm exact pickups manually.",
+        title: 'Usable, but not precise',
+        body: driftOk
+          ? 'Fine for nearby places. Confirm exact pickups manually.'
+          : `Position drifted ~${Math.round(drift ?? 0)}m during the test. Confirm pickups manually.`,
       };
+    }
+    // Fair / Poor / Very poor → don't trust
     return {
-      tone: "destructive" as const,
+      tone: 'destructive' as const,
       icon: AlertTriangle,
       title: "Don't trust this fix",
-      body: "Move outdoors, away from buildings, or search your address manually.",
+      body: quality.hint,
     };
   })();
 
@@ -216,14 +227,10 @@ export default function GpsAccuracyTest({
           {verdict && (
             <div
               className={cn(
-                "flex items-start gap-2 rounded-xl border p-3 text-xs",
-                verdict.tone === "success" &&
-                  "bg-success/10 border-success/40 text-success",
-                verdict.tone === "warning" &&
-                  "bg-warning/10 border-warning/40 text-warning-foreground",
-                verdict.tone === "destructive" &&
-                  "bg-destructive/10 border-destructive/40 text-destructive"
+                'flex items-start gap-2 rounded-xl border p-3 text-xs',
+                gpsToneClasses[verdict.tone].banner
               )}
+              role="status"
             >
               <verdict.icon className="h-4 w-4 shrink-0 mt-0.5" />
               <div>
