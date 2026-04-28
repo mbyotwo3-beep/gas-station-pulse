@@ -642,9 +642,7 @@ export default function Index() {
             <div
               className={cn(
                 'flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium shadow-sm border backdrop-blur-md',
-                gpsQuality.tone === 'success' && 'bg-success/15 text-success border-success/30',
-                gpsQuality.tone === 'warning' && 'bg-warning/15 text-warning-foreground border-warning/40',
-                gpsQuality.tone === 'destructive' && 'bg-destructive/15 text-destructive border-destructive/40'
+                gpsToneClasses[gpsQuality.tone].chip
               )}
               title={gpsQuality.hint}
               role="status"
@@ -671,16 +669,14 @@ export default function Index() {
           <div
             className={cn(
               'mt-2 flex items-start gap-2 rounded-xl border px-3 py-2 shadow-md backdrop-blur-md text-xs',
-              gpsQuality.tier === 'very-poor'
-                ? 'bg-destructive/10 border-destructive/40 text-destructive'
-                : 'bg-warning/10 border-warning/40 text-warning-foreground'
+              gpsToneClasses[gpsQuality.tone].banner
             )}
             role="alert"
           >
             <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
             <div className="flex-1 min-w-0">
               <div className="font-semibold">
-                Low GPS accuracy (±{Math.round(accuracy!)}m)
+                {gpsQuality.label} GPS accuracy · ±{Math.round(accuracy!)}m
               </div>
               <div className="opacity-90 leading-snug">{gpsQuality.hint}</div>
               <button
@@ -692,7 +688,7 @@ export default function Index() {
             </div>
             <button
               onClick={() => setAccuracyBannerDismissed(true)}
-              aria-label="Dismiss"
+              aria-label="Dismiss low-accuracy banner"
               className="shrink-0 rounded p-0.5 hover:bg-background/40"
             >
               <X className="h-3.5 w-3.5" />
