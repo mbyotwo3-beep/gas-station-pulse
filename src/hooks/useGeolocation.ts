@@ -93,17 +93,47 @@ export function useGeolocation(enableHighAccuracy = true, autoRequest = false) {
 
     const options: PositionOptions = {
       enableHighAccuracy,
-      timeout: 15000,
+      timeout: 20000,
       maximumAge: 0 // Always get fresh position for tracking
     };
 
     return navigator.geolocation.watchPosition(
       (position) => {
-        setState(prev => ({
-          ...prev,
-          position,
-          error: null
-        }));
+        setState(prev => {
+          const incomingAcc = position.coords.accuracy;
+          const prevAcc = prev.accuracy;
+          const prevTs = prev.position?.timestamp ?? 0;
+          const incomingTs = position.timestamp;
+
+          // Uber-style filtering:
+          // 1. Ignore impossibly bad first-fix samples (>2km) unless we have nothing.
+          // 2. If we already have a tighter fix, keep it unless:
+          //    - the new fix is tighter OR equal, OR
+          //    - the previous fix is older than 8s (stale), OR
+          //    - the new fix is only marginally worse (<1.5x) and recent.
+          if (prevAcc !== null && prev.position) {
+            const age = incomingTs - prevTs;
+            const tighter = incomingAcc <= prevAcc;
+            const stale = age > 8000;
+            const marginallyWorse = incomingAcc <= prevAcc * 1.5;
+
+            if (!tighter && !stale && !marginallyWorse) {
+              // Reject this noisy sample — keep the better fix we already have.
+              return prev;
+            }
+          } else if (incomingAcc > 2000) {
+            // First fix is garbage — wait for a better one.
+            return prev;
+          }
+
+          return {
+            ...prev,
+            position,
+            accuracy: incomingAcc,
+            error: null,
+            loading: false,
+          };
+        });
       },
       (error) => {
         setState(prev => ({
