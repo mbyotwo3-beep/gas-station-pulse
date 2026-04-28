@@ -699,7 +699,7 @@ export default function Index() {
               </button>
             </div>
             <button
-              onClick={() => setAccuracyBannerDismissed(true)}
+              onClick={dismissAccuracyBanner}
               aria-label="Dismiss low-accuracy banner"
               className="shrink-0 rounded p-0.5 hover:bg-background/40"
             >
