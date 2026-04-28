@@ -77,6 +77,7 @@ import {
   Lightbulb
 } from "lucide-react";
 import type { Station } from "@/hooks/useStations";
+import { classifyGpsAccuracy, gpsToneClasses } from "@/lib/gpsQuality";
 
 export default function Index() {
   const { user, signOut } = useAuth();
