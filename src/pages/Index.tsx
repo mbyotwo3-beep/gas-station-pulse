@@ -492,7 +492,7 @@ export default function Index() {
     lowAccuracyPromptedRef.current = true;
     setAccuracyBannerDismissed(false);
     toast.warning(
-      `GPS is off by ±${Math.round(accuracy)}m. Search your address manually for a precise location.`,
+      `GPS is off by ±${Math.round(accuracy)}m. Search your address manually for precision.`,
       { duration: 6000 }
     );
   }, [accuracy, locationSource]);
