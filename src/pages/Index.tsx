@@ -501,17 +501,11 @@ export default function Index() {
     if (accuracy !== null && accuracy <= 50) setAccuracyBannerDismissed(false);
   }, [accuracy]);
 
-  // Classify GPS fix quality for UI
-  const gpsQuality = (() => {
-    if (locationSource !== 'gps' || accuracy === null) {
-      return null;
-    }
-    if (accuracy <= 20) return { tier: 'excellent' as const, label: 'Excellent', tone: 'success' as const, hint: 'GPS lock is sharp.' };
-    if (accuracy <= 50) return { tier: 'good' as const, label: 'Good', tone: 'success' as const, hint: 'Solid GPS fix.' };
-    if (accuracy <= 150) return { tier: 'fair' as const, label: 'Fair', tone: 'warning' as const, hint: 'Move outdoors or near a window for a better fix.' };
-    if (accuracy <= 500) return { tier: 'poor' as const, label: 'Poor', tone: 'warning' as const, hint: 'Position may be off by a city block.' };
-    return { tier: 'very-poor' as const, label: 'Very poor', tone: 'destructive' as const, hint: 'Search your address manually — GPS is unreliable here.' };
-  })();
+  // Classify GPS fix quality for UI (shared with GPS test screen)
+  const gpsQuality =
+    locationSource === 'gps' && accuracy !== null
+      ? classifyGpsAccuracy(accuracy)
+      : null;
 
   const getRoleDisplayInfo = () => {
     if (hasRole('admin')) return { label: 'Admin', color: 'bg-red-500', icon: Crown };
