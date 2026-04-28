@@ -3,6 +3,15 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 
+export interface FareBreakdown {
+  base: number;
+  distance: number;
+  time: number;
+  surge?: number;
+  fees?: number;
+  total: number;
+}
+
 interface ActiveRide {
   id: string;
   driver_id: string | null;
@@ -11,10 +20,18 @@ interface ActiveRide {
   destination_location: { lat: number; lng: number; address: string };
   status: string;
   fare_amount?: number;
+  final_fare?: number;
+  fare_breakdown?: FareBreakdown | null;
   estimated_distance?: number;
   estimated_duration?: number;
+  actual_distance?: number;
+  actual_duration?: number;
   driver_notes?: string;
   passenger_notes?: string;
+  payment_status?: string | null;
+  started_at?: string | null;
+  arrived_at?: string | null;
+  completed_at?: string | null;
   created_at: string;
   updated_at: string;
 }
