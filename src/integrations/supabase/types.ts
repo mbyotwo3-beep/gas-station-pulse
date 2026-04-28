@@ -593,6 +593,9 @@ export type Database = {
       }
       rides: {
         Row: {
+          actual_distance: number | null
+          actual_duration: number | null
+          arrived_at: string | null
           completed_at: string | null
           created_at: string
           destination_location: Json
@@ -601,16 +604,22 @@ export type Database = {
           estimated_distance: number | null
           estimated_duration: number | null
           fare_amount: number | null
+          fare_breakdown: Json | null
+          final_fare: number | null
           id: string
           passenger_id: string | null
           passenger_notes: string | null
           payment_status: string | null
           pickup_location: Json
           service_type: Database["public"]["Enums"]["service_type"] | null
+          started_at: string | null
           status: string
           updated_at: string
         }
         Insert: {
+          actual_distance?: number | null
+          actual_duration?: number | null
+          arrived_at?: string | null
           completed_at?: string | null
           created_at?: string
           destination_location: Json
@@ -619,16 +628,22 @@ export type Database = {
           estimated_distance?: number | null
           estimated_duration?: number | null
           fare_amount?: number | null
+          fare_breakdown?: Json | null
+          final_fare?: number | null
           id?: string
           passenger_id?: string | null
           passenger_notes?: string | null
           payment_status?: string | null
           pickup_location: Json
           service_type?: Database["public"]["Enums"]["service_type"] | null
+          started_at?: string | null
           status?: string
           updated_at?: string
         }
         Update: {
+          actual_distance?: number | null
+          actual_duration?: number | null
+          arrived_at?: string | null
           completed_at?: string | null
           created_at?: string
           destination_location?: Json
@@ -637,12 +652,15 @@ export type Database = {
           estimated_distance?: number | null
           estimated_duration?: number | null
           fare_amount?: number | null
+          fare_breakdown?: Json | null
+          final_fare?: number | null
           id?: string
           passenger_id?: string | null
           passenger_notes?: string | null
           payment_status?: string | null
           pickup_location?: Json
           service_type?: Database["public"]["Enums"]["service_type"] | null
+          started_at?: string | null
           status?: string
           updated_at?: string
         }

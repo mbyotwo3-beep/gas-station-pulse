@@ -3,6 +3,15 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 
+export interface FareBreakdown {
+  base: number;
+  distance: number;
+  time: number;
+  surge?: number;
+  fees?: number;
+  total: number;
+}
+
 interface ActiveRide {
   id: string;
   driver_id: string | null;
@@ -11,10 +20,18 @@ interface ActiveRide {
   destination_location: { lat: number; lng: number; address: string };
   status: string;
   fare_amount?: number;
+  final_fare?: number;
+  fare_breakdown?: FareBreakdown | null;
   estimated_distance?: number;
   estimated_duration?: number;
+  actual_distance?: number;
+  actual_duration?: number;
   driver_notes?: string;
   passenger_notes?: string;
+  payment_status?: string | null;
+  started_at?: string | null;
+  arrived_at?: string | null;
+  completed_at?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -34,7 +51,7 @@ export function useActiveRide() {
       .from('rides')
       .select('*')
       .or(`driver_id.eq.${user.id},passenger_id.eq.${user.id}`)
-      .in('status', ['pending', 'accepted', 'in_progress'])
+      .in('status', ['pending', 'accepted', 'in_progress', 'arrived'])
       .order('created_at', { ascending: false })
       .limit(1)
       .single();
@@ -45,7 +62,8 @@ export function useActiveRide() {
       setActiveRide({
         ...data,
         pickup_location: data.pickup_location as { lat: number; lng: number; address: string },
-        destination_location: data.destination_location as { lat: number; lng: number; address: string }
+        destination_location: data.destination_location as { lat: number; lng: number; address: string },
+        fare_breakdown: (data.fare_breakdown as unknown) as FareBreakdown | null,
       });
     } else {
       setActiveRide(null);
@@ -80,6 +98,11 @@ export function useActiveRide() {
               title: 'Ride Started',
               description: 'Enjoy your trip!'
             });
+          } else if (newData.status === 'arrived') {
+            toast({
+              title: 'Arrived at Destination',
+              description: 'Please review the trip and complete payment.'
+            });
           } else if (newData.status === 'completed') {
             toast({
               title: 'Ride Completed',
@@ -98,13 +121,20 @@ export function useActiveRide() {
   const updateRideStatus = async (rideId: string, status: string, notes?: string) => {
     const isDriver = activeRide?.driver_id === user?.id;
     const updateData: any = { status };
-    
+    const now = new Date().toISOString();
+
     if (notes) {
       updateData[isDriver ? 'driver_notes' : 'passenger_notes'] = notes;
     }
-    
+
+    if (status === 'in_progress' && !activeRide?.started_at) {
+      updateData.started_at = now;
+    }
+    if (status === 'arrived' && !activeRide?.arrived_at) {
+      updateData.arrived_at = now;
+    }
     if (status === 'completed') {
-      updateData.completed_at = new Date().toISOString();
+      updateData.completed_at = now;
     }
 
     const { error } = await supabase
@@ -125,10 +155,40 @@ export function useActiveRide() {
     return true;
   };
 
+  const finalizeRide = async (
+    rideId: string,
+    payload: {
+      actual_distance?: number;
+      actual_duration?: number;
+      final_fare: number;
+      fare_breakdown: FareBreakdown;
+    }
+  ) => {
+    const { error } = await supabase
+      .from('rides')
+      .update({
+        status: 'completed',
+        completed_at: new Date().toISOString(),
+        actual_distance: payload.actual_distance ?? null,
+        actual_duration: payload.actual_duration ?? null,
+        final_fare: payload.final_fare,
+        fare_breakdown: payload.fare_breakdown as any,
+      })
+      .eq('id', rideId);
+
+    if (error) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      return false;
+    }
+    fetchActiveRide();
+    return true;
+  };
+
   return {
     activeRide,
     loading,
     updateRideStatus,
+    finalizeRide,
     refetch: fetchActiveRide
   };
 }
