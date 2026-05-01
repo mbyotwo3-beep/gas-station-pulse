@@ -173,6 +173,52 @@ export default function OrderHistory() {
               <span className="text-xl font-bold">{order.total_amount?.toFixed(2) || '0.00'}</span>
             </div>
           </div>
+
+          {order.status === 'delivered' && (
+            <div className="flex flex-wrap gap-2 pt-3 border-t">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  downloadOrderReceipt({
+                    orderId: order.id,
+                    serviceType: order.service_type,
+                    pickupAddress: order.pickup_location?.address || '',
+                    deliveryAddress: order.delivery_location?.address || '',
+                    items: (order.items || []).map((it: any) => ({
+                      name: it.name,
+                      quantity: it.quantity,
+                      price: Number(it.price),
+                    })),
+                    subtotal: Number(order.subtotal || 0),
+                    deliveryFee: Number(order.delivery_fee || 0),
+                    total: Number(order.total_amount || 0),
+                    paid: order.payment_status === 'completed' || order.payment_status === 'paid',
+                    specialInstructions: order.special_instructions,
+                    timestamps: {
+                      placed: order.created_at,
+                      pickedUp: order.picked_up_at,
+                      delivered: order.delivered_at,
+                    },
+                  })
+                }
+              >
+                <Download className="h-4 w-4 mr-1" />
+                Receipt (PDF)
+              </Button>
+              {order.driver_id && !ratedOrderIds.has(order.id) && (
+                <Button size="sm" onClick={() => setRatingOrder(order)}>
+                  <Star className="h-4 w-4 mr-1" />
+                  Rate driver
+                </Button>
+              )}
+              {ratedOrderIds.has(order.id) && (
+                <Badge variant="secondary" className="self-center">
+                  <Star className="h-3 w-3 mr-1 fill-warning text-warning" /> Rated
+                </Badge>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
     );
