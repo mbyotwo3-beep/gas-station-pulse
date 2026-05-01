@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { format } from 'date-fns';
-import { Package, UtensilsCrossed, MapPin, Calendar, DollarSign, Clock } from 'lucide-react';
+import { Package, UtensilsCrossed, MapPin, Calendar, DollarSign, Clock, Download, Star } from 'lucide-react';
+import { downloadOrderReceipt } from '@/lib/orderReceipt';
+import OrderRatingDialog from './OrderRatingDialog';
 
 interface OrderHistoryItem {
   id: string;
@@ -20,18 +23,33 @@ interface OrderHistoryItem {
   special_instructions?: string;
   created_at: string;
   delivered_at?: string;
+  picked_up_at?: string;
+  payment_status?: string;
+  driver_id?: string | null;
 }
 
 export default function OrderHistory() {
   const { user } = useAuth();
   const [orders, setOrders] = useState<OrderHistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [ratedOrderIds, setRatedOrderIds] = useState<Set<string>>(new Set());
+  const [ratingOrder, setRatingOrder] = useState<OrderHistoryItem | null>(null);
 
   useEffect(() => {
     if (user) {
       fetchOrderHistory();
     }
   }, [user]);
+
+  const fetchRatedOrders = async (orderIds: string[]) => {
+    if (!user || orderIds.length === 0) return;
+    const { data } = await supabase
+      .from('order_ratings')
+      .select('order_id')
+      .eq('rated_by', user.id)
+      .in('order_id', orderIds);
+    setRatedOrderIds(new Set((data ?? []).map((r) => r.order_id)));
+  };
 
   const fetchOrderHistory = async () => {
     if (!user) return;
@@ -54,6 +72,7 @@ export default function OrderHistory() {
         items: item.items as any[]
       }));
       setOrders(typedData);
+      fetchRatedOrders(typedData.map((o) => o.id));
     }
     setLoading(false);
   };
@@ -154,6 +173,52 @@ export default function OrderHistory() {
               <span className="text-xl font-bold">{order.total_amount?.toFixed(2) || '0.00'}</span>
             </div>
           </div>
+
+          {order.status === 'delivered' && (
+            <div className="flex flex-wrap gap-2 pt-3 border-t">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  downloadOrderReceipt({
+                    orderId: order.id,
+                    serviceType: order.service_type,
+                    pickupAddress: order.pickup_location?.address || '',
+                    deliveryAddress: order.delivery_location?.address || '',
+                    items: (order.items || []).map((it: any) => ({
+                      name: it.name,
+                      quantity: it.quantity,
+                      price: Number(it.price),
+                    })),
+                    subtotal: Number(order.subtotal || 0),
+                    deliveryFee: Number(order.delivery_fee || 0),
+                    total: Number(order.total_amount || 0),
+                    paid: order.payment_status === 'completed' || order.payment_status === 'paid',
+                    specialInstructions: order.special_instructions,
+                    timestamps: {
+                      placed: order.created_at,
+                      pickedUp: order.picked_up_at,
+                      delivered: order.delivered_at,
+                    },
+                  })
+                }
+              >
+                <Download className="h-4 w-4 mr-1" />
+                Receipt (PDF)
+              </Button>
+              {order.driver_id && !ratedOrderIds.has(order.id) && (
+                <Button size="sm" onClick={() => setRatingOrder(order)}>
+                  <Star className="h-4 w-4 mr-1" />
+                  Rate driver
+                </Button>
+              )}
+              {ratedOrderIds.has(order.id) && (
+                <Badge variant="secondary" className="self-center">
+                  <Star className="h-3 w-3 mr-1 fill-warning text-warning" /> Rated
+                </Badge>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
     );
@@ -174,42 +239,57 @@ export default function OrderHistory() {
   }
 
   return (
-    <Card className="surface-gradient">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Clock className="h-5 w-5" />
-          Order History
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Tabs defaultValue="all" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="all">All ({orders.length})</TabsTrigger>
-            <TabsTrigger value="food">Food ({foodOrders.length})</TabsTrigger>
-            <TabsTrigger value="package">Packages ({packageOrders.length})</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="all" className="space-y-4 mt-4">
-            {orders.map(order => <OrderCard key={order.id} order={order} />)}
-          </TabsContent>
-          
-          <TabsContent value="food" className="space-y-4 mt-4">
-            {foodOrders.length === 0 ? (
-              <p className="text-center text-muted-foreground py-8">No food orders yet</p>
-            ) : (
-              foodOrders.map(order => <OrderCard key={order.id} order={order} />)
-            )}
-          </TabsContent>
-          
-          <TabsContent value="package" className="space-y-4 mt-4">
-            {packageOrders.length === 0 ? (
-              <p className="text-center text-muted-foreground py-8">No package deliveries yet</p>
-            ) : (
-              packageOrders.map(order => <OrderCard key={order.id} order={order} />)
-            )}
-          </TabsContent>
-        </Tabs>
-      </CardContent>
-    </Card>
+    <>
+      <Card className="surface-gradient">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Clock className="h-5 w-5" />
+            Order History
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Tabs defaultValue="all" className="w-full">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="all">All ({orders.length})</TabsTrigger>
+              <TabsTrigger value="food">Food ({foodOrders.length})</TabsTrigger>
+              <TabsTrigger value="package">Packages ({packageOrders.length})</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="all" className="space-y-4 mt-4">
+              {orders.map(order => <OrderCard key={order.id} order={order} />)}
+            </TabsContent>
+
+            <TabsContent value="food" className="space-y-4 mt-4">
+              {foodOrders.length === 0 ? (
+                <p className="text-center text-muted-foreground py-8">No food orders yet</p>
+              ) : (
+                foodOrders.map(order => <OrderCard key={order.id} order={order} />)
+              )}
+            </TabsContent>
+
+            <TabsContent value="package" className="space-y-4 mt-4">
+              {packageOrders.length === 0 ? (
+                <p className="text-center text-muted-foreground py-8">No package deliveries yet</p>
+              ) : (
+                packageOrders.map(order => <OrderCard key={order.id} order={order} />)
+              )}
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
+
+      {ratingOrder && ratingOrder.driver_id && (
+        <OrderRatingDialog
+          open={!!ratingOrder}
+          onOpenChange={(o) => !o && setRatingOrder(null)}
+          orderId={ratingOrder.id}
+          driverId={ratingOrder.driver_id}
+          onRated={() => {
+            setRatedOrderIds((prev) => new Set(prev).add(ratingOrder.id));
+            setRatingOrder(null);
+          }}
+        />
+      )}
+    </>
   );
 }

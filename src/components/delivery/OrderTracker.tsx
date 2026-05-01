@@ -3,8 +3,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Clock, MapPin, Package, CheckCircle, Truck } from 'lucide-react';
+import { MapPin } from 'lucide-react';
 import { toast } from 'sonner';
+import DeliveryStatusTimeline from './DeliveryStatusTimeline';
+import { formatDistanceToNow } from 'date-fns';
 
 interface Order {
   id: string;
@@ -12,11 +14,19 @@ interface Order {
   status: string;
   total_amount: number;
   created_at: string;
-  estimated_delivery_time: string;
+  estimated_delivery_time: string | null;
   pickup_location: any;
   delivery_location: any;
   items: any;
 }
+
+const STATUS_LABELS: Record<string, string> = {
+  pending: 'Looking for courier',
+  accepted: 'Courier assigned',
+  picking_up: 'Picking up your order',
+  in_transit: 'On the way',
+  delivered: 'Delivered',
+};
 
 export default function OrderTracker() {
   const { user } = useAuth();
@@ -35,11 +45,9 @@ export default function OrderTracker() {
           event: '*',
           schema: 'public',
           table: 'orders',
-          filter: `customer_id=eq.${user.id}`
+          filter: `customer_id=eq.${user.id}`,
         },
-        () => {
-          fetchActiveOrders();
-        }
+        () => fetchActiveOrders(),
       )
       .subscribe();
 
@@ -50,7 +58,6 @@ export default function OrderTracker() {
 
   const fetchActiveOrders = async () => {
     if (!user) return;
-
     try {
       const { data, error } = await supabase
         .from('orders')
@@ -58,7 +65,6 @@ export default function OrderTracker() {
         .eq('customer_id', user.id)
         .in('status', ['pending', 'accepted', 'picking_up', 'in_transit'])
         .order('created_at', { ascending: false });
-
       if (error) throw error;
       setActiveOrders(data || []);
     } catch (error) {
@@ -66,35 +72,6 @@ export default function OrderTracker() {
       toast.error('Failed to load orders');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'pending':
-        return <Clock className="h-4 w-4" />;
-      case 'accepted':
-        return <CheckCircle className="h-4 w-4" />;
-      case 'picking_up':
-        return <Package className="h-4 w-4" />;
-      case 'in_transit':
-        return <Truck className="h-4 w-4" />;
-      default:
-        return <Package className="h-4 w-4" />;
-    }
-  };
-
-  const getStatusVariant = (status: string) => {
-    switch (status) {
-      case 'pending':
-        return 'secondary';
-      case 'accepted':
-        return 'default';
-      case 'picking_up':
-      case 'in_transit':
-        return 'default';
-      default:
-        return 'secondary';
     }
   };
 
@@ -109,42 +86,51 @@ export default function OrderTracker() {
   return (
     <div className="space-y-4">
       <h2 className="text-xl font-semibold">Active Orders</h2>
-      {activeOrders.map((order) => (
-        <Card key={order.id} className="border-primary/20">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg flex items-center gap-2">
-                {order.service_type === 'food_delivery' ? '🍔 Food Order' :
-                 order.service_type === 'package_delivery' ? '📦 Package Delivery' : '🚗 Ride'}
-              </CardTitle>
-              <Badge variant={getStatusVariant(order.status)} className="flex items-center gap-1">
-                {getStatusIcon(order.status)}
-                {order.status.replace('_', ' ')}
-              </Badge>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex items-start gap-2 text-sm">
-              <MapPin className="h-4 w-4 text-primary mt-0.5" />
-              <div>
-                <p className="font-medium">Pickup</p>
-                <p className="text-muted-foreground">{order.pickup_location.address}</p>
+      {activeOrders.map((order) => {
+        const placedAgo = formatDistanceToNow(new Date(order.created_at), { addSuffix: true });
+        return (
+          <Card key={order.id} className="border-primary/20">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  {order.service_type === 'food_delivery'
+                    ? '🍔 Food Order'
+                    : order.service_type === 'package_delivery'
+                    ? '📦 Package Delivery'
+                    : '🚗 Ride'}
+                </CardTitle>
+                <Badge variant="default">{STATUS_LABELS[order.status] || order.status}</Badge>
               </div>
-            </div>
-            <div className="flex items-start gap-2 text-sm">
-              <MapPin className="h-4 w-4 text-destructive mt-0.5" />
-              <div>
-                <p className="font-medium">Delivery</p>
-                <p className="text-muted-foreground">{order.delivery_location.address}</p>
+              <p className="text-xs text-muted-foreground">Placed {placedAgo}</p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <DeliveryStatusTimeline status={order.status} />
+
+              <div className="space-y-3">
+                <div className="flex items-start gap-2 text-sm">
+                  <MapPin className="h-4 w-4 text-primary mt-0.5" />
+                  <div>
+                    <p className="font-medium">Pickup</p>
+                    <p className="text-muted-foreground">{order.pickup_location?.address}</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2 text-sm">
+                  <MapPin className="h-4 w-4 text-destructive mt-0.5" />
+                  <div>
+                    <p className="font-medium">Delivery</p>
+                    <p className="text-muted-foreground">{order.delivery_location?.address}</p>
+                  </div>
+                </div>
               </div>
-            </div>
-            <div className="flex justify-between items-center pt-2 border-t">
-              <span className="text-sm text-muted-foreground">Total</span>
-              <span className="font-semibold text-primary">${order.total_amount}</span>
-            </div>
-          </CardContent>
-        </Card>
-      ))}
+
+              <div className="flex justify-between items-center pt-2 border-t">
+                <span className="text-sm text-muted-foreground">Total</span>
+                <span className="font-semibold text-primary">${Number(order.total_amount).toFixed(2)}</span>
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })}
     </div>
   );
 }

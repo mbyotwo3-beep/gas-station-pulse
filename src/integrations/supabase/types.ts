@@ -172,6 +172,36 @@ export type Database = {
           },
         ]
       }
+      order_ratings: {
+        Row: {
+          comment: string | null
+          created_at: string
+          id: string
+          order_id: string
+          rated_by: string
+          rated_user: string
+          rating: number
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          order_id: string
+          rated_by: string
+          rated_user: string
+          rating: number
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          order_id?: string
+          rated_by?: string
+          rated_user?: string
+          rating?: number
+        }
+        Relationships: []
+      }
       orders: {
         Row: {
           created_at: string | null
