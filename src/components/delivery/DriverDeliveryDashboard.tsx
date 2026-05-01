@@ -206,6 +206,8 @@ export default function DriverDeliveryDashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              <DeliveryStatusTimeline status={activeDelivery.status} />
+
               <div className="space-y-2">
                 <div className="flex items-start gap-2">
                   <Navigation className="h-4 w-4 text-primary mt-1" />
@@ -245,15 +247,37 @@ export default function DriverDeliveryDashboard() {
                 )}
                 {activeDelivery.status === 'picking_up' && (
                   <Button onClick={() => updateDeliveryStatus('in_transit')} disabled={updating} className="flex-1">
-                    Start Delivery
+                    Picked Up — Start Delivery
                   </Button>
                 )}
                 {activeDelivery.status === 'in_transit' && (
-                  <Button onClick={() => updateDeliveryStatus('delivered')} disabled={updating} variant="success" className="flex-1">
-                    Complete Delivery
+                  <Button onClick={() => setConfirmComplete(true)} disabled={updating} variant="success" className="flex-1">
+                    Hand off & Complete
                   </Button>
                 )}
               </div>
+
+              <AlertDialog open={confirmComplete} onOpenChange={setConfirmComplete}>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Confirm hand-off</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Make sure the order has been physically handed to the customer before marking it delivered. This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Not yet</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={() => {
+                        setConfirmComplete(false);
+                        updateDeliveryStatus('delivered');
+                      }}
+                    >
+                      Yes, mark delivered
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </CardContent>
           </Card>
         )}
