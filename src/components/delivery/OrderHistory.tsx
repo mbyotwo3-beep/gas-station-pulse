@@ -239,42 +239,57 @@ export default function OrderHistory() {
   }
 
   return (
-    <Card className="surface-gradient">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Clock className="h-5 w-5" />
-          Order History
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Tabs defaultValue="all" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="all">All ({orders.length})</TabsTrigger>
-            <TabsTrigger value="food">Food ({foodOrders.length})</TabsTrigger>
-            <TabsTrigger value="package">Packages ({packageOrders.length})</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="all" className="space-y-4 mt-4">
-            {orders.map(order => <OrderCard key={order.id} order={order} />)}
-          </TabsContent>
-          
-          <TabsContent value="food" className="space-y-4 mt-4">
-            {foodOrders.length === 0 ? (
-              <p className="text-center text-muted-foreground py-8">No food orders yet</p>
-            ) : (
-              foodOrders.map(order => <OrderCard key={order.id} order={order} />)
-            )}
-          </TabsContent>
-          
-          <TabsContent value="package" className="space-y-4 mt-4">
-            {packageOrders.length === 0 ? (
-              <p className="text-center text-muted-foreground py-8">No package deliveries yet</p>
-            ) : (
-              packageOrders.map(order => <OrderCard key={order.id} order={order} />)
-            )}
-          </TabsContent>
-        </Tabs>
-      </CardContent>
-    </Card>
+    <>
+      <Card className="surface-gradient">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Clock className="h-5 w-5" />
+            Order History
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Tabs defaultValue="all" className="w-full">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="all">All ({orders.length})</TabsTrigger>
+              <TabsTrigger value="food">Food ({foodOrders.length})</TabsTrigger>
+              <TabsTrigger value="package">Packages ({packageOrders.length})</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="all" className="space-y-4 mt-4">
+              {orders.map(order => <OrderCard key={order.id} order={order} />)}
+            </TabsContent>
+
+            <TabsContent value="food" className="space-y-4 mt-4">
+              {foodOrders.length === 0 ? (
+                <p className="text-center text-muted-foreground py-8">No food orders yet</p>
+              ) : (
+                foodOrders.map(order => <OrderCard key={order.id} order={order} />)
+              )}
+            </TabsContent>
+
+            <TabsContent value="package" className="space-y-4 mt-4">
+              {packageOrders.length === 0 ? (
+                <p className="text-center text-muted-foreground py-8">No package deliveries yet</p>
+              ) : (
+                packageOrders.map(order => <OrderCard key={order.id} order={order} />)
+              )}
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
+
+      {ratingOrder && ratingOrder.driver_id && (
+        <OrderRatingDialog
+          open={!!ratingOrder}
+          onOpenChange={(o) => !o && setRatingOrder(null)}
+          orderId={ratingOrder.id}
+          driverId={ratingOrder.driver_id}
+          onRated={() => {
+            setRatedOrderIds((prev) => new Set(prev).add(ratingOrder.id));
+            setRatingOrder(null);
+          }}
+        />
+      )}
+    </>
   );
 }
