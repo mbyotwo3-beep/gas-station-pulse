@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { CheckCircle2, MapPin, Navigation, Clock, Route, Loader2 } from 'lucide-react';
+import { CheckCircle2, MapPin, Navigation, Clock, Route, Loader2, Download } from 'lucide-react';
 import type { FareBreakdown } from '@/hooks/useActiveRide';
 
 interface RideCompletionSummaryProps {
@@ -17,6 +17,8 @@ interface RideCompletionSummaryProps {
   onSecondaryAction?: () => void;
   primaryLabel: string;
   secondaryLabel?: string;
+  onDownloadReceipt?: () => void;
+  canDownloadReceipt?: boolean;
 }
 
 export default function RideCompletionSummary({
@@ -32,6 +34,8 @@ export default function RideCompletionSummary({
   onSecondaryAction,
   primaryLabel,
   secondaryLabel,
+  onDownloadReceipt,
+  canDownloadReceipt,
 }: RideCompletionSummaryProps) {
   return (
     <Card className="surface-gradient border-2 border-success/30">
@@ -131,6 +135,16 @@ export default function RideCompletionSummary({
               className="w-full"
             >
               {secondaryLabel}
+            </Button>
+          )}
+          {canDownloadReceipt && onDownloadReceipt && (
+            <Button
+              variant="ghost"
+              onClick={onDownloadReceipt}
+              className="w-full"
+            >
+              <Download className="mr-2 h-4 w-4" />
+              Download receipt (PDF)
             </Button>
           )}
         </div>

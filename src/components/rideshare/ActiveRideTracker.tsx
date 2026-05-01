@@ -14,6 +14,7 @@ import DriverLocationMap from './DriverLocationMap';
 import RideSafetyPanel from './RideSafetyPanel';
 import RideVerificationOTP from './RideVerificationOTP';
 import RideCompletionSummary from './RideCompletionSummary';
+import { downloadRideReceipt } from '@/lib/rideReceipt';
 
 function buildFareBreakdown(opts: {
   distanceKm: number;
@@ -139,6 +140,24 @@ export default function ActiveRideTracker() {
           primaryLabel={primaryLabel}
           secondaryLabel="Message"
           onSecondaryAction={() => setShowChat(true)}
+          canDownloadReceipt={activeRide.status === 'completed'}
+          onDownloadReceipt={() =>
+            downloadRideReceipt({
+              rideId: activeRide.id,
+              pickupAddress: activeRide.pickup_location.address,
+              destinationAddress: activeRide.destination_location.address,
+              distanceKm,
+              durationMin,
+              fareBreakdown: summaryBreakdown,
+              paid,
+              timestamps: {
+                requested: activeRide.created_at,
+                started: activeRide.started_at ?? null,
+                arrived: activeRide.arrived_at ?? null,
+                completed: activeRide.completed_at ?? null,
+              },
+            })
+          }
         />
 
         {showRating && (
