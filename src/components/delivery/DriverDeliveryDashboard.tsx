@@ -7,6 +7,17 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Package, UtensilsCrossed, Navigation, DollarSign, Clock } from 'lucide-react';
 import { toast } from 'sonner';
+import DeliveryStatusTimeline from './DeliveryStatusTimeline';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface DeliveryOrder {
   id: string;
@@ -33,6 +44,7 @@ export default function DriverDeliveryDashboard() {
   const [earnings, setEarnings] = useState<Earnings>({ total: 0, pending: 0, paid: 0 });
   const [accepting, setAccepting] = useState<string | null>(null);
   const [updating, setUpdating] = useState(false);
+  const [confirmComplete, setConfirmComplete] = useState(false);
 
   useEffect(() => {
     fetchAvailableOrders();
