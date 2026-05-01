@@ -14,6 +14,7 @@ import DriverLocationMap from './DriverLocationMap';
 import RideSafetyPanel from './RideSafetyPanel';
 import RideVerificationOTP from './RideVerificationOTP';
 import RideCompletionSummary from './RideCompletionSummary';
+import { downloadRideReceipt } from '@/lib/rideReceipt';
 
 function buildFareBreakdown(opts: {
   distanceKm: number;
