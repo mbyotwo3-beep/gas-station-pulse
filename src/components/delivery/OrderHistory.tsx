@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { format } from 'date-fns';
-import { Package, UtensilsCrossed, MapPin, Calendar, DollarSign, Clock } from 'lucide-react';
+import { Package, UtensilsCrossed, MapPin, Calendar, DollarSign, Clock, Download, Star } from 'lucide-react';
+import { downloadOrderReceipt } from '@/lib/orderReceipt';
+import OrderRatingDialog from './OrderRatingDialog';
 
 interface OrderHistoryItem {
   id: string;
@@ -20,18 +23,33 @@ interface OrderHistoryItem {
   special_instructions?: string;
   created_at: string;
   delivered_at?: string;
+  picked_up_at?: string;
+  payment_status?: string;
+  driver_id?: string | null;
 }
 
 export default function OrderHistory() {
   const { user } = useAuth();
   const [orders, setOrders] = useState<OrderHistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [ratedOrderIds, setRatedOrderIds] = useState<Set<string>>(new Set());
+  const [ratingOrder, setRatingOrder] = useState<OrderHistoryItem | null>(null);
 
   useEffect(() => {
     if (user) {
       fetchOrderHistory();
     }
   }, [user]);
+
+  const fetchRatedOrders = async (orderIds: string[]) => {
+    if (!user || orderIds.length === 0) return;
+    const { data } = await supabase
+      .from('order_ratings')
+      .select('order_id')
+      .eq('rated_by', user.id)
+      .in('order_id', orderIds);
+    setRatedOrderIds(new Set((data ?? []).map((r) => r.order_id)));
+  };
 
   const fetchOrderHistory = async () => {
     if (!user) return;
