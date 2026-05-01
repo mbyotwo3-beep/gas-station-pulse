@@ -72,6 +72,7 @@ export default function OrderHistory() {
         items: item.items as any[]
       }));
       setOrders(typedData);
+      fetchRatedOrders(typedData.map((o) => o.id));
     }
     setLoading(false);
   };
