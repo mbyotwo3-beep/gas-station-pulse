@@ -1048,6 +1048,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      assign_nearest_runner: { Args: { p_order_id: string }; Returns: string }
       deduct_wallet_funds: {
         Args: { p_amount: number; p_user_id: string }
         Returns: boolean
