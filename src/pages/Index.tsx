@@ -781,7 +781,7 @@ export default function Index() {
             ) : activeTab === 'packages' ? (
               <PackageDeliveryForm />
             ) : activeTab === 'errands' ? (
-              <ErrandsForm pickupLabel={selectedLocation?.label} />
+              <ErrandsForm />
             ) : null}
 
             {user && <div className="mt-6"><OrderTracker /></div>}
