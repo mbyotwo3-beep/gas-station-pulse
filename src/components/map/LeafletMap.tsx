@@ -128,6 +128,8 @@ const LeafletMap = forwardRef<LeafletMapHandle, LeafletMapProps>(function Leafle
   const focusMarkerRef = useRef<L.Marker | L.CircleMarker | null>(null);
   const accuracyCircleRef = useRef<L.Circle | null>(null);
   const [selectedStation, setSelectedStation] = useState<Station | null>(null);
+  const stationMarkersRef = useRef<Map<string, L.CircleMarker>>(new Map());
+  const didInitialFitRef = useRef(false);
   const errorRef = useRef<HTMLDivElement | null>(null);
 
   // Follow-me mode: ON by default for live GPS, OFF as soon as the user pans/zooms.
