@@ -128,6 +128,8 @@ const LeafletMap = forwardRef<LeafletMapHandle, LeafletMapProps>(function Leafle
   const focusMarkerRef = useRef<L.Marker | L.CircleMarker | null>(null);
   const accuracyCircleRef = useRef<L.Circle | null>(null);
   const [selectedStation, setSelectedStation] = useState<Station | null>(null);
+  const stationMarkersRef = useRef<Map<string, L.CircleMarker>>(new Map());
+  const didInitialFitRef = useRef(false);
   const errorRef = useRef<HTMLDivElement | null>(null);
 
   // Follow-me mode: ON by default for live GPS, OFF as soon as the user pans/zooms.
@@ -218,57 +220,80 @@ const LeafletMap = forwardRef<LeafletMapHandle, LeafletMapProps>(function Leafle
     };
   }, [isLiveLocation]);
 
-  // Stations layer
+  // Stations layer — incremental updates so markers don't flicker / get rebuilt every render.
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
     const stationLayer = stationLayerRef.current;
-    const pathLayer = pathLayerRef.current;
-    if (!stationLayer || !pathLayer) return;
+    if (!stationLayer) return;
 
-    stationLayer.clearLayers();
-    pathLayer.clearLayers();
+    const existing = stationMarkersRef.current;
+    const nextIds = new Set(stations.map((s) => s.id));
+
+    // Remove markers for stations no longer present
+    existing.forEach((marker, id) => {
+      if (!nextIds.has(id)) {
+        stationLayer.removeLayer(marker);
+        existing.delete(id);
+      }
+    });
 
     const bounds = L.latLngBounds([]);
 
     stations.forEach((s) => {
       const isSelected = selectedStation?.id === s.id;
+      const color = colorFor(s.status);
+      let marker = existing.get(s.id);
+
+      if (!marker) {
+        marker = L.circleMarker([s.lat, s.lng], {
+          radius: isSelected ? 14 : 10,
+          color,
+          fillColor: color,
+          fillOpacity: isSelected ? 1 : 0.85,
+          weight: isSelected ? 3 : 2,
+          className: 'station-marker',
+          pane: 'markerPane',
+        }).addTo(stationLayer);
+
+        marker.on('click', () => {
+          setSelectedStation(s);
+          onSelect?.(s);
+        });
+        marker.on('mouseover', () => { marker!.setRadius(12); marker!.setStyle({ weight: 3 }); });
+        marker.on('mouseout', () => {
+          const stillSelected = selectedStation?.id === s.id;
+          if (!stillSelected) { marker!.setRadius(10); marker!.setStyle({ weight: 2 }); }
+        });
+
+        existing.set(s.id, marker);
+      } else {
+        // Only update what changed — no rebuild, no flicker.
+        const ll = marker.getLatLng();
+        if (ll.lat !== s.lat || ll.lng !== s.lng) marker.setLatLng([s.lat, s.lng]);
+        marker.setStyle({ color, fillColor: color, fillOpacity: isSelected ? 1 : 0.85, weight: isSelected ? 3 : 2 });
+        marker.setRadius(isSelected ? 14 : 10);
+      }
+
+      const statusText = s.status === 'available' ? 'Available' : s.status === 'low' ? 'Low Supply' : 'Out of Fuel';
       let distanceText = '';
       if (focusPoint) {
         const distance = calculateDistance(focusPoint.lat, focusPoint.lng, s.lat, s.lng);
         distanceText = `<br><span class="text-xs">${formatDistance(distance)} away</span>`;
       }
-
-      const marker = L.circleMarker([s.lat, s.lng], {
-        radius: isSelected ? 14 : 10,
-        color: colorFor(s.status),
-        fillColor: colorFor(s.status),
-        fillOpacity: isSelected ? 1 : 0.85,
-        weight: isSelected ? 3 : 2,
-        className: 'station-marker animate-scale-in',
-        pane: 'markerPane',
-      }).addTo(stationLayer);
-
-      const statusText = s.status === 'available' ? 'Available' : s.status === 'low' ? 'Low Supply' : 'Out of Fuel';
+      marker.unbindTooltip();
       marker.bindTooltip(
-        `<div class="text-center"><strong>${s.name}</strong><br><span class="text-xs" style="color:${colorFor(s.status)}">${statusText}</span>${distanceText}</div>`,
+        `<div class="text-center"><strong>${s.name}</strong><br><span class="text-xs" style="color:${color}">${statusText}</span>${distanceText}</div>`,
         { permanent: false, opacity: 0.9 }
       );
-
-      marker.on('click', () => {
-        setSelectedStation(s);
-        onSelect?.(s);
-      });
-      marker.on('mouseover', () => { marker.setRadius(12); marker.setStyle({ weight: 3 }); });
-      marker.on('mouseout', () => {
-        if (!isSelected) { marker.setRadius(10); marker.setStyle({ weight: 2 }); }
-      });
 
       bounds.extend([s.lat, s.lng]);
     });
 
-    if (bounds.isValid() && !focusPoint) {
+    // Only auto-fit ONCE on first load. Never wrestle the user's camera afterwards.
+    if (!didInitialFitRef.current && bounds.isValid() && !focusPoint && stations.length > 0) {
       map.fitBounds(bounds.pad(0.2));
+      didInitialFitRef.current = true;
     }
   }, [stations, onSelect, focusPoint, selectedStation]);
 
@@ -348,9 +373,14 @@ const LeafletMap = forwardRef<LeafletMapHandle, LeafletMapProps>(function Leafle
         setTimeout(() => { (map as any)._programmaticZoom = false; }, 600);
       }
     } else {
-      const targetZoom = 14;
-      const currentZoom = map.getZoom();
-      map.setView(target, Math.max(currentZoom, targetZoom), { animate: true });
+      // Manual pin: only recenter when the pin actually changes coords (not on every render).
+      const prev = (map as any)._lastFocusKey as string | undefined;
+      const key = `${focusPoint.lat.toFixed(6)},${focusPoint.lng.toFixed(6)}`;
+      if (prev !== key) {
+        const targetZoom = 14;
+        map.setView(target, Math.max(map.getZoom(), targetZoom), { animate: true });
+        (map as any)._lastFocusKey = key;
+      }
     }
   }, [focusPoint, isLiveLocation, accuracyRadius]);
 
