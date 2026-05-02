@@ -373,9 +373,14 @@ const LeafletMap = forwardRef<LeafletMapHandle, LeafletMapProps>(function Leafle
         setTimeout(() => { (map as any)._programmaticZoom = false; }, 600);
       }
     } else {
-      const targetZoom = 14;
-      const currentZoom = map.getZoom();
-      map.setView(target, Math.max(currentZoom, targetZoom), { animate: true });
+      // Manual pin: only recenter when the pin actually changes coords (not on every render).
+      const prev = (map as any)._lastFocusKey as string | undefined;
+      const key = `${focusPoint.lat.toFixed(6)},${focusPoint.lng.toFixed(6)}`;
+      if (prev !== key) {
+        const targetZoom = 14;
+        map.setView(target, Math.max(map.getZoom(), targetZoom), { animate: true });
+        (map as any)._lastFocusKey = key;
+      }
     }
   }, [focusPoint, isLiveLocation, accuracyRadius]);
 
