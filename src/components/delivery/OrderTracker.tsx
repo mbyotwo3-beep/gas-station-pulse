@@ -97,6 +97,8 @@ export default function OrderTracker() {
                     ? '🍔 Food Order'
                     : order.service_type === 'package_delivery'
                     ? '📦 Package Delivery'
+                    : order.service_type === 'errand'
+                    ? '🛍️ Errand'
                     : '🚗 Ride'}
                 </CardTitle>
                 <Badge variant="default">{STATUS_LABELS[order.status] || order.status}</Badge>
