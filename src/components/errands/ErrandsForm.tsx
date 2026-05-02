@@ -61,20 +61,35 @@ export default function ErrandsForm() {
 
     setSubmitting(true);
     try {
-      const { error } = await supabase.from("orders").insert({
-        customer_id: user.id,
-        service_type: "errand" as any,
-        pickup_location: { lat: pickup.lat, lng: pickup.lng, address: pickup.address },
-        delivery_location: { lat: dropoff.lat, lng: dropoff.lng, address: dropoff.address },
-        items: [{ type: "errand", category: type, budget: Number(budget) || 0 }],
-        subtotal: baseFee + (Number(budget) || 0),
-        delivery_fee: distanceFee,
-        total_amount: total,
-        special_instructions: notes,
-        status: "pending",
-      });
+      const { data: created, error } = await supabase
+        .from("orders")
+        .insert({
+          customer_id: user.id,
+          service_type: "errand" as any,
+          pickup_location: { lat: pickup.lat, lng: pickup.lng, address: pickup.address },
+          delivery_location: { lat: dropoff.lat, lng: dropoff.lng, address: dropoff.address },
+          items: [{ type: "errand", category: type, budget: Number(budget) || 0 }],
+          subtotal: baseFee + (Number(budget) || 0),
+          delivery_fee: distanceFee,
+          total_amount: total,
+          special_instructions: notes,
+          status: "pending",
+        })
+        .select("id")
+        .single();
       if (error) throw error;
-      toast.success("Errand request sent. A runner will accept shortly.");
+
+      // Auto-assign nearest available runner
+      const { data: runnerId } = await supabase.rpc("assign_nearest_runner", {
+        p_order_id: created.id,
+      });
+
+      if (runnerId) {
+        toast.success("Runner assigned! Track your errand below.");
+      } else {
+        toast.success("Errand request sent. Searching for a nearby runner…");
+      }
+
       setNotes("");
       setBudget("");
       setPickup(null);
