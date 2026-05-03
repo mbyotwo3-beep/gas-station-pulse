@@ -511,7 +511,15 @@ img.leaflet-tile {
 
 /* Route and station marker animations */
 .station-marker {
-  transition: all 0.3s ease;
+  transition:
+    fill 300ms ease,
+    stroke 300ms ease,
+    fill-opacity 300ms ease,
+    stroke-width 200ms ease,
+    r 200ms ease;
+}
+.station-marker.is-selected {
+  filter: drop-shadow(0 0 6px hsl(var(--primary) / 0.55));
 }
 
 .station-path {

@@ -128,6 +128,8 @@ const LeafletMap = forwardRef<LeafletMapHandle, LeafletMapProps>(function Leafle
   const focusMarkerRef = useRef<L.Marker | L.CircleMarker | null>(null);
   const accuracyCircleRef = useRef<L.Circle | null>(null);
   const [selectedStation, setSelectedStation] = useState<Station | null>(null);
+  const selectedIdRef = useRef<string | null>(null);
+  useEffect(() => { selectedIdRef.current = selectedStation?.id ?? null; }, [selectedStation]);
   const stationMarkersRef = useRef<Map<string, L.CircleMarker>>(new Map());
   const didInitialFitRef = useRef(false);
   const errorRef = useRef<HTMLDivElement | null>(null);
@@ -221,6 +223,8 @@ const LeafletMap = forwardRef<LeafletMapHandle, LeafletMapProps>(function Leafle
   }, [isLiveLocation]);
 
   // Stations layer — incremental updates so markers don't flicker / get rebuilt every render.
+  // Color changes animate via CSS transitions on .station-marker (fill/stroke).
+  // Selection state is persistent and handled in a dedicated effect below.
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
@@ -241,7 +245,7 @@ const LeafletMap = forwardRef<LeafletMapHandle, LeafletMapProps>(function Leafle
     const bounds = L.latLngBounds([]);
 
     stations.forEach((s) => {
-      const isSelected = selectedStation?.id === s.id;
+      const isSelected = selectedIdRef.current === s.id;
       const color = colorFor(s.status);
       let marker = existing.get(s.id);
 
@@ -252,7 +256,7 @@ const LeafletMap = forwardRef<LeafletMapHandle, LeafletMapProps>(function Leafle
           fillColor: color,
           fillOpacity: isSelected ? 1 : 0.85,
           weight: isSelected ? 3 : 2,
-          className: 'station-marker',
+          className: `station-marker${isSelected ? ' is-selected' : ''}`,
           pane: 'markerPane',
         }).addTo(stationLayer);
 
@@ -260,18 +264,28 @@ const LeafletMap = forwardRef<LeafletMapHandle, LeafletMapProps>(function Leafle
           setSelectedStation(s);
           onSelect?.(s);
         });
-        marker.on('mouseover', () => { marker!.setRadius(12); marker!.setStyle({ weight: 3 }); });
+        marker.on('mouseover', () => {
+          if (selectedIdRef.current === s.id) return;
+          marker!.setRadius(12);
+          marker!.setStyle({ weight: 3 });
+        });
         marker.on('mouseout', () => {
-          const stillSelected = selectedStation?.id === s.id;
-          if (!stillSelected) { marker!.setRadius(10); marker!.setStyle({ weight: 2 }); }
+          if (selectedIdRef.current === s.id) return;
+          marker!.setRadius(10);
+          marker!.setStyle({ weight: 2 });
         });
 
         existing.set(s.id, marker);
       } else {
-        // Only update what changed — no rebuild, no flicker.
+        // Only update what changed — color animates smoothly via CSS, no rebuild.
         const ll = marker.getLatLng();
         if (ll.lat !== s.lat || ll.lng !== s.lng) marker.setLatLng([s.lat, s.lng]);
-        marker.setStyle({ color, fillColor: color, fillOpacity: isSelected ? 1 : 0.85, weight: isSelected ? 3 : 2 });
+        marker.setStyle({
+          color,
+          fillColor: color,
+          fillOpacity: isSelected ? 1 : 0.85,
+          weight: isSelected ? 3 : 2,
+        });
         marker.setRadius(isSelected ? 14 : 10);
       }
 
@@ -295,7 +309,24 @@ const LeafletMap = forwardRef<LeafletMapHandle, LeafletMapProps>(function Leafle
       map.fitBounds(bounds.pad(0.2));
       didInitialFitRef.current = true;
     }
-  }, [stations, onSelect, focusPoint, selectedStation]);
+  }, [stations, onSelect, focusPoint]);
+
+  // Persistent selection highlight — applies/removes selected styling on the affected
+  // markers only, without touching the rest. Survives re-renders and station updates.
+  useEffect(() => {
+    const markers = stationMarkersRef.current;
+    markers.forEach((marker, id) => {
+      const isSelected = selectedStation?.id === id;
+      const el = (marker as any)._path as SVGPathElement | undefined;
+      if (el) el.classList.toggle('is-selected', isSelected);
+      marker.setStyle({
+        fillOpacity: isSelected ? 1 : 0.85,
+        weight: isSelected ? 3 : 2,
+      });
+      marker.setRadius(isSelected ? 14 : 10);
+      if (isSelected) marker.bringToFront();
+    });
+  }, [selectedStation, stations]);
 
   // Focus marker + follow logic
   useEffect(() => {
