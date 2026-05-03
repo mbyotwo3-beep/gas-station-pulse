@@ -77,6 +77,7 @@ import {
   Lightbulb
 } from "lucide-react";
 import type { Station } from "@/hooks/useStations";
+import { useOsmStations, mergeStations } from "@/hooks/useOsmStations";
 import { classifyGpsAccuracy, gpsToneClasses } from "@/lib/gpsQuality";
 
 export default function Index() {
