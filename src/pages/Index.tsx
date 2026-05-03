@@ -158,7 +158,16 @@ export default function Index() {
     }
   );
 
-  // Keep location empty until GPS or manual input is provided
+  // Discover nearby filling stations from OpenStreetMap (free, live).
+  // Centers on the user's GPS position AND any manually focused location.
+  const { osmStations } = useOsmStations(
+    [
+      position ? { lat: position.lat, lng: position.lng } : null,
+      selectedLocation ? { lat: selectedLocation.lat, lng: selectedLocation.lng } : null,
+    ],
+    10
+  );
+  const stations = mergeStations(dbStations, osmStations);
 
   const filteredStations = stations.filter(station => {
     // Search query filter
