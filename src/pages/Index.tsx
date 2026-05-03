@@ -162,7 +162,7 @@ export default function Index() {
   // Centers on the user's GPS position AND any manually focused location.
   const { osmStations } = useOsmStations(
     [
-      position ? { lat: position.lat, lng: position.lng } : null,
+      position ? { lat: position.coords.latitude, lng: position.coords.longitude } : null,
       selectedLocation ? { lat: selectedLocation.lat, lng: selectedLocation.lng } : null,
     ],
     10
