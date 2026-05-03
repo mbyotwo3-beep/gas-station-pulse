@@ -77,11 +77,12 @@ import {
   Lightbulb
 } from "lucide-react";
 import type { Station } from "@/hooks/useStations";
+import { useOsmStations, mergeStations } from "@/hooks/useOsmStations";
 import { classifyGpsAccuracy, gpsToneClasses } from "@/lib/gpsQuality";
 
 export default function Index() {
   const { user, signOut } = useAuth();
-  const { stations, loading: stationsLoading } = useStations();
+  const { stations: dbStations, loading: stationsLoading } = useStations();
   const { profile, toggleFavoriteStation, isFavorite } = useProfile();
   const { position, accuracy, requestLocation, watchLocation } = useGeolocation(true, true);
   const { roles, hasRole, canManageStations, canDrive, canRequestRides } = useRoles();
@@ -157,7 +158,16 @@ export default function Index() {
     }
   );
 
-  // Keep location empty until GPS or manual input is provided
+  // Discover nearby filling stations from OpenStreetMap (free, live).
+  // Centers on the user's GPS position AND any manually focused location.
+  const { osmStations } = useOsmStations(
+    [
+      position ? { lat: position.coords.latitude, lng: position.coords.longitude } : null,
+      selectedLocation ? { lat: selectedLocation.lat, lng: selectedLocation.lng } : null,
+    ],
+    10
+  );
+  const stations = mergeStations(dbStations, osmStations);
 
   const filteredStations = stations.filter(station => {
     // Search query filter
