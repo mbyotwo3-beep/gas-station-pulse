@@ -6,21 +6,36 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import OfflineIndicator from "@/components/common/OfflineIndicator";
-import Index from "./pages/Index";
-import NotFound from "./pages/NotFound";
-import Auth from "./pages/Auth";
-import Manager from "./pages/Manager";
-import Payments from "./pages/Payments";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
+import { lazy, Suspense } from "react";
+
+const Index = lazy(() => import("./pages/Index"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const Auth = lazy(() => import("./pages/Auth"));
+const Manager = lazy(() => import("./pages/Manager"));
+const Payments = lazy(() => import("./pages/Payments"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: 2,
-      staleTime: 1000 * 60 * 5, // 5 minutes
+      staleTime: 1000 * 60 * 5,
       refetchOnWindowFocus: false,
     },
   },
 });
+
+const RouteFallback = () => (
+  <div className="min-h-screen flex items-center justify-center">
+    <LoadingSpinner />
+  </div>
+);
+
+const wrap = (node: React.ReactNode) => (
+  <ErrorBoundary>
+    <Suspense fallback={<RouteFallback />}>{node}</Suspense>
+  </ErrorBoundary>
+);
 
 const App = () => (
   <ErrorBoundary>
@@ -32,12 +47,12 @@ const App = () => (
           <Sonner />
           <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
             <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/manager" element={<Manager />} />
-              <Route path="/payments" element={<Payments />} />
+              <Route path="/" element={wrap(<Index />)} />
+              <Route path="/auth" element={wrap(<Auth />)} />
+              <Route path="/manager" element={wrap(<Manager />)} />
+              <Route path="/payments" element={wrap(<Payments />)} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
+              <Route path="*" element={wrap(<NotFound />)} />
             </Routes>
           </BrowserRouter>
         </TooltipProvider>
