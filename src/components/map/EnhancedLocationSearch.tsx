@@ -170,19 +170,24 @@ export default function EnhancedLocationSearch({
 
   const getCurrentLocation = () => {
     if (!navigator.geolocation) return;
-    
+
     navigator.geolocation.getCurrentPosition(
       async (position) => {
-        const { latitude: lat, longitude: lng } = position.coords;
-        
-        // Reverse geocoding to get location name
+        const { latitude: lat, longitude: lng, accuracy } = position.coords;
+
+        // Reject low-quality fixes (likely Wi-Fi/IP-based, can be miles off)
+        if (accuracy && accuracy > 500) {
+          console.warn(`Rejected low-accuracy fix: ±${Math.round(accuracy)}m`);
+          alert(`Your GPS fix is only accurate to ±${Math.round(accuracy)}m. Move outdoors with a clear sky view and try again.`);
+          return;
+        }
+
         try {
           const response = await fetch(
             `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`
           );
           const data = await response.json();
           const label = data.display_name?.split(',').slice(0, 3).join(', ') || 'Current Location';
-          
           handleSelectLocation({ lat, lng, label });
         } catch (error) {
           handleSelectLocation({ lat, lng, label: 'Current Location' });
@@ -190,7 +195,8 @@ export default function EnhancedLocationSearch({
       },
       (error) => {
         console.error('Location error:', error);
-      }
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
     );
   };
 
