@@ -35,6 +35,7 @@ import AdminPanel from "@/components/admin/AdminPanel";
 import NotificationCenter from "@/components/common/NotificationCenter";
 import AccuracySparkline, { type AccuracyPoint } from "@/components/common/AccuracySparkline";
 import GpsAccuracyTest from "@/components/common/GpsAccuracyTest";
+import GpsTroubleshooter from "@/components/common/GpsTroubleshooter";
 import { useAuth } from "@/contexts/AuthContext";
 import { useStations } from "@/hooks/useStations";
 import { useProfile } from "@/hooks/useProfile";
@@ -82,7 +83,7 @@ import { classifyGpsAccuracy, gpsToneClasses } from "@/lib/gpsQuality";
 
 export default function Index() {
   const { user, signOut } = useAuth();
-  const { stations: dbStations, loading: stationsLoading } = useStations();
+  const { stations: dbStations, loading: stationsLoading, isStale: stationsStale, cacheMeta: stationsCacheMeta } = useStations();
   const { profile, toggleFavoriteStation, isFavorite } = useProfile();
   const { position, accuracy, requestLocation, watchLocation } = useGeolocation(true, true);
   const { roles, hasRole, canManageStations, canDrive, canRequestRides } = useRoles();
@@ -508,6 +509,7 @@ export default function Index() {
     }
   };
   const [gpsTestOpen, setGpsTestOpen] = useState(false);
+  const [gpsTroubleshooterOpen, setGpsTroubleshooterOpen] = useState(false);
   useEffect(() => {
     if (locationSource !== 'gps' || accuracy === null) return;
     if (accuracy <= 500) {
@@ -701,12 +703,20 @@ export default function Index() {
                 {gpsQuality.label} GPS accuracy · ±{Math.round(accuracy!)}m
               </div>
               <div className="opacity-90 leading-snug">{gpsQuality.hint}</div>
-              <button
-                onClick={() => setShowSearch(true)}
-                className="mt-1 underline underline-offset-2 font-medium"
-              >
-                Search address manually
-              </button>
+              <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
+                <button
+                  onClick={() => setShowSearch(true)}
+                  className="underline underline-offset-2 font-medium"
+                >
+                  Search address manually
+                </button>
+                <button
+                  onClick={() => setGpsTroubleshooterOpen(true)}
+                  className="underline underline-offset-2 font-medium"
+                >
+                  Fix my GPS
+                </button>
+              </div>
             </div>
             <button
               onClick={dismissAccuracyBanner}
@@ -715,6 +725,23 @@ export default function Index() {
             >
               <X className="h-3.5 w-3.5" />
             </button>
+          </div>
+        )}
+
+        {/* Offline / stale data banner */}
+        {stationsStale && stationsCacheMeta && (
+          <div
+            className="mt-2 flex items-start gap-2 rounded-xl border border-amber-300/50 bg-amber-50/90 dark:bg-amber-950/40 dark:border-amber-800/60 px-3 py-2 shadow-md backdrop-blur-md text-xs text-amber-900 dark:text-amber-100"
+            role="status"
+          >
+            <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <div className="font-semibold">Showing offline cache</div>
+              <div className="opacity-90 leading-snug">
+                Last updated {new Date(stationsCacheMeta.cachedAt).toLocaleString()}. Fuel
+                availability may have changed.
+              </div>
+            </div>
           </div>
         )}
       </header>
@@ -1281,6 +1308,21 @@ export default function Index() {
 
       {/* GPS accuracy test modal */}
       <GpsAccuracyTest open={gpsTestOpen} onClose={() => setGpsTestOpen(false)} />
+
+      {/* GPS troubleshooter */}
+      <GpsTroubleshooter
+        open={gpsTroubleshooterOpen}
+        onClose={() => setGpsTroubleshooterOpen(false)}
+        onRetry={requestLocation}
+        accuracy={accuracy}
+        reason={
+          accuracy !== null && accuracy > 500
+            ? 'low-accuracy'
+            : !position
+              ? 'unavailable'
+              : null
+        }
+      />
 
       {/* ── BOTTOM TAB NAV (always on top) ──────────────────────────────── */}
       <AppBottomNav active={activeTab} onChange={setActiveTab} />
