@@ -33,30 +33,52 @@ export function useGeolocation(enableHighAccuracy = true, autoRequest = false) {
 
     const options: PositionOptions = {
       enableHighAccuracy,
-      timeout: 15000,
-      maximumAge: 0 // Always get fresh position
+      timeout: 20000,
+      maximumAge: 0
     };
 
-    navigator.geolocation.getCurrentPosition(
+    // Use watchPosition rather than getCurrentPosition: the first fix from the
+    // browser is often a coarse Wi-Fi/IP estimate that can place you in a
+    // completely different neighborhood. We progressively upgrade to a real GPS
+    // fix as it arrives, then stop watching.
+    let bestAccuracy = Infinity;
+    let toastShown = false;
+    let resolved = false;
+
+    const watchId = navigator.geolocation.watchPosition(
       (position) => {
+        const acc = position.coords.accuracy;
+
+        // Reject obviously bad first samples (>1km — almost certainly IP-based)
+        if (acc > 1000 && bestAccuracy === Infinity) {
+          console.warn(`Ignoring coarse fix ±${Math.round(acc)}m, waiting for GPS…`);
+          return;
+        }
+
+        if (acc >= bestAccuracy) return;
+        bestAccuracy = acc;
+
         setState({
           position,
           error: null,
           loading: false,
-          accuracy: position.coords.accuracy
+          accuracy: acc
         });
-        toast({
-          title: 'Location Found',
-          description: 'Successfully retrieved your location.'
-        });
+
+        if (acc <= 50 && !resolved) {
+          resolved = true;
+          navigator.geolocation.clearWatch(watchId);
+          if (!toastShown) {
+            toastShown = true;
+            toast({
+              title: 'Location Found',
+              description: `Accurate to ±${Math.round(acc)}m.`
+            });
+          }
+        }
       },
       (error) => {
-        setState(prev => ({
-          ...prev,
-          error,
-          loading: false
-        }));
-
+        setState(prev => ({ ...prev, error, loading: false }));
         let message = 'Failed to get your location.';
         switch (error.code) {
           case error.PERMISSION_DENIED:
@@ -69,15 +91,27 @@ export function useGeolocation(enableHighAccuracy = true, autoRequest = false) {
             message = 'Location request timed out. Please try again.';
             break;
         }
-
-        toast({
-          title: 'Location Error',
-          description: message,
-          variant: 'destructive'
-        });
+        toast({ title: 'Location Error', description: message, variant: 'destructive' });
       },
       options
     );
+
+    // Hard stop after 30s — keep whatever best fix we got
+    setTimeout(() => {
+      if (!resolved) {
+        navigator.geolocation.clearWatch(watchId);
+        if (bestAccuracy === Infinity) {
+          setState(prev => ({ ...prev, loading: false }));
+        } else if (!toastShown) {
+          toastShown = true;
+          toast({
+            title: 'GPS still warming up',
+            description: `Best fix so far: ±${Math.round(bestAccuracy)}m. Move outdoors or search your address manually.`,
+            variant: 'destructive'
+          });
+        }
+      }
+    }, 30000);
   }, [enableHighAccuracy]);
 
   // Auto-request location on mount if enabled
