@@ -30,16 +30,19 @@ export function useDriverLocation(isActive: boolean) {
     // Start watching position
     watchIdRef.current = navigator.geolocation.watchPosition(
       async (position) => {
-        const { latitude, longitude } = position.coords;
-        
-        // Update driver location in database
+        const { latitude, longitude, accuracy } = position.coords;
+
+        // Skip low-quality fixes — these are usually Wi-Fi/IP-based and can place
+        // you in a completely different neighborhood (e.g. Helen Kaunda when you're not).
+        if (accuracy && accuracy > 200) {
+          console.warn(`Skipping driver location update: accuracy ±${Math.round(accuracy)}m`);
+          return;
+        }
+
         const { error } = await supabase
           .from('driver_profiles')
           .update({
-            current_location: {
-              lat: latitude,
-              lng: longitude
-            }
+            current_location: { lat: latitude, lng: longitude }
           })
           .eq('user_id', user.id);
 
@@ -57,8 +60,8 @@ export function useDriverLocation(isActive: boolean) {
       },
       {
         enableHighAccuracy: true,
-        maximumAge: 10000, // Accept cached position up to 10 seconds old
-        timeout: 5000
+        maximumAge: 0, // Never use cached position — always get a fresh GPS fix
+        timeout: 15000
       }
     );
 
