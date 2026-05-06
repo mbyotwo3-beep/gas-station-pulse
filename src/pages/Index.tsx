@@ -703,12 +703,20 @@ export default function Index() {
                 {gpsQuality.label} GPS accuracy · ±{Math.round(accuracy!)}m
               </div>
               <div className="opacity-90 leading-snug">{gpsQuality.hint}</div>
-              <button
-                onClick={() => setShowSearch(true)}
-                className="mt-1 underline underline-offset-2 font-medium"
-              >
-                Search address manually
-              </button>
+              <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
+                <button
+                  onClick={() => setShowSearch(true)}
+                  className="underline underline-offset-2 font-medium"
+                >
+                  Search address manually
+                </button>
+                <button
+                  onClick={() => setGpsTroubleshooterOpen(true)}
+                  className="underline underline-offset-2 font-medium"
+                >
+                  Fix my GPS
+                </button>
+              </div>
             </div>
             <button
               onClick={dismissAccuracyBanner}
