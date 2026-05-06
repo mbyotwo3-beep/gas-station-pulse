@@ -35,6 +35,7 @@ import AdminPanel from "@/components/admin/AdminPanel";
 import NotificationCenter from "@/components/common/NotificationCenter";
 import AccuracySparkline, { type AccuracyPoint } from "@/components/common/AccuracySparkline";
 import GpsAccuracyTest from "@/components/common/GpsAccuracyTest";
+import GpsTroubleshooter from "@/components/common/GpsTroubleshooter";
 import { useAuth } from "@/contexts/AuthContext";
 import { useStations } from "@/hooks/useStations";
 import { useProfile } from "@/hooks/useProfile";
