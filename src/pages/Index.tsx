@@ -83,7 +83,7 @@ import { classifyGpsAccuracy, gpsToneClasses } from "@/lib/gpsQuality";
 
 export default function Index() {
   const { user, signOut } = useAuth();
-  const { stations: dbStations, loading: stationsLoading } = useStations();
+  const { stations: dbStations, loading: stationsLoading, isStale: stationsStale, cacheMeta: stationsCacheMeta } = useStations();
   const { profile, toggleFavoriteStation, isFavorite } = useProfile();
   const { position, accuracy, requestLocation, watchLocation } = useGeolocation(true, true);
   const { roles, hasRole, canManageStations, canDrive, canRequestRides } = useRoles();
