@@ -45,12 +45,16 @@ export default function LocationSearch({ onSelectLocation, className }: Location
     }
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        const { latitude, longitude } = pos.coords;
+        const { latitude, longitude, accuracy } = pos.coords;
+        if (accuracy && accuracy > 500) {
+          toast({ title: "GPS too imprecise", description: `Accurate only to ±${Math.round(accuracy)}m. Move outdoors and try again.` });
+          return;
+        }
         onSelectLocation({ lat: latitude, lng: longitude, label: "My location" });
         setResults([]);
       },
       () => toast({ title: "Location error", description: "Could not get your location." }),
-      { enableHighAccuracy: true, timeout: 10000 }
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
     );
   };
 
