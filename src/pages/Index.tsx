@@ -727,6 +727,23 @@ export default function Index() {
             </button>
           </div>
         )}
+
+        {/* Offline / stale data banner */}
+        {stationsStale && stationsCacheMeta && (
+          <div
+            className="mt-2 flex items-start gap-2 rounded-xl border border-amber-300/50 bg-amber-50/90 dark:bg-amber-950/40 dark:border-amber-800/60 px-3 py-2 shadow-md backdrop-blur-md text-xs text-amber-900 dark:text-amber-100"
+            role="status"
+          >
+            <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <div className="font-semibold">Showing offline cache</div>
+              <div className="opacity-90 leading-snug">
+                Last updated {new Date(stationsCacheMeta.cachedAt).toLocaleString()}. Fuel
+                availability may have changed.
+              </div>
+            </div>
+          </div>
+        )}
       </header>
 
       {/* ── FULL-SCREEN MAP (for fuel + rides) ──────────────────────────── */}
