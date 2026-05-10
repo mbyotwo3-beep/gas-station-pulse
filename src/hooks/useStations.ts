@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
@@ -21,6 +21,7 @@ export interface Station {
 
 const CACHE_KEY = 'ff_stations_cache_v1';
 const CACHE_META_KEY = 'ff_stations_cache_meta_v1';
+const FETCH_TIMEOUT_MS = 12000;
 
 interface CacheMeta {
   cachedAt: number;
@@ -56,23 +57,29 @@ function writeCache(stations: Station[]) {
 export function useStations() {
   // Hydrate immediately from cache so the app is useful offline / on slow networks
   const initial = readCache();
+  const startsOffline = typeof navigator !== 'undefined' && !navigator.onLine;
   const [stations, setStations] = useState<Station[]>(initial.stations);
   const [loading, setLoading] = useState(initial.stations.length === 0);
-  const [isStale, setIsStale] = useState(initial.stations.length > 0);
+  const [isStale, setIsStale] = useState(initial.stations.length > 0 && startsOffline);
   const [cacheMeta, setCacheMeta] = useState<CacheMeta | null>(initial.meta);
 
-  const fetchStations = async () => {
+  const fetchStations = useCallback(async () => {
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+
     try {
       const { data: stationsData, error: stationsError } = await supabase
         .from('stations')
-        .select('*');
+        .select('*')
+        .abortSignal(controller.signal);
 
       if (stationsError) throw stationsError;
 
       const { data: reports, error: reportsError } = await supabase
         .from('station_reports')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .abortSignal(controller.signal);
 
       if (reportsError) throw reportsError;
 
@@ -129,9 +136,10 @@ export function useStations() {
         });
       }
     } finally {
+      window.clearTimeout(timeoutId);
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchStations();
@@ -154,7 +162,7 @@ export function useStations() {
       supabase.removeChannel(stationsChannel);
       window.removeEventListener('online', onOnline);
     };
-  }, []);
+  }, [fetchStations]);
 
   return { stations, loading, refetch: fetchStations, isStale, cacheMeta };
 }
