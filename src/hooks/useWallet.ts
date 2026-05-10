@@ -68,19 +68,7 @@ export const useWallet = () => {
       return { success: false, error: error.message };
     }
 
-    // Create transaction record
-    await supabase.from('transactions').insert({
-      user_id: user.id,
-      transaction_type: 'top_up',
-      service_type: 'ride',
-      amount,
-      currency: 'USD',
-      status: 'completed',
-      payment_method_id: paymentMethodId,
-      description: `Wallet top-up - $${amount.toFixed(2)}`,
-      completed_at: new Date().toISOString()
-    });
-
+    // Transaction record is created inside the SECURITY DEFINER function
     await fetchWallet();
     return { success: true };
   };

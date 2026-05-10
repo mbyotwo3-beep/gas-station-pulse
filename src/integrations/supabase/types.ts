@@ -1053,6 +1053,20 @@ export type Database = {
         Args: { p_amount: number; p_user_id: string }
         Returns: boolean
       }
+      get_safe_driver_profile: {
+        Args: { _driver_id: string }
+        Returns: {
+          current_location: Json
+          is_active: boolean
+          rating: number
+          total_rides: number
+          user_id: string
+          vehicle_make: string
+          vehicle_model: string
+          vehicle_type: string
+          verification_status: string
+        }[]
+      }
       get_safe_profile: {
         Args: { profile_id: string }
         Returns: {
