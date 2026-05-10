@@ -8,6 +8,10 @@ export interface GeolocationState {
   accuracy: number | null;
 }
 
+const ACCEPT_ACCURACY_M = 500;
+const DISCARD_ACCURACY_M = 2000;
+const GPS_LOCK_TIMEOUT_MS = 30000;
+
 export function useGeolocation(enableHighAccuracy = true, autoRequest = false) {
   const [state, setState] = useState<GeolocationState>({
     position: null,
@@ -18,6 +22,7 @@ export function useGeolocation(enableHighAccuracy = true, autoRequest = false) {
   const hasAutoRequested = useRef(false);
   const activeWatchId = useRef<number | null>(null);
   const activeTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const trackingWatchId = useRef<number | null>(null);
 
   const stopActiveWatch = useCallback(() => {
     if (activeWatchId.current !== null) {
@@ -29,6 +34,87 @@ export function useGeolocation(enableHighAccuracy = true, autoRequest = false) {
       activeTimeout.current = null;
     }
   }, []);
+
+  const stopTrackingWatch = useCallback(() => {
+    if (trackingWatchId.current !== null) {
+      navigator.geolocation.clearWatch(trackingWatchId.current);
+      trackingWatchId.current = null;
+    }
+  }, []);
+
+  const applyTrustedPosition = useCallback((position: GeolocationPosition) => {
+    const incomingAcc = position.coords.accuracy;
+
+    setState(prev => {
+      if (incomingAcc > DISCARD_ACCURACY_M && !prev.position) {
+        return {
+          ...prev,
+          accuracy: incomingAcc,
+          error: null,
+        };
+      }
+
+      if (incomingAcc > ACCEPT_ACCURACY_M) {
+        if (prev.position && prev.accuracy !== null && prev.accuracy <= ACCEPT_ACCURACY_M) {
+          return prev;
+        }
+
+        const nextAccuracy = prev.accuracy === null ? incomingAcc : Math.min(prev.accuracy, incomingAcc);
+        return {
+          ...prev,
+          accuracy: nextAccuracy,
+          error: null,
+        };
+      }
+
+      if (prev.accuracy !== null && prev.position) {
+        const prevAcc = prev.accuracy;
+        const age = position.timestamp - (prev.position.timestamp ?? 0);
+        const tighter = incomingAcc <= prevAcc;
+        const stale = age > 8000;
+        const marginallyWorse = incomingAcc <= prevAcc * 1.25;
+
+        if (!tighter && !stale && !marginallyWorse) {
+          return prev;
+        }
+      }
+
+      return {
+        ...prev,
+        position,
+        accuracy: incomingAcc,
+        error: null,
+        loading: false,
+      };
+    });
+  }, []);
+
+  const watchLocation = useCallback(() => {
+    if (!navigator.geolocation) return null;
+
+    stopTrackingWatch();
+
+    const options: PositionOptions = {
+      enableHighAccuracy,
+      timeout: 15000,
+      maximumAge: 0
+    };
+
+    const watchId = navigator.geolocation.watchPosition(
+      applyTrustedPosition,
+      (error) => {
+        setState(prev => ({
+          ...prev,
+          error,
+          loading: false,
+        }));
+      },
+      options
+    );
+
+    trackingWatchId.current = watchId;
+    return watchId;
+  }, [applyTrustedPosition, enableHighAccuracy, stopTrackingWatch]);
 
   const requestLocation = useCallback(() => {
     if (!navigator.geolocation) {
@@ -42,47 +128,44 @@ export function useGeolocation(enableHighAccuracy = true, autoRequest = false) {
       return;
     }
 
-    // Cancel any in-flight retry before starting a new one
     stopActiveWatch();
+    stopTrackingWatch();
 
-    setState(prev => ({ ...prev, loading: true, error: null }));
+    setState({ position: null, error: null, loading: true, accuracy: null });
 
     const options: PositionOptions = {
       enableHighAccuracy,
-      timeout: 20000,
+      timeout: 15000,
       maximumAge: 0
     };
 
-    // Acceptance threshold — when we hit this we consider the fix usable and stop.
-    const ACCEPT_ACCURACY_M = 500;
-
+    let bestPosition: GeolocationPosition | null = null;
     let bestAccuracy = Infinity;
     let toastShown = false;
     let resolved = false;
+
+    const finishWithTracking = () => {
+      stopActiveWatch();
+      watchLocation();
+    };
 
     const watchId = navigator.geolocation.watchPosition(
       (position) => {
         const acc = position.coords.accuracy;
 
-        // Reject obviously bad first samples (>2km — almost certainly IP-based)
-        if (acc > 2000 && bestAccuracy === Infinity) {
-          console.warn(`Ignoring coarse fix ±${Math.round(acc)}m, waiting for GPS…`);
+        if (acc > DISCARD_ACCURACY_M && bestAccuracy === Infinity) {
+          setState(prev => ({ ...prev, accuracy: acc, error: null }));
           return;
         }
 
         if (acc >= bestAccuracy) return;
         bestAccuracy = acc;
+        bestPosition = position;
 
-        setState({
-          position,
-          error: null,
-          loading: false,
-          accuracy: acc
-        });
-
-        if (acc <= ACCEPT_ACCURACY_M && !resolved) {
+        if (acc <= ACCEPT_ACCURACY_M) {
           resolved = true;
-          stopActiveWatch();
+          applyTrustedPosition(position);
+          finishWithTracking();
           if (!toastShown) {
             toastShown = true;
             toast({
@@ -90,10 +173,16 @@ export function useGeolocation(enableHighAccuracy = true, autoRequest = false) {
               description: `Accurate to ±${Math.round(acc)}m.`
             });
           }
+        } else {
+          setState(prev => ({
+            ...prev,
+            accuracy: acc,
+            error: null,
+            loading: true,
+          }));
         }
       },
       (error) => {
-        // Don't kill the loading state on transient errors — the watch keeps trying.
         let message = 'Failed to get your location.';
         switch (error.code) {
           case error.PERMISSION_DENIED:
@@ -103,11 +192,10 @@ export function useGeolocation(enableHighAccuracy = true, autoRequest = false) {
             toast({ title: 'Location Error', description: message, variant: 'destructive' });
             break;
           case error.POSITION_UNAVAILABLE:
-            message = 'Location information is unavailable.';
-            console.warn(message);
+            console.warn('Location information is unavailable; GPS is still retrying…');
             break;
           case error.TIMEOUT:
-            console.warn('Geolocation watch timed out, still trying…');
+            console.warn('Geolocation watch timed out; GPS is still retrying…');
             break;
         }
       },
@@ -116,36 +204,35 @@ export function useGeolocation(enableHighAccuracy = true, autoRequest = false) {
 
     activeWatchId.current = watchId;
 
-    // Hard stop after 30s — keep whatever best fix we got
     activeTimeout.current = setTimeout(() => {
       if (!resolved) {
-        stopActiveWatch();
-        if (bestAccuracy === Infinity) {
-          setState(prev => ({ ...prev, loading: false }));
-          if (!toastShown) {
-            toastShown = true;
-            toast({
-              title: 'GPS lock failed',
-              description: 'Could not get a location fix. Move outdoors or search your address manually.',
-              variant: 'destructive'
-            });
-          }
-        } else if (!toastShown) {
+        finishWithTracking();
+        setState(prev => ({ ...prev, loading: false }));
+
+        if (bestPosition && bestAccuracy <= ACCEPT_ACCURACY_M) {
+          applyTrustedPosition(bestPosition);
+          return;
+        }
+
+        if (!toastShown) {
           toastShown = true;
           toast({
-            title: 'GPS still warming up',
-            description: `Best fix so far: ±${Math.round(bestAccuracy)}m. Move outdoors or search your address manually.`,
+            title: bestAccuracy === Infinity ? 'GPS lock failed' : 'GPS still warming up',
+            description: bestAccuracy === Infinity
+              ? 'Could not get an accurate GPS fix. Move outdoors or search your address manually.'
+              : `Best fix so far: ±${Math.round(bestAccuracy)}m. Move outdoors or search your address manually.`,
             variant: 'destructive'
           });
         }
       }
-    }, 30000);
-  }, [enableHighAccuracy, stopActiveWatch]);
+    }, GPS_LOCK_TIMEOUT_MS);
+  }, [applyTrustedPosition, enableHighAccuracy, stopActiveWatch, stopTrackingWatch, watchLocation]);
 
-  // Cleanup any active watch when the hook unmounts
-  useEffect(() => () => stopActiveWatch(), [stopActiveWatch]);
+  useEffect(() => () => {
+    stopActiveWatch();
+    stopTrackingWatch();
+  }, [stopActiveWatch, stopTrackingWatch]);
 
-  // Auto-request location on mount if enabled
   useEffect(() => {
     if (autoRequest && !hasAutoRequested.current) {
       hasAutoRequested.current = true;
@@ -153,73 +240,17 @@ export function useGeolocation(enableHighAccuracy = true, autoRequest = false) {
     }
   }, [autoRequest, requestLocation]);
 
-  const watchLocation = useCallback(() => {
-    if (!navigator.geolocation) return null;
-
-    const options: PositionOptions = {
-      enableHighAccuracy,
-      timeout: 20000,
-      maximumAge: 0 // Always get fresh position for tracking
-    };
-
-    return navigator.geolocation.watchPosition(
-      (position) => {
-        setState(prev => {
-          const incomingAcc = position.coords.accuracy;
-          const prevAcc = prev.accuracy;
-          const prevTs = prev.position?.timestamp ?? 0;
-          const incomingTs = position.timestamp;
-
-          // Uber-style filtering:
-          // 1. Ignore impossibly bad first-fix samples (>2km) unless we have nothing.
-          // 2. If we already have a tighter fix, keep it unless:
-          //    - the new fix is tighter OR equal, OR
-          //    - the previous fix is older than 8s (stale), OR
-          //    - the new fix is only marginally worse (<1.5x) and recent.
-          if (prevAcc !== null && prev.position) {
-            const age = incomingTs - prevTs;
-            const tighter = incomingAcc <= prevAcc;
-            const stale = age > 8000;
-            const marginallyWorse = incomingAcc <= prevAcc * 1.5;
-
-            if (!tighter && !stale && !marginallyWorse) {
-              // Reject this noisy sample — keep the better fix we already have.
-              return prev;
-            }
-          } else if (incomingAcc > 2000) {
-            // First fix is garbage — wait for a better one.
-            return prev;
-          }
-
-          return {
-            ...prev,
-            position,
-            accuracy: incomingAcc,
-            error: null,
-            loading: false,
-          };
-        });
-      },
-      (error) => {
-        setState(prev => ({
-          ...prev,
-          error
-        }));
-      },
-      options
-    );
-  }, [enableHighAccuracy]);
-
   const clearLocation = useCallback(() => {
+    stopActiveWatch();
+    stopTrackingWatch();
     setState({
       position: null,
       error: null,
       loading: false,
       accuracy: null
     });
-  }, []);
+  }, [stopActiveWatch, stopTrackingWatch]);
 
-  // Default to Lusaka, Zambia if no location is available
   const getLocationOrDefault = useCallback(() => {
     if (state.position) {
       return {
@@ -230,15 +261,14 @@ export function useGeolocation(enableHighAccuracy = true, autoRequest = false) {
     }
     
     return {
-      lat: -15.3875, // Lusaka coordinates
+      lat: -15.3875,
       lng: 28.3228,
       label: 'Lusaka, Zambia'
     };
   }, [state.position]);
 
-  // Calculate distance between two points using Haversine formula
   const calculateDistance = useCallback((lat1: number, lng1: number, lat2: number, lng2: number) => {
-    const R = 6371; // Earth's radius in kilometers
+    const R = 6371;
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLng = (lng2 - lng1) * Math.PI / 180;
     const a = 
