@@ -16,6 +16,19 @@ export function useGeolocation(enableHighAccuracy = true, autoRequest = false) {
     accuracy: null
   });
   const hasAutoRequested = useRef(false);
+  const activeWatchId = useRef<number | null>(null);
+  const activeTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const stopActiveWatch = useCallback(() => {
+    if (activeWatchId.current !== null) {
+      navigator.geolocation.clearWatch(activeWatchId.current);
+      activeWatchId.current = null;
+    }
+    if (activeTimeout.current !== null) {
+      clearTimeout(activeTimeout.current);
+      activeTimeout.current = null;
+    }
+  }, []);
 
   const requestLocation = useCallback(() => {
     if (!navigator.geolocation) {
@@ -29,6 +42,9 @@ export function useGeolocation(enableHighAccuracy = true, autoRequest = false) {
       return;
     }
 
+    // Cancel any in-flight retry before starting a new one
+    stopActiveWatch();
+
     setState(prev => ({ ...prev, loading: true, error: null }));
 
     const options: PositionOptions = {
@@ -37,10 +53,9 @@ export function useGeolocation(enableHighAccuracy = true, autoRequest = false) {
       maximumAge: 0
     };
 
-    // Use watchPosition rather than getCurrentPosition: the first fix from the
-    // browser is often a coarse Wi-Fi/IP estimate that can place you in a
-    // completely different neighborhood. We progressively upgrade to a real GPS
-    // fix as it arrives, then stop watching.
+    // Acceptance threshold — when we hit this we consider the fix usable and stop.
+    const ACCEPT_ACCURACY_M = 500;
+
     let bestAccuracy = Infinity;
     let toastShown = false;
     let resolved = false;
@@ -49,8 +64,8 @@ export function useGeolocation(enableHighAccuracy = true, autoRequest = false) {
       (position) => {
         const acc = position.coords.accuracy;
 
-        // Reject obviously bad first samples (>1km — almost certainly IP-based)
-        if (acc > 1000 && bestAccuracy === Infinity) {
+        // Reject obviously bad first samples (>2km — almost certainly IP-based)
+        if (acc > 2000 && bestAccuracy === Infinity) {
           console.warn(`Ignoring coarse fix ±${Math.round(acc)}m, waiting for GPS…`);
           return;
         }
@@ -65,9 +80,9 @@ export function useGeolocation(enableHighAccuracy = true, autoRequest = false) {
           accuracy: acc
         });
 
-        if (acc <= 50 && !resolved) {
+        if (acc <= ACCEPT_ACCURACY_M && !resolved) {
           resolved = true;
-          navigator.geolocation.clearWatch(watchId);
+          stopActiveWatch();
           if (!toastShown) {
             toastShown = true;
             toast({
@@ -78,30 +93,43 @@ export function useGeolocation(enableHighAccuracy = true, autoRequest = false) {
         }
       },
       (error) => {
-        setState(prev => ({ ...prev, error, loading: false }));
+        // Don't kill the loading state on transient errors — the watch keeps trying.
         let message = 'Failed to get your location.';
         switch (error.code) {
           case error.PERMISSION_DENIED:
             message = 'Location access denied. Please enable location permissions.';
+            stopActiveWatch();
+            setState(prev => ({ ...prev, error, loading: false }));
+            toast({ title: 'Location Error', description: message, variant: 'destructive' });
             break;
           case error.POSITION_UNAVAILABLE:
             message = 'Location information is unavailable.';
+            console.warn(message);
             break;
           case error.TIMEOUT:
-            message = 'Location request timed out. Please try again.';
+            console.warn('Geolocation watch timed out, still trying…');
             break;
         }
-        toast({ title: 'Location Error', description: message, variant: 'destructive' });
       },
       options
     );
 
+    activeWatchId.current = watchId;
+
     // Hard stop after 30s — keep whatever best fix we got
-    setTimeout(() => {
+    activeTimeout.current = setTimeout(() => {
       if (!resolved) {
-        navigator.geolocation.clearWatch(watchId);
+        stopActiveWatch();
         if (bestAccuracy === Infinity) {
           setState(prev => ({ ...prev, loading: false }));
+          if (!toastShown) {
+            toastShown = true;
+            toast({
+              title: 'GPS lock failed',
+              description: 'Could not get a location fix. Move outdoors or search your address manually.',
+              variant: 'destructive'
+            });
+          }
         } else if (!toastShown) {
           toastShown = true;
           toast({
@@ -112,7 +140,10 @@ export function useGeolocation(enableHighAccuracy = true, autoRequest = false) {
         }
       }
     }, 30000);
-  }, [enableHighAccuracy]);
+  }, [enableHighAccuracy, stopActiveWatch]);
+
+  // Cleanup any active watch when the hook unmounts
+  useEffect(() => () => stopActiveWatch(), [stopActiveWatch]);
 
   // Auto-request location on mount if enabled
   useEffect(() => {
