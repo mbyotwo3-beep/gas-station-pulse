@@ -1087,10 +1087,20 @@ export default function Index() {
               )}
 
               {/* Station list */}
+              <NearestStations
+                stations={stations}
+                userLocation={userLocation}
+                accuracy={accuracy}
+                isLiveGps={locationSource === 'gps'}
+                selectedId={selectedStation?.id}
+                onSelect={handleStationSelect}
+              />
+
               <div>
                 <h3 className="text-xs uppercase font-semibold text-muted-foreground mb-2">
                   Nearby stations
                 </h3>
+
                 {filteredStations.length === 0 ? (
                   <Card className="p-6 text-center">
                     <p className="text-sm font-medium mb-1">No stations match</p>
