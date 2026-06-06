@@ -116,7 +116,7 @@ export default function Index() {
   const [showOptimizationSuggestions, setShowOptimizationSuggestions] = useState(false);
   const [filters, setFilters] = useState({
     status: ['available', 'low'] as Array<'available' | 'low' | 'out'>,
-    maxDistance: 10,
+    maxDistance: 50,
     priceRange: [0, 200] as [number, number],
     amenities: [] as string[],
     brands: [] as string[],
@@ -1114,7 +1114,7 @@ export default function Index() {
                       onClick={() =>
                         setFilters({
                           status: ['available', 'low'],
-                          maxDistance: 10,
+                          maxDistance: 50,
                           priceRange: [0, 200],
                           amenities: [],
                           brands: [],
@@ -1295,7 +1295,7 @@ export default function Index() {
         onClearFilters={() =>
           setFilters({
             status: ['available', 'low'],
-            maxDistance: 10,
+            maxDistance: 50,
             priceRange: [0, 200],
             amenities: [],
             brands: [],
