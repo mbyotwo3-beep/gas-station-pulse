@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import LeafletMap, { type LeafletMapHandle } from "@/components/map/LeafletMap";
 import RideShareMap from "@/components/rideshare/RideShareMap";
 import StationList from "@/components/StationList";
+import NearestStations from "@/components/NearestStations";
 import StationListSkeleton from "@/components/StationListSkeleton";
 import StationMapSkeleton from "@/components/StationMapSkeleton";
 import AdvancedFilters from "@/components/AdvancedFilters";
