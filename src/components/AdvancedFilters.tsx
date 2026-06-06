@@ -32,7 +32,7 @@ interface AdvancedFiltersProps {
 
 const defaultFilters: FilterOptions = {
   status: ['available', 'low'],
-  maxDistance: 10,
+  maxDistance: 50,
   priceRange: [0, 200],
   amenities: [],
   brands: [],
@@ -129,7 +129,7 @@ export default function AdvancedFilters({
                 <Slider
                   value={[localFilters.maxDistance]}
                   onValueChange={([value]) => updateFilter('maxDistance', value)}
-                  max={50}
+                  max={100}
                   min={1}
                   step={1}
                   className="w-full"
