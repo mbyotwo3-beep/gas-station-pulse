@@ -159,15 +159,19 @@ export default function Index() {
     }
   );
 
-  // Discover nearby filling stations from OpenStreetMap (free, live).
-  // Centers on the user's GPS position AND any manually focused location.
+  // Discover filling stations from OpenStreetMap (free, live).
+  // Always scans the entire Lusaka metro (≈30km from city center) so every fuel
+  // station in the city is detected, plus the user's GPS position and any
+  // manually focused location to cover users outside Lusaka.
   const { osmStations } = useOsmStations(
     [
+      { lat: -15.4167, lng: 28.2833 }, // Lusaka city center — always scanned
       position ? { lat: position.coords.latitude, lng: position.coords.longitude } : null,
       selectedLocation ? { lat: selectedLocation.lat, lng: selectedLocation.lng } : null,
     ],
-    10
+    30
   );
+
   const stations = mergeStations(dbStations, osmStations);
 
   const filteredStations = stations.filter(station => {

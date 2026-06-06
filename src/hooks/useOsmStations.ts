@@ -36,7 +36,7 @@ function buildQuery(centers: OsmCenter[], radiusM: number): string {
         `way["amenity"="fuel"](around:${radiusM},${c.lat},${c.lng});`
     )
     .join('');
-  return `[out:json][timeout:25];(${parts});out center tags;`;
+  return `[out:json][timeout:60];(${parts});out center tags;`;
 }
 
 function elementToStation(el: OverpassElement): Station | null {
