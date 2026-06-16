@@ -789,7 +789,7 @@ export default function Index() {
         >
           <div className="px-4 pb-6 max-w-2xl mx-auto">
             <div className="mb-5">
-              <h1 className="text-2xl font-bold">{tabMeta[activeTab].title}</h1>
+              <h2 className="text-2xl font-bold">{tabMeta[activeTab].title}</h2>
               <p className="text-sm text-muted-foreground">{tabMeta[activeTab].subtitle}</p>
             </div>
 
