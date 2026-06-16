@@ -582,6 +582,11 @@ export default function Index() {
     <div className="h-[100dvh] w-full bg-background relative overflow-hidden">
       <Toaster />
 
+      {/* Visually-hidden H1 so every view (including map) has a valid heading. */}
+      <h1 className="sr-only">FuelFinder Zambia – live fuel availability, rides, food and package delivery in Lusaka</h1>
+
+
+
       {/* ── SLIM TOP BAR ────────────────────────────────────────────────── */}
       <header
         className="absolute top-0 inset-x-0 z-50 px-3 pt-3"
@@ -766,6 +771,7 @@ export default function Index() {
             style={{ bottom: `calc(env(safe-area-inset-bottom) + 64px + 16px + 50dvh)` }}
             onClick={handleRecenterFab}
             title="Center on my location"
+            aria-label="Center map on my current location"
           >
             <LocateFixed className="h-5 w-5" />
           </Button>

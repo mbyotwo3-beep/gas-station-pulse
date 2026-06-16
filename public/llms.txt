@@ -1,0 +1,12 @@
+# FuelFinder Zambia
+
+> Real-time fuel availability, ride-share, food and package delivery for Lusaka and across Zambia. Station managers post live fuel status so drivers avoid wasted trips.
+
+FuelFinder shows live fuel availability on a map of Lusaka, lets passengers book verified drivers, and supports food orders, package delivery, and errands — all in one Progressive Web App.
+
+## Pages
+
+- [Home](/): Live fuel availability map, nearest stations, rides, food, packages and errands.
+- [Sign in / Sign up](/auth): Create an account as a passenger, driver, or station manager.
+- [Manager console](/manager): Station managers update fuel status (available, low, out) in real time.
+- [Payments](/payments): Wallet, top-ups, peer-to-peer transfers, payment methods and transaction history.

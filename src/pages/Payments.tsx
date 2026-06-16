@@ -9,6 +9,7 @@ import PaymentRequestDialog from '@/components/payment/PaymentRequestDialog';
 import PaymentRequestsList from '@/components/payment/PaymentRequestsList';
 import { useWallet } from '@/hooks/useWallet';
 import { CreditCard, History, Wallet, HandCoins } from 'lucide-react';
+import { usePageSeo } from '@/lib/seo';
 
 export default function Payments() {
   const [activeTab, setActiveTab] = useState('wallet');
@@ -16,6 +17,14 @@ export default function Payments() {
   const [showTransfer, setShowTransfer] = useState(false);
   const [showRequest, setShowRequest] = useState(false);
   const { balance, loading } = useWallet();
+
+  usePageSeo({
+    title: 'Payments & Wallet – FuelFinder',
+    description: 'Top up your wallet, send peer-to-peer transfers, manage payment methods and review your FuelFinder transaction history.',
+    path: '/payments',
+  });
+
+
 
   return (
     <div className="container max-w-5xl mx-auto py-8 px-4">

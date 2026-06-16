@@ -1,8 +1,15 @@
 import { useLocation } from "react-router-dom";
 import { useEffect } from "react";
+import { usePageSeo } from "@/lib/seo";
 
 const NotFound = () => {
   const location = useLocation();
+
+  usePageSeo({
+    title: "Page not found (404) – FuelFinder",
+    description: "The page you were looking for doesn't exist. Return to FuelFinder to find live fuel availability and rides near you.",
+    path: location.pathname,
+  });
 
   useEffect(() => {
     console.error(

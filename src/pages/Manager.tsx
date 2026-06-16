@@ -8,6 +8,7 @@ import { toast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import type { FuelStatus } from "@/components/StationCard";
+import { usePageSeo } from "@/lib/seo";
 
 export default function Manager() {
   const [email, setEmail] = useState("");
@@ -22,9 +23,15 @@ export default function Manager() {
   const [note, setNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    document.title = isAuthed ? "Manager Update - FuelFinder" : "Manager Login - FuelFinder";
+  usePageSeo({
+    title: isAuthed ? "Update fuel status – FuelFinder Manager" : "Manager sign in – FuelFinder",
+    description: isAuthed
+      ? "Post real-time fuel availability for your station so drivers in Lusaka know what's in stock right now."
+      : "Station managers sign in to post live fuel availability updates on FuelFinder Zambia.",
+    path: "/manager",
+  });
 
+  useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setIsAuthed(!!session?.user);
     });
@@ -34,7 +41,7 @@ export default function Manager() {
     });
 
     return () => subscription.unsubscribe();
-  }, [isAuthed]);
+  }, []);
 
   const onLogin = async (e: React.FormEvent) => {
     e.preventDefault();

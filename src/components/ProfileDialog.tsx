@@ -128,7 +128,7 @@ export default function ProfileDialog() {
                 <div className="flex items-center gap-4 mb-2">
                   <img 
                     src={avatarUrl} 
-                    alt="Avatar preview" 
+                    alt="Profile avatar preview image" 
                     className="w-16 h-16 rounded-full object-cover border-2 border-border"
                   />
                   <Button

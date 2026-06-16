@@ -9,6 +9,7 @@ import { Eye, EyeOff, Fuel, Car, Shield, User } from "lucide-react";
 import { signUpSchema, signInSchema } from "@/lib/validations";
 import ForgotPasswordDialog from "@/components/auth/ForgotPasswordDialog";
 import ResetPasswordForm from "@/components/auth/ResetPasswordForm";
+import { usePageSeo } from "@/lib/seo";
 
 export default function Auth() {
   const [searchParams] = useSearchParams();
@@ -25,12 +26,19 @@ export default function Auth() {
   const navigate = useNavigate();
   const { signUp, signIn } = useAuth();
 
+  const seoTitle = isResetMode
+    ? "Reset password – FuelFinder"
+    : isLogin
+      ? "Sign in – FuelFinder"
+      : "Create account – FuelFinder";
+  const seoDescription = isResetMode
+    ? "Reset your FuelFinder password to regain access to live fuel availability, rides, and payments in Zambia."
+    : isLogin
+      ? "Sign in to FuelFinder to track live fuel availability in Lusaka, book rides, and manage your wallet."
+      : "Create a FuelFinder account as a passenger, driver, or station manager to access live fuel updates and rides in Zambia.";
+  usePageSeo({ title: seoTitle, description: seoDescription, path: "/auth" });
+
   useEffect(() => {
-    document.title = isResetMode 
-      ? "Reset Password - FuelFinder" 
-      : isLogin 
-        ? "Sign In - FuelFinder" 
-        : "Sign Up - FuelFinder";
     setIsChecking(false);
   }, [isLogin, isResetMode]);
 
