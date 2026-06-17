@@ -144,12 +144,23 @@ export default function NearestStations({
                   </div>
                   <div className="flex items-center gap-3 text-[11px] mt-1">
                     <span className="flex items-center gap-1 text-primary font-medium">
-                      <Navigation className="h-3 w-3" />
+                      <Navigation className="h-3 w-3" aria-hidden="true" />
                       {formatDistance(distanceKm)}
                     </span>
-                    <span className="flex items-center gap-1 text-success">
-                      <Fuel className="h-3 w-3" />
-                      Available
+                    <span
+                      className={cn(
+                        "flex items-center gap-1 font-medium",
+                        station.status === "available" && "text-success",
+                        station.status === "low" && "text-warning",
+                        station.status === "out" && "text-destructive"
+                      )}
+                    >
+                      <Fuel className="h-3 w-3" aria-hidden="true" />
+                      {station.status === "available"
+                        ? "Available"
+                        : station.status === "low"
+                        ? "Low fuel"
+                        : "Out of fuel"}
                     </span>
                   </div>
                 </div>
@@ -157,6 +168,7 @@ export default function NearestStations({
                   size="sm"
                   variant={isClosest ? "default" : "outline"}
                   className="shrink-0 h-8"
+                  aria-label={`Navigate to ${station.name}`}
                   onClick={(e) => {
                     e.stopPropagation();
                     onSelect(station);
