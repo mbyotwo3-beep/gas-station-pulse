@@ -29,6 +29,14 @@ export function useSavedRoutes() {
   const fetchSavedRoutes = useCallback(async () => {
     setLoading(true);
     try {
+      // Skip the query entirely when the visitor isn't signed in —
+      // RLS would just return an empty list and a noisy toast.
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setSavedRoutes([]);
+        return;
+      }
+
       const { data, error } = await supabase
         .from('saved_routes')
         .select('*')
@@ -36,7 +44,6 @@ export function useSavedRoutes() {
 
       if (error) throw error;
 
-      // Type cast the JSONB fields
       const typedData = (data || []).map(route => ({
         ...route,
         start_location: route.start_location as unknown as SavedRoute['start_location'],
