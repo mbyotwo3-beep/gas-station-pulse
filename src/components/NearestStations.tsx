@@ -43,18 +43,32 @@ export default function NearestStations({
 }: NearestStationsProps) {
   const nearest = useMemo(() => {
     if (!userLocation) return [];
-    return stations
-      .filter((s) => s.status === "available")
-      .map((s) => ({ station: s, distanceKm: haversineKm(userLocation, { lat: s.lat, lng: s.lng }) }))
-      .sort((a, b) => a.distanceKm - b.distanceKm)
-      .slice(0, limit);
+    const ranked = stations
+      .map((s) => ({
+        station: s,
+        distanceKm: haversineKm(userLocation, { lat: s.lat, lng: s.lng }),
+      }))
+      .sort((a, b) => {
+        // Available first, then low, then out; tiebreak by distance.
+        const statusRank = (st: string) =>
+          st === "available" ? 0 : st === "low" ? 1 : 2;
+        const ra = statusRank(a.station.status);
+        const rb = statusRank(b.station.status);
+        if (ra !== rb) return ra - rb;
+        return a.distanceKm - b.distanceKm;
+      });
+
+    // Prefer available stations; only fall back to others if none nearby.
+    const available = ranked.filter((r) => r.station.status === "available");
+    const pool = available.length > 0 ? available : ranked;
+    return pool.slice(0, limit);
   }, [stations, userLocation, limit]);
 
   if (!userLocation) {
     return (
       <Card className="p-4 border-dashed bg-muted/30">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <MapPin className="h-4 w-4" />
+          <MapPin className="h-4 w-4" aria-hidden="true" />
           Enable location to see the nearest available stations.
         </div>
       </Card>
@@ -65,7 +79,7 @@ export default function NearestStations({
     return (
       <Card className="p-4 border-dashed bg-muted/30">
         <div className="text-sm text-muted-foreground">
-          No available fuel stations found nearby right now.
+          No fuel stations found nearby right now.
         </div>
       </Card>
     );
