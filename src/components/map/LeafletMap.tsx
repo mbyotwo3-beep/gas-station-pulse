@@ -182,6 +182,19 @@ const LeafletMap = forwardRef<LeafletMapHandle, LeafletMapProps>(function Leafle
         });
 
         mapRef.current = map;
+
+        // Ensure Leaflet recalculates dimensions after the container mounts
+        // and whenever it resizes (tab switching, sheet drag, viewport rotate).
+        requestAnimationFrame(() => map?.invalidateSize());
+        setTimeout(() => map?.invalidateSize(), 250);
+
+        if (containerRef.current && 'ResizeObserver' in window) {
+          const ro = new ResizeObserver(() => {
+            mapRef.current?.invalidateSize();
+          });
+          ro.observe(containerRef.current);
+          (mapRef.current as any).__ro = ro;
+        }
       }
     } catch (err: any) {
       console.error('LeafletMap init error', err);
@@ -190,6 +203,8 @@ const LeafletMap = forwardRef<LeafletMapHandle, LeafletMapProps>(function Leafle
 
     return () => {
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+      const ro = (mapRef.current as any)?.__ro as ResizeObserver | undefined;
+      if (ro) ro.disconnect();
       if (mapRef.current) {
         mapRef.current.remove();
         mapRef.current = null;
