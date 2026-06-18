@@ -1285,7 +1285,7 @@ export default function Index() {
             <h2 className="font-semibold flex items-center gap-2">
               <Shield className="h-5 w-5 text-primary" /> Admin
             </h2>
-            <Button size="icon" variant="ghost" onClick={() => setAdminOpen(false)}>
+            <Button size="icon" variant="ghost" onClick={() => setAdminOpen(false)} aria-label="Close admin panel">
               <X className="h-5 w-5" />
             </Button>
           </div>
