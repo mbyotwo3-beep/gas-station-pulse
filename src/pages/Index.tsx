@@ -631,6 +631,7 @@ export default function Index() {
                 className="h-11 w-11 rounded-full bg-background/95 backdrop-blur-md shadow-md"
                 onClick={() => (window.location.href = '/auth')}
                 title="Sign in"
+                aria-label="Sign in"
               >
                 <User className="h-4 w-4" />
               </Button>
@@ -957,6 +958,7 @@ export default function Index() {
                       variant="ghost"
                       onClick={() => setSelectedStation(null)}
                       className="w-7 h-7 -mt-1 -mr-1"
+                      aria-label="Close station details"
                     >
                       <X className="h-4 w-4" />
                     </Button>
@@ -1207,6 +1209,7 @@ export default function Index() {
               variant="ghost"
               onClick={() => setShowSearch(false)}
               className="rounded-full"
+              aria-label="Close search"
             >
               <X className="h-5 w-5" />
             </Button>
@@ -1262,7 +1265,7 @@ export default function Index() {
         <div className="fixed inset-0 z-[70] bg-background/95 backdrop-blur-md animate-fade-in" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
           <div className="px-4 pt-3 pb-4 border-b flex items-center justify-between gap-2">
             <h2 className="font-semibold">Add a stop</h2>
-            <Button size="icon" variant="ghost" onClick={() => setAddingWaypoint(false)}>
+            <Button size="icon" variant="ghost" onClick={() => setAddingWaypoint(false)} aria-label="Close add stop">
               <X className="h-5 w-5" />
             </Button>
           </div>
@@ -1282,7 +1285,7 @@ export default function Index() {
             <h2 className="font-semibold flex items-center gap-2">
               <Shield className="h-5 w-5 text-primary" /> Admin
             </h2>
-            <Button size="icon" variant="ghost" onClick={() => setAdminOpen(false)}>
+            <Button size="icon" variant="ghost" onClick={() => setAdminOpen(false)} aria-label="Close admin panel">
               <X className="h-5 w-5" />
             </Button>
           </div>

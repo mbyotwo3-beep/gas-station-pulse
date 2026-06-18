@@ -94,7 +94,7 @@ export default function AdvancedFilters({
               <Filter className="h-5 w-5" />
               Advanced Filters
             </CardTitle>
-            <Button variant="ghost" size="icon" onClick={onClose}>
+            <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close filters">
               <X className="h-4 w-4" />
             </Button>
           </CardHeader>

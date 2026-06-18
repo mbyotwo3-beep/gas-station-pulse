@@ -218,6 +218,7 @@ export default function EnhancedLocationSearch({
             variant="ghost"
             size="icon"
             className="absolute right-12 top-1/2 transform -translate-y-1/2 h-8 w-8"
+            aria-label="Clear search"
             onClick={() => {
               setQuery('');
               setResults([]);
@@ -323,6 +324,7 @@ export default function EnhancedLocationSearch({
                     variant="ghost"
                     size="icon"
                     className="h-6 w-6 flex-shrink-0"
+                    aria-label="Remove from history"
                     onMouseDown={(e) => {
                       e.stopPropagation();
                       removeHistoryItem(item.id);

@@ -348,8 +348,9 @@ export default function PassengerDashboard() {
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Maximum Fare (optional)</Label>
+              <Label htmlFor="max-fare">Maximum Fare (optional)</Label>
               <Input 
+                id="max-fare"
                 type="number"
                 value={maxFare}
                 onChange={(e) => setMaxFare(e.target.value)}
@@ -364,8 +365,9 @@ export default function PassengerDashboard() {
               )}
             </div>
             <div className="space-y-2">
-              <Label>Number of Passengers</Label>
+              <Label htmlFor="passenger-count">Number of Passengers</Label>
               <Input 
+                id="passenger-count"
                 type="number"
                 value={passengerCount}
                 onChange={(e) => setPassengerCount(parseInt(e.target.value) || 1)}
