@@ -564,6 +564,9 @@ export default function Index() {
 
   const handleRecenterFab = () => {
     setLocationSource('gps');
+    // Always request a fresh fix — never trust the cached React state position,
+    // since the user is explicitly asking "where am I right now?".
+    requestLocation();
     if (position) {
       const loc = {
         lat: position.coords.latitude,
@@ -571,10 +574,10 @@ export default function Index() {
         label: 'Your Location',
       };
       setSelectedLocation(loc);
-      // Zoom in close, like Google Maps "my location" button
+      // Zoom in close, like Google Maps "my location" button, using the last
+      // known fix immediately; the fresh fix above will refine it on arrival.
       requestAnimationFrame(() => mapHandleRef.current?.recenter(18));
     } else {
-      requestLocation();
       toast.info('Getting your location…');
     }
   };
