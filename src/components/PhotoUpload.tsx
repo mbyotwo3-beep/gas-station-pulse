@@ -99,6 +99,7 @@ export function PhotoUpload({
             variant="destructive"
             className="absolute -top-2 -right-2"
             onClick={removePhoto}
+            aria-label="Remove photo"
           >
             <X className="h-4 w-4" />
           </Button>
