@@ -256,24 +256,27 @@ export default function DriverDashboard() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>License Plate</Label>
+              <Label htmlFor="license-plate">License Plate</Label>
               <Input 
+                id="license-plate"
                 value={licensePlate} 
                 onChange={(e) => setLicensePlate(e.target.value)}
                 placeholder="ABC-123"
               />
             </div>
             <div className="space-y-2">
-              <Label>Vehicle Make</Label>
+              <Label htmlFor="vehicle-make">Vehicle Make</Label>
               <Input 
+                id="vehicle-make"
                 value={vehicleMake} 
                 onChange={(e) => setVehicleMake(e.target.value)}
                 placeholder="Toyota"
               />
             </div>
             <div className="space-y-2">
-              <Label>Vehicle Model</Label>
+              <Label htmlFor="vehicle-model">Vehicle Model</Label>
               <Input 
+                id="vehicle-model"
                 value={vehicleModel} 
                 onChange={(e) => setVehicleModel(e.target.value)}
                 placeholder="Camry"
