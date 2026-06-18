@@ -958,6 +958,7 @@ export default function Index() {
                       variant="ghost"
                       onClick={() => setSelectedStation(null)}
                       className="w-7 h-7 -mt-1 -mr-1"
+                      aria-label="Close station details"
                     >
                       <X className="h-4 w-4" />
                     </Button>
