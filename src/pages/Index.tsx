@@ -395,6 +395,10 @@ export default function Index() {
   useEffect(() => {
     if (!position || locationSource === 'manual') return;
 
+    // First GPS fix after auto-request — promote source to 'gps' so the map
+    // treats the marker as live and follows continuous updates.
+    if (locationSource === null) setLocationSource('gps');
+
     setSelectedLocation((prev) => ({
       lat: position.coords.latitude,
       lng: position.coords.longitude,
