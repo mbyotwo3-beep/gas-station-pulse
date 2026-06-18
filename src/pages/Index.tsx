@@ -1265,7 +1265,7 @@ export default function Index() {
         <div className="fixed inset-0 z-[70] bg-background/95 backdrop-blur-md animate-fade-in" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
           <div className="px-4 pt-3 pb-4 border-b flex items-center justify-between gap-2">
             <h2 className="font-semibold">Add a stop</h2>
-            <Button size="icon" variant="ghost" onClick={() => setAddingWaypoint(false)}>
+            <Button size="icon" variant="ghost" onClick={() => setAddingWaypoint(false)} aria-label="Close add stop">
               <X className="h-5 w-5" />
             </Button>
           </div>
