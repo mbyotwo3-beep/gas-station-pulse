@@ -631,6 +631,7 @@ export default function Index() {
                 className="h-11 w-11 rounded-full bg-background/95 backdrop-blur-md shadow-md"
                 onClick={() => (window.location.href = '/auth')}
                 title="Sign in"
+                aria-label="Sign in"
               >
                 <User className="h-4 w-4" />
               </Button>
