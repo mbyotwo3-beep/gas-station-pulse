@@ -218,6 +218,7 @@ export default function EnhancedLocationSearch({
             variant="ghost"
             size="icon"
             className="absolute right-12 top-1/2 transform -translate-y-1/2 h-8 w-8"
+            aria-label="Clear search"
             onClick={() => {
               setQuery('');
               setResults([]);
