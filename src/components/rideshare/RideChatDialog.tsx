@@ -166,6 +166,7 @@ export function RideChatDialog({
             onClick={handleSend}
             disabled={!newMessage.trim() || sending}
             size="icon"
+            aria-label="Send message"
           >
             <Send className="h-4 w-4" />
           </Button>
