@@ -1209,6 +1209,7 @@ export default function Index() {
               variant="ghost"
               onClick={() => setShowSearch(false)}
               className="rounded-full"
+              aria-label="Close search"
             >
               <X className="h-5 w-5" />
             </Button>
