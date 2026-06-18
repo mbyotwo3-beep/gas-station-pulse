@@ -70,11 +70,15 @@ export function useGeolocation(enableHighAccuracy = true, autoRequest = false) {
       if (prev.accuracy !== null && prev.position) {
         const prevAcc = prev.accuracy;
         const age = position.timestamp - (prev.position.timestamp ?? 0);
+        const bothUsable = prevAcc <= ACCEPT_ACCURACY_M && incomingAcc <= ACCEPT_ACCURACY_M;
         const tighter = incomingAcc <= prevAcc;
-        const stale = age > 8000;
-        const marginallyWorse = incomingAcc <= prevAcc * 1.25;
+        const stale = age > 4000;
+        const marginallyWorse = incomingAcc <= prevAcc * 1.5;
 
-        if (!tighter && !stale && !marginallyWorse) {
+        // When both fixes are usable, always accept the newer one — real
+        // movement can produce coordinate changes without accuracy changes,
+        // and we don't want the UI to look "stuck" while the user moves.
+        if (!bothUsable && !tighter && !stale && !marginallyWorse) {
           return prev;
         }
       }
