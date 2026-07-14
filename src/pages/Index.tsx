@@ -1275,23 +1275,8 @@ export default function Index() {
         }
       />
 
-      {/* GPS accuracy test modal */}
-      <GpsAccuracyTest open={gpsTestOpen} onClose={() => setGpsTestOpen(false)} />
 
-      {/* GPS troubleshooter */}
-      <GpsTroubleshooter
-        open={gpsTroubleshooterOpen}
-        onClose={() => setGpsTroubleshooterOpen(false)}
-        onRetry={requestLocation}
-        accuracy={accuracy}
-        reason={
-          accuracy !== null && accuracy > 500
-            ? 'low-accuracy'
-            : !position
-              ? 'unavailable'
-              : null
-        }
-      />
+
 
       {/* ── BOTTOM TAB NAV (always on top) ──────────────────────────────── */}
       <AppBottomNav active={activeTab} onChange={setActiveTab} />
