@@ -54,23 +54,14 @@ export const useWallet = () => {
     setLoading(false);
   };
 
-  const addFunds = async (amount: number, paymentMethodId?: string) => {
-    if (!user || !wallet) return { success: false, error: 'No wallet found' };
-
-    // Call the database function
-    const { data, error } = await supabase.rpc('add_wallet_funds', {
-      p_user_id: user.id,
-      p_amount: amount,
-      p_payment_method_id: paymentMethodId || null
-    });
-
-    if (error) {
-      return { success: false, error: error.message };
-    }
-
-    // Transaction record is created inside the SECURITY DEFINER function
-    await fetchWallet();
-    return { success: true };
+  // Wallet top-ups must go through a verified payment gateway (DPO). The
+  // add_wallet_funds RPC is restricted to the service_role and is only invoked
+  // by the dpo-verify-token edge function after a real charge is confirmed.
+  const addFunds = async (_amount: number, _paymentMethodId?: string) => {
+    return {
+      success: false,
+      error: 'Wallet top-ups must be completed through the DPO Pay checkout.',
+    };
   };
 
   const deductFunds = async (amount: number, description?: string, rideId?: string, orderId?: string) => {
