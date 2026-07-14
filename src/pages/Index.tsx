@@ -697,45 +697,8 @@ export default function Index() {
           </div>
         )}
 
-        {/* Persistent low-accuracy banner */}
-        {gpsQuality && (gpsQuality.tier === 'poor' || gpsQuality.tier === 'very-poor') && !accuracyBannerDismissed && (
-          <div
-            className={cn(
-              'mt-2 flex items-start gap-2 rounded-xl border px-3 py-2 shadow-md backdrop-blur-md text-xs',
-              gpsToneClasses[gpsQuality.tone].banner
-            )}
-            role="alert"
-          >
-            <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
-            <div className="flex-1 min-w-0">
-              <div className="font-semibold">
-                {gpsQuality.label} GPS accuracy · ±{Math.round(accuracy!)}m
-              </div>
-              <div className="opacity-90 leading-snug">{gpsQuality.hint}</div>
-              <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
-                <button
-                  onClick={() => setShowSearch(true)}
-                  className="underline underline-offset-2 font-medium"
-                >
-                  Search address manually
-                </button>
-                <button
-                  onClick={() => setGpsTroubleshooterOpen(true)}
-                  className="underline underline-offset-2 font-medium"
-                >
-                  Fix my GPS
-                </button>
-              </div>
-            </div>
-            <button
-              onClick={dismissAccuracyBanner}
-              aria-label="Dismiss low-accuracy banner"
-              className="shrink-0 rounded p-0.5 hover:bg-background/40"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
-          </div>
-        )}
+
+
 
       </header>
 
