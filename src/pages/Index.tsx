@@ -35,8 +35,6 @@ import RouteOptimizationSuggestions from "@/components/map/RouteOptimizationSugg
 import AdminPanel from "@/components/admin/AdminPanel";
 import NotificationCenter from "@/components/common/NotificationCenter";
 import AccuracySparkline, { type AccuracyPoint } from "@/components/common/AccuracySparkline";
-import GpsAccuracyTest from "@/components/common/GpsAccuracyTest";
-import GpsTroubleshooter from "@/components/common/GpsTroubleshooter";
 import { useAuth } from "@/contexts/AuthContext";
 import { useStations } from "@/hooks/useStations";
 import { useProfile } from "@/hooks/useProfile";
@@ -518,8 +516,6 @@ export default function Index() {
       /* ignore */
     }
   };
-  const [gpsTestOpen, setGpsTestOpen] = useState(false);
-  const [gpsTroubleshooterOpen, setGpsTroubleshooterOpen] = useState(false);
   useEffect(() => {
     if (locationSource !== 'gps' || accuracy === null) return;
     if (accuracy <= 500) {
@@ -693,59 +689,12 @@ export default function Index() {
             >
               <Signal className="h-3 w-3" />
               <span className="font-mono">±{Math.round(accuracy!)}m</span>
-              <span className="opacity-70">·</span>
-              <span>{gpsQuality.label}</span>
             </div>
-            <button
-              onClick={() => setGpsTestOpen(true)}
-              className="rounded-full px-2.5 py-1 text-[11px] font-medium border bg-background/95 backdrop-blur-md shadow-sm hover:bg-muted transition-colors flex items-center gap-1"
-              title="Run a 20-second GPS accuracy test"
-            >
-              <Activity className="h-3 w-3" />
-              Test GPS
-            </button>
           </div>
         )}
 
-        {/* Persistent low-accuracy banner */}
-        {gpsQuality && (gpsQuality.tier === 'poor' || gpsQuality.tier === 'very-poor') && !accuracyBannerDismissed && (
-          <div
-            className={cn(
-              'mt-2 flex items-start gap-2 rounded-xl border px-3 py-2 shadow-md backdrop-blur-md text-xs',
-              gpsToneClasses[gpsQuality.tone].banner
-            )}
-            role="alert"
-          >
-            <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
-            <div className="flex-1 min-w-0">
-              <div className="font-semibold">
-                {gpsQuality.label} GPS accuracy · ±{Math.round(accuracy!)}m
-              </div>
-              <div className="opacity-90 leading-snug">{gpsQuality.hint}</div>
-              <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
-                <button
-                  onClick={() => setShowSearch(true)}
-                  className="underline underline-offset-2 font-medium"
-                >
-                  Search address manually
-                </button>
-                <button
-                  onClick={() => setGpsTroubleshooterOpen(true)}
-                  className="underline underline-offset-2 font-medium"
-                >
-                  Fix my GPS
-                </button>
-              </div>
-            </div>
-            <button
-              onClick={dismissAccuracyBanner}
-              aria-label="Dismiss low-accuracy banner"
-              className="shrink-0 rounded p-0.5 hover:bg-background/40"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
-          </div>
-        )}
+
+
 
       </header>
 
@@ -1322,23 +1271,8 @@ export default function Index() {
         }
       />
 
-      {/* GPS accuracy test modal */}
-      <GpsAccuracyTest open={gpsTestOpen} onClose={() => setGpsTestOpen(false)} />
 
-      {/* GPS troubleshooter */}
-      <GpsTroubleshooter
-        open={gpsTroubleshooterOpen}
-        onClose={() => setGpsTroubleshooterOpen(false)}
-        onRetry={requestLocation}
-        accuracy={accuracy}
-        reason={
-          accuracy !== null && accuracy > 500
-            ? 'low-accuracy'
-            : !position
-              ? 'unavailable'
-              : null
-        }
-      />
+
 
       {/* ── BOTTOM TAB NAV (always on top) ──────────────────────────────── */}
       <AppBottomNav active={activeTab} onChange={setActiveTab} />
