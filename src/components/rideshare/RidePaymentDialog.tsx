@@ -79,53 +79,41 @@ export function RidePaymentDialog({
           description: `Paid $${amount.toFixed(2)} from wallet`,
         });
       } else {
-        // Handle other payment methods
+        // Non-wallet payments require a real payment gateway charge. Client-side
+        // code must never mark a ride_payments row as `completed` without proof
+        // of payment, or drivers may see a ride as paid when no funds were
+        // actually captured. Card / mobile money must be routed through the DPO
+        // checkout flow (top up wallet first, then pay from wallet), and cash is
+        // recorded as pending until the driver confirms receipt off-app.
         const selectedMethod = paymentMethods.find(pm => pm.id === selectedMethodId);
         if (!selectedMethod) throw new Error('Payment method not found');
 
-        // Create payment record
-        const { error: paymentError } = await supabase
-          .from('ride_payments')
-          .insert({
-            ride_id: rideId,
-            payer_id: user.id,
-            amount,
-            payment_method: selectedMethod.type,
-            status: 'completed',
-            completed_at: new Date().toISOString()
+        if (selectedMethod.type === 'cash') {
+          const { error: paymentError } = await supabase
+            .from('ride_payments')
+            .insert({
+              ride_id: rideId,
+              payer_id: user.id,
+              amount,
+              payment_method: 'cash',
+              status: 'pending',
+            });
+          if (paymentError) throw paymentError;
+
+          await supabase
+            .from('rides')
+            .update({ payment_status: 'pending' })
+            .eq('id', rideId);
+
+          toast({
+            title: 'Cash payment recorded',
+            description: `Please hand $${amount.toFixed(2)} to your driver.`,
           });
-
-        if (paymentError) throw paymentError;
-
-        // Create transaction record
-        const { error: transactionError } = await supabase
-          .from('transactions')
-          .insert({
-            user_id: user.id,
-            transaction_type: 'payment',
-            service_type: 'ride',
-            amount,
-            currency: 'USD',
-            status: 'completed',
-            payment_method_id: selectedMethodId,
-            payment_method_type: selectedMethod.type,
-            ride_id: rideId,
-            description: `Payment for ride - $${amount.toFixed(2)}`,
-            completed_at: new Date().toISOString()
-          });
-
-        if (transactionError) throw transactionError;
-
-        // Update ride payment status
-        await supabase
-          .from('rides')
-          .update({ payment_status: 'completed' })
-          .eq('id', rideId);
-
-        toast({
-          title: 'Payment successful',
-          description: `Paid $${amount.toFixed(2)} via ${selectedMethod.type.replace('_', ' ')}`,
-        });
+        } else {
+          throw new Error(
+            'Card and mobile money payments must be topped up to your wallet via DPO Pay first, then paid from wallet.'
+          );
+        }
       }
 
       onSuccess?.();
