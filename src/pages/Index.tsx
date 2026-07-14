@@ -516,8 +516,6 @@ export default function Index() {
       /* ignore */
     }
   };
-  const [gpsTestOpen, setGpsTestOpen] = useState(false);
-  const [gpsTroubleshooterOpen, setGpsTroubleshooterOpen] = useState(false);
   useEffect(() => {
     if (locationSource !== 'gps' || accuracy === null) return;
     if (accuracy <= 500) {
