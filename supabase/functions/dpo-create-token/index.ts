@@ -96,7 +96,7 @@ Deno.serve(async (req) => {
     if (result !== '000' || !token) {
       console.error('DPO createToken failed', { status: resp.status, result, explanation, text });
       return new Response(
-        JSON.stringify({ error: 'DPO createToken failed', result, explanation, raw: text }),
+        JSON.stringify({ error: 'Unable to start payment. Please try again later.', code: 'DPO_CREATE_FAILED' }),
         { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
@@ -120,7 +120,7 @@ Deno.serve(async (req) => {
     );
   } catch (e) {
     console.error('dpo-create-token error', e);
-    return new Response(JSON.stringify({ error: (e as Error).message }), {
+    return new Response(JSON.stringify({ error: 'Internal error', code: 'DPO_INTERNAL' }), {
       status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
