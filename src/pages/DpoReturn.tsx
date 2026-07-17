@@ -40,7 +40,11 @@ export default function DpoReturn() {
       if (data?.credited) {
         setStatus('success');
         setAmount(data.amount);
-        setMessage(`Payment confirmed. $${Number(data.amount).toFixed(2)} added to your wallet.`);
+        if (data.rideId) {
+          setMessage(`Ride paid. $${Number(data.amount).toFixed(2)} sent to your driver.`);
+        } else {
+          setMessage(`Payment confirmed. $${Number(data.amount).toFixed(2)} added to your wallet.`);
+        }
       } else if (data?.result === '901') {
         setStatus('pending');
         setMessage('Payment is still pending. Refresh this page in a moment.');
