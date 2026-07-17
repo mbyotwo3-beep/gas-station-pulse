@@ -54,10 +54,10 @@ Deno.serve(async (req) => {
     const explanation = pickTag(text, 'ResultExplanation');
     // 000 = paid, 900 = declined, 901 = pending, 904 = cancelled
 
-    // Find the pending transaction
+    // Find the pending transaction (top-up OR service payment)
     const { data: txn } = await supabase
       .from('transactions')
-      .select('id, amount, status, user_id, metadata')
+      .select('id, amount, status, user_id, metadata, transaction_type')
       .eq('user_id', user.id)
       .eq('payment_method_type', 'dpo')
       .contains('metadata', { dpo_token: token })
@@ -70,8 +70,38 @@ Deno.serve(async (req) => {
       );
     }
 
+    const meta = (txn.metadata ?? {}) as Record<string, unknown>;
+    const isServicePayment = meta.kind === 'service_payment';
+    const rideId = typeof meta.ride_id === 'string' ? meta.ride_id : null;
+
     if (result === '000' && txn.status !== 'completed') {
-      // Credit wallet atomically via RPC
+      if (isServicePayment && rideId) {
+        // Settle the ride payment directly (funds captured by DPO, no wallet round-trip)
+        const { data: paymentId, error: settleErr } = await supabase.rpc('settle_service_payment', {
+          p_ride_id: rideId,
+          p_payer_id: user.id,
+          p_amount: Number(txn.amount),
+          p_method: 'dpo',
+          p_reference: (meta.company_ref as string) ?? token,
+        });
+        if (settleErr) {
+          console.error('settle_service_payment failed', settleErr);
+          return new Response(
+            JSON.stringify({ result, explanation, credited: false, error: settleErr.message }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+          );
+        }
+        await supabase
+          .from('transactions')
+          .update({ status: 'completed', completed_at: new Date().toISOString() })
+          .eq('id', txn.id);
+        return new Response(
+          JSON.stringify({ result, explanation, credited: true, amount: Number(txn.amount), rideId, paymentId }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+      }
+
+      // Default: wallet top-up
       const { error: creditErr } = await supabase.rpc('add_wallet_funds', {
         p_user_id: user.id,
         p_amount: Number(txn.amount),

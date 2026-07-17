@@ -110,9 +110,24 @@ export function RidePaymentDialog({
             description: `Please hand $${amount.toFixed(2)} to your driver.`,
           });
         } else {
-          throw new Error(
-            'Card and mobile money payments must be topped up to your wallet via DPO Pay first, then paid from wallet.'
-          );
+          // Card / mobile money -> DPO hosted checkout, settled server-side on return
+          const returnUrl = `${window.location.origin}/payments/dpo-return`;
+          const { data, error } = await supabase.functions.invoke('dpo-charge-service', {
+            body: {
+              rideId,
+              currency: 'USD',
+              redirectUrl: returnUrl,
+              backUrl: returnUrl,
+            },
+          });
+          if (error) throw new Error(error.message || 'Could not start DPO payment');
+          if (!data?.paymentUrl) throw new Error('DPO did not return a payment URL');
+          toast({
+            title: 'Redirecting to DPO Pay',
+            description: 'Complete your payment in the secure checkout window.',
+          });
+          window.location.href = data.paymentUrl;
+          return;
         }
       }
 
