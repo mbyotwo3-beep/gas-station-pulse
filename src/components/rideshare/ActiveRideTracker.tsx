@@ -53,8 +53,23 @@ export default function ActiveRideTracker() {
   const [showPayment, setShowPayment] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [rideVerified, setRideVerified] = useState(false);
+  const [showCancel, setShowCancel] = useState(false);
+  const [showTip, setShowTip] = useState(false);
+  const [tipped, setTipped] = useState(false);
 
   const isDriver = activeRide?.driver_id === user?.id;
+
+  // Live ETA: driver's last ping -> pickup (before start) or destination (in trip)
+  const { location: driverLocation } = useRealtimeDriverLocation(activeRide?.driver_id ?? null);
+  const etaTarget =
+    activeRide?.status === 'in_progress'
+      ? activeRide.destination_location
+      : activeRide?.pickup_location ?? null;
+  const { etaMin } = useRideEta(
+    driverLocation,
+    etaTarget ? { lat: etaTarget.lat, lng: etaTarget.lng } : null,
+  );
+
 
   // Build a fare breakdown for summary — use stored breakdown once finalized
   const summaryBreakdown = useMemo<FareBreakdown | null>(() => {
