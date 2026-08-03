@@ -194,7 +194,16 @@ export default function RideHistory() {
             )}
           </TabsContent>
         </Tabs>
+
+        {disputeRideId && (
+          <RideDisputeDialog
+            open={!!disputeRideId}
+            onOpenChange={(o) => !o && setDisputeRideId(null)}
+            rideId={disputeRideId}
+          />
+        )}
       </CardContent>
+
     </Card>
   );
 }
