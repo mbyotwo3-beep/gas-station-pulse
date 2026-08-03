@@ -5,7 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useActiveRide, type FareBreakdown } from '@/hooks/useActiveRide';
 import { useAuth } from '@/contexts/AuthContext';
-import { Navigation, MapPin, Clock, DollarSign, MessageCircle, Loader2 } from 'lucide-react';
+import { Navigation, MapPin, Clock, DollarSign, MessageCircle, Loader2, Timer, XCircle } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { RideRatingDialog } from './RideRatingDialog';
 import { RidePaymentDialog } from './RidePaymentDialog';
@@ -14,7 +14,12 @@ import DriverLocationMap from './DriverLocationMap';
 import RideSafetyPanel from './RideSafetyPanel';
 import RideVerificationOTP from './RideVerificationOTP';
 import RideCompletionSummary from './RideCompletionSummary';
+import RideCancelDialog from './RideCancelDialog';
+import RideTipDialog from './RideTipDialog';
+import { useRealtimeDriverLocation } from '@/hooks/useRealtimeDriverLocation';
+import { useRideEta } from '@/hooks/useRideEta';
 import { downloadRideReceipt } from '@/lib/rideReceipt';
+
 
 function buildFareBreakdown(opts: {
   distanceKm: number;
