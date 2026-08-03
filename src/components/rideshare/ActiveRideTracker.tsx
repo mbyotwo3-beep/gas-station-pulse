@@ -158,8 +158,11 @@ export default function ActiveRideTracker() {
           submitting={updating}
           onPrimaryAction={onPrimary}
           primaryLabel={primaryLabel}
-          secondaryLabel="Message"
-          onSecondaryAction={() => setShowChat(true)}
+          secondaryLabel={!isDriver && paid && !tipped ? 'Add a tip for your driver' : 'Message'}
+          onSecondaryAction={() =>
+            !isDriver && paid && !tipped ? setShowTip(true) : setShowChat(true)
+          }
+
           canDownloadReceipt={activeRide.status === 'completed'}
           onDownloadReceipt={() =>
             downloadRideReceipt({
