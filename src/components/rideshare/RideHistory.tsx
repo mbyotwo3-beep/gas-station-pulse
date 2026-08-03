@@ -29,6 +29,8 @@ export default function RideHistory() {
   const { user } = useAuth();
   const [rides, setRides] = useState<RideHistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [disputeRideId, setDisputeRideId] = useState<string | null>(null);
+
 
   useEffect(() => {
     if (user) {
@@ -118,10 +120,23 @@ export default function RideHistory() {
               <p className="text-sm">{isDriver ? ride.driver_notes : ride.passenger_notes}</p>
             </div>
           )}
+
+          <div className="pt-2 border-t">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full text-muted-foreground"
+              onClick={() => setDisputeRideId(ride.id)}
+            >
+              <Flag className="mr-2 h-3.5 w-3.5" />
+              Report an issue
+            </Button>
+          </div>
         </CardContent>
       </Card>
     );
   };
+
 
   if (loading) {
     return (
