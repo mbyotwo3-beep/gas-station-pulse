@@ -387,7 +387,7 @@ export default function ActiveRideTracker() {
           </div>
         )}
 
-        <div className="pt-4 border-t">
+        <div className="space-y-2 pt-4 border-t">
           <Button
             variant="outline"
             className="w-full"
@@ -396,8 +396,27 @@ export default function ActiveRideTracker() {
             <MessageCircle className="h-4 w-4 mr-2" />
             Chat with {isDriver ? 'Passenger' : 'Driver'}
           </Button>
+          {activeRide.status !== 'in_progress' && (
+            <Button
+              variant="ghost"
+              className="w-full text-destructive hover:text-destructive"
+              onClick={() => setShowCancel(true)}
+            >
+              <XCircle className="h-4 w-4 mr-2" />
+              Cancel ride
+            </Button>
+          )}
         </div>
       </CardContent>
+
+      {showCancel && (
+        <RideCancelDialog
+          open={showCancel}
+          onOpenChange={setShowCancel}
+          rideId={activeRide.id}
+          isDriver={!!isDriver}
+        />
+      )}
 
       {showChat && (
         <RideChatDialog
@@ -409,4 +428,5 @@ export default function ActiveRideTracker() {
       )}
     </Card>
   );
+
 }
