@@ -245,12 +245,21 @@ export default function ActiveRideTracker() {
             <Navigation className="h-5 w-5" />
             {isDriver ? 'Current Ride' : 'Your Ride'}
           </CardTitle>
-          <Badge variant={statusBadgeVariant}>
-            {activeRide.status === 'accepted' ? 'Driver En Route' :
-             activeRide.status === 'in_progress' ? 'In Progress' :
-             activeRide.status.charAt(0).toUpperCase() + activeRide.status.slice(1)}
-          </Badge>
+          <div className="flex items-center gap-2">
+            {etaMin !== null && activeRide.status !== 'pending' && (
+              <Badge variant="outline" className="gap-1">
+                <Timer className="h-3 w-3" />
+                {etaMin} min {activeRide.status === 'in_progress' ? 'to drop-off' : 'away'}
+              </Badge>
+            )}
+            <Badge variant={statusBadgeVariant}>
+              {activeRide.status === 'accepted' ? 'Driver En Route' :
+               activeRide.status === 'in_progress' ? 'In Progress' :
+               activeRide.status.charAt(0).toUpperCase() + activeRide.status.slice(1)}
+            </Badge>
+          </div>
         </div>
+
       </CardHeader>
       <CardContent className="space-y-4">
         <RideSafetyPanel
