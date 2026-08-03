@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { Navigation, MapPin, DollarSign, Calendar, Clock } from 'lucide-react';
+import { Navigation, MapPin, DollarSign, Calendar, Clock, Flag } from 'lucide-react';
 import { format } from 'date-fns';
+import RideDisputeDialog from './RideDisputeDialog';
+
 
 interface RideHistoryItem {
   id: string;
@@ -26,6 +29,8 @@ export default function RideHistory() {
   const { user } = useAuth();
   const [rides, setRides] = useState<RideHistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [disputeRideId, setDisputeRideId] = useState<string | null>(null);
+
 
   useEffect(() => {
     if (user) {
@@ -115,10 +120,23 @@ export default function RideHistory() {
               <p className="text-sm">{isDriver ? ride.driver_notes : ride.passenger_notes}</p>
             </div>
           )}
+
+          <div className="pt-2 border-t">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full text-muted-foreground"
+              onClick={() => setDisputeRideId(ride.id)}
+            >
+              <Flag className="mr-2 h-3.5 w-3.5" />
+              Report an issue
+            </Button>
+          </div>
         </CardContent>
       </Card>
     );
   };
+
 
   if (loading) {
     return (
@@ -176,7 +194,16 @@ export default function RideHistory() {
             )}
           </TabsContent>
         </Tabs>
+
+        {disputeRideId && (
+          <RideDisputeDialog
+            open={!!disputeRideId}
+            onOpenChange={(o) => !o && setDisputeRideId(null)}
+            rideId={disputeRideId}
+          />
+        )}
       </CardContent>
+
     </Card>
   );
 }

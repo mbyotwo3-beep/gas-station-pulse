@@ -5,7 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useActiveRide, type FareBreakdown } from '@/hooks/useActiveRide';
 import { useAuth } from '@/contexts/AuthContext';
-import { Navigation, MapPin, Clock, DollarSign, MessageCircle, Loader2 } from 'lucide-react';
+import { Navigation, MapPin, Clock, DollarSign, MessageCircle, Loader2, Timer, XCircle } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { RideRatingDialog } from './RideRatingDialog';
 import { RidePaymentDialog } from './RidePaymentDialog';
@@ -14,7 +14,12 @@ import DriverLocationMap from './DriverLocationMap';
 import RideSafetyPanel from './RideSafetyPanel';
 import RideVerificationOTP from './RideVerificationOTP';
 import RideCompletionSummary from './RideCompletionSummary';
+import RideCancelDialog from './RideCancelDialog';
+import RideTipDialog from './RideTipDialog';
+import { useRealtimeDriverLocation } from '@/hooks/useRealtimeDriverLocation';
+import { useRideEta } from '@/hooks/useRideEta';
 import { downloadRideReceipt } from '@/lib/rideReceipt';
+
 
 function buildFareBreakdown(opts: {
   distanceKm: number;
@@ -48,8 +53,23 @@ export default function ActiveRideTracker() {
   const [showPayment, setShowPayment] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [rideVerified, setRideVerified] = useState(false);
+  const [showCancel, setShowCancel] = useState(false);
+  const [showTip, setShowTip] = useState(false);
+  const [tipped, setTipped] = useState(false);
 
   const isDriver = activeRide?.driver_id === user?.id;
+
+  // Live ETA: driver's last ping -> pickup (before start) or destination (in trip)
+  const { location: driverLocation } = useRealtimeDriverLocation(activeRide?.driver_id ?? null);
+  const etaTarget =
+    activeRide?.status === 'in_progress'
+      ? activeRide.destination_location
+      : activeRide?.pickup_location ?? null;
+  const { etaMin } = useRideEta(
+    driverLocation,
+    etaTarget ? { lat: etaTarget.lat, lng: etaTarget.lng } : null,
+  );
+
 
   // Build a fare breakdown for summary — use stored breakdown once finalized
   const summaryBreakdown = useMemo<FareBreakdown | null>(() => {
@@ -138,8 +158,11 @@ export default function ActiveRideTracker() {
           submitting={updating}
           onPrimaryAction={onPrimary}
           primaryLabel={primaryLabel}
-          secondaryLabel="Message"
-          onSecondaryAction={() => setShowChat(true)}
+          secondaryLabel={!isDriver && paid && !tipped ? 'Add a tip for your driver' : 'Message'}
+          onSecondaryAction={() =>
+            !isDriver && paid && !tipped ? setShowTip(true) : setShowChat(true)
+          }
+
           canDownloadReceipt={activeRide.status === 'completed'}
           onDownloadReceipt={() =>
             downloadRideReceipt({
@@ -179,8 +202,20 @@ export default function ActiveRideTracker() {
             amount={summaryBreakdown.total}
             onSuccess={() => {
               setShowPayment(false);
-              setShowRating(true);
+              setShowTip(true);
             }}
+          />
+        )}
+
+        {showTip && (
+          <RideTipDialog
+            open={showTip}
+            onOpenChange={(o) => {
+              setShowTip(o);
+              if (!o) setShowRating(true);
+            }}
+            rideId={activeRide.id}
+            onTipped={() => setTipped(true)}
           />
         )}
 
@@ -192,6 +227,7 @@ export default function ActiveRideTracker() {
             otherUserName={isDriver ? 'Passenger' : 'Driver'}
           />
         )}
+
       </>
     );
   }
@@ -209,12 +245,21 @@ export default function ActiveRideTracker() {
             <Navigation className="h-5 w-5" />
             {isDriver ? 'Current Ride' : 'Your Ride'}
           </CardTitle>
-          <Badge variant={statusBadgeVariant}>
-            {activeRide.status === 'accepted' ? 'Driver En Route' :
-             activeRide.status === 'in_progress' ? 'In Progress' :
-             activeRide.status.charAt(0).toUpperCase() + activeRide.status.slice(1)}
-          </Badge>
+          <div className="flex items-center gap-2">
+            {etaMin !== null && activeRide.status !== 'pending' && (
+              <Badge variant="outline" className="gap-1">
+                <Timer className="h-3 w-3" />
+                {etaMin} min {activeRide.status === 'in_progress' ? 'to drop-off' : 'away'}
+              </Badge>
+            )}
+            <Badge variant={statusBadgeVariant}>
+              {activeRide.status === 'accepted' ? 'Driver En Route' :
+               activeRide.status === 'in_progress' ? 'In Progress' :
+               activeRide.status.charAt(0).toUpperCase() + activeRide.status.slice(1)}
+            </Badge>
+          </div>
         </div>
+
       </CardHeader>
       <CardContent className="space-y-4">
         <RideSafetyPanel
@@ -342,7 +387,7 @@ export default function ActiveRideTracker() {
           </div>
         )}
 
-        <div className="pt-4 border-t">
+        <div className="space-y-2 pt-4 border-t">
           <Button
             variant="outline"
             className="w-full"
@@ -351,8 +396,27 @@ export default function ActiveRideTracker() {
             <MessageCircle className="h-4 w-4 mr-2" />
             Chat with {isDriver ? 'Passenger' : 'Driver'}
           </Button>
+          {activeRide.status !== 'in_progress' && (
+            <Button
+              variant="ghost"
+              className="w-full text-destructive hover:text-destructive"
+              onClick={() => setShowCancel(true)}
+            >
+              <XCircle className="h-4 w-4 mr-2" />
+              Cancel ride
+            </Button>
+          )}
         </div>
       </CardContent>
+
+      {showCancel && (
+        <RideCancelDialog
+          open={showCancel}
+          onOpenChange={setShowCancel}
+          rideId={activeRide.id}
+          isDriver={!!isDriver}
+        />
+      )}
 
       {showChat && (
         <RideChatDialog
@@ -364,4 +428,5 @@ export default function ActiveRideTracker() {
       )}
     </Card>
   );
+
 }
