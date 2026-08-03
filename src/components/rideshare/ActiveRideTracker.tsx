@@ -199,8 +199,20 @@ export default function ActiveRideTracker() {
             amount={summaryBreakdown.total}
             onSuccess={() => {
               setShowPayment(false);
-              setShowRating(true);
+              setShowTip(true);
             }}
+          />
+        )}
+
+        {showTip && (
+          <RideTipDialog
+            open={showTip}
+            onOpenChange={(o) => {
+              setShowTip(o);
+              if (!o) setShowRating(true);
+            }}
+            rideId={activeRide.id}
+            onTipped={() => setTipped(true)}
           />
         )}
 
@@ -212,6 +224,7 @@ export default function ActiveRideTracker() {
             otherUserName={isDriver ? 'Passenger' : 'Driver'}
           />
         )}
+
       </>
     );
   }
