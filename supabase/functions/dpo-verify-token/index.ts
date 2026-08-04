@@ -52,6 +52,7 @@ Deno.serve(async (req) => {
 
     const result = pickTag(text, 'Result');
     const explanation = pickTag(text, 'ResultExplanation');
+    console.log('dpo verifyToken result', result, explanation);
     // 000 = paid, 900 = declined, 901 = pending, 904 = cancelled
 
     // Find the pending transaction (top-up OR service payment)
@@ -65,7 +66,7 @@ Deno.serve(async (req) => {
 
     if (!txn) {
       return new Response(
-        JSON.stringify({ result, explanation, credited: false, error: 'Transaction not found' }),
+        JSON.stringify({ result, code: 'DPO_TXN_NOT_FOUND', credited: false }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
@@ -87,7 +88,7 @@ Deno.serve(async (req) => {
         if (settleErr) {
           console.error('settle_service_payment failed', settleErr);
           return new Response(
-            JSON.stringify({ result, explanation, credited: false, error: settleErr.message }),
+            JSON.stringify({ result, code: 'DPO_SETTLEMENT_FAILED', credited: false }),
             { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
           );
         }
@@ -96,7 +97,7 @@ Deno.serve(async (req) => {
           .update({ status: 'completed', completed_at: new Date().toISOString() })
           .eq('id', txn.id);
         return new Response(
-          JSON.stringify({ result, explanation, credited: true, amount: Number(txn.amount), rideId, paymentId }),
+          JSON.stringify({ result, credited: true, amount: Number(txn.amount), rideId, paymentId }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
         );
       }
@@ -110,7 +111,7 @@ Deno.serve(async (req) => {
       if (creditErr) {
         console.error('wallet credit failed', creditErr);
         return new Response(
-          JSON.stringify({ result, explanation, credited: false, error: creditErr.message }),
+          JSON.stringify({ result, code: 'DPO_SETTLEMENT_FAILED', credited: false }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
         );
       }
@@ -119,7 +120,7 @@ Deno.serve(async (req) => {
         .update({ status: 'completed', completed_at: new Date().toISOString() })
         .eq('id', txn.id);
       return new Response(
-        JSON.stringify({ result, explanation, credited: true, amount: Number(txn.amount) }),
+        JSON.stringify({ result, credited: true, amount: Number(txn.amount) }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
@@ -129,12 +130,12 @@ Deno.serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ result, explanation, credited: false }),
+      JSON.stringify({ result, code: result === '901' ? 'DPO_PENDING' : 'DPO_DECLINED', credited: false }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
   } catch (e) {
     console.error('dpo-verify-token error', e);
-    return new Response(JSON.stringify({ error: (e as Error).message }), {
+    return new Response(JSON.stringify({ code: 'DPO_VERIFY_FAILED' }), {
       status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
