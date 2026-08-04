@@ -6,7 +6,7 @@
  * wallet — RLS, table grants and the SECURITY DEFINER guards all get exercised.
  */
 import { describe, it, expect, beforeAll } from "vitest";
-import { createAnonClient, isRejected, RANDOM_UUID } from "./backendClient";
+import { createAnonClient, isRejected, RANDOM_UUID } from "../backendClient";
 
 const supabase = createAnonClient();
 
