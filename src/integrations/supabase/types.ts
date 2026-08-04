@@ -10,43 +10,43 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.15"
   }
   public: {
     Tables: {
       driver_earnings: {
         Row: {
           amount: number
+          created_at: string
           driver_id: string
-          earned_at: string | null
           id: string
           order_id: string | null
-          paid_out_at: string | null
           ride_id: string | null
-          service_type: Database["public"]["Enums"]["service_type"]
-          status: string | null
+          status: string
+          type: string
+          updated_at: string
         }
         Insert: {
           amount: number
+          created_at?: string
           driver_id: string
-          earned_at?: string | null
           id?: string
           order_id?: string | null
-          paid_out_at?: string | null
           ride_id?: string | null
-          service_type: Database["public"]["Enums"]["service_type"]
-          status?: string | null
+          status?: string
+          type: string
+          updated_at?: string
         }
         Update: {
           amount?: number
+          created_at?: string
           driver_id?: string
-          earned_at?: string | null
           id?: string
           order_id?: string | null
-          paid_out_at?: string | null
           ride_id?: string | null
-          service_type?: Database["public"]["Enums"]["service_type"]
-          status?: string | null
+          status?: string
+          type?: string
+          updated_at?: string
         }
         Relationships: [
           {
@@ -79,7 +79,6 @@ export type Database = {
           vehicle_make: string | null
           vehicle_model: string | null
           vehicle_type: string
-          verification_documents: Json | null
           verification_status: string | null
           verified_at: string | null
           verified_by: string | null
@@ -97,7 +96,6 @@ export type Database = {
           vehicle_make?: string | null
           vehicle_model?: string | null
           vehicle_type: string
-          verification_documents?: Json | null
           verification_status?: string | null
           verified_at?: string | null
           verified_by?: string | null
@@ -115,7 +113,6 @@ export type Database = {
           vehicle_make?: string | null
           vehicle_model?: string | null
           vehicle_type?: string
-          verification_documents?: Json | null
           verification_status?: string | null
           verified_at?: string | null
           verified_by?: string | null
@@ -125,42 +122,42 @@ export type Database = {
       menu_items: {
         Row: {
           category: string | null
-          created_at: string | null
+          created_at: string
           description: string | null
           id: string
           image_url: string | null
-          is_available: boolean | null
+          is_available: boolean
           name: string
           preparation_time: number | null
           price: number
           restaurant_id: string
-          updated_at: string | null
+          updated_at: string
         }
         Insert: {
           category?: string | null
-          created_at?: string | null
+          created_at?: string
           description?: string | null
           id?: string
           image_url?: string | null
-          is_available?: boolean | null
+          is_available?: boolean
           name: string
           preparation_time?: number | null
           price: number
           restaurant_id: string
-          updated_at?: string | null
+          updated_at?: string
         }
         Update: {
           category?: string | null
-          created_at?: string | null
+          created_at?: string
           description?: string | null
           id?: string
           image_url?: string | null
-          is_available?: boolean | null
+          is_available?: boolean
           name?: string
           preparation_time?: number | null
           price?: number
           restaurant_id?: string
-          updated_at?: string | null
+          updated_at?: string
         }
         Relationships: [
           {
@@ -178,96 +175,104 @@ export type Database = {
           created_at: string
           id: string
           order_id: string
-          rated_by: string
-          rated_user: string
+          rated_by: string | null
           rating: number
+          user_id: string
         }
         Insert: {
           comment?: string | null
           created_at?: string
           id?: string
           order_id: string
-          rated_by: string
-          rated_user: string
+          rated_by?: string | null
           rating: number
+          user_id: string
         }
         Update: {
           comment?: string | null
           created_at?: string
           id?: string
           order_id?: string
-          rated_by?: string
-          rated_user?: string
+          rated_by?: string | null
           rating?: number
+          user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "order_ratings_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       orders: {
         Row: {
-          created_at: string | null
+          completed_at: string | null
+          created_at: string
           customer_id: string
-          delivered_at: string | null
           delivery_fee: number | null
-          delivery_location: Json
+          delivery_location: Json | null
           driver_id: string | null
           estimated_delivery_time: string | null
           id: string
-          items: Json
+          items: Json | null
+          notes: string | null
           payment_method: string | null
           payment_status: string | null
-          picked_up_at: string | null
-          pickup_location: Json
+          pickup_location: Json | null
           restaurant_id: string | null
-          service_type: Database["public"]["Enums"]["service_type"]
+          service_type: string
           special_instructions: string | null
           status: string
-          subtotal: number
-          total_amount: number
-          updated_at: string | null
+          subtotal: number | null
+          total_amount: number | null
+          updated_at: string
         }
         Insert: {
-          created_at?: string | null
+          completed_at?: string | null
+          created_at?: string
           customer_id: string
-          delivered_at?: string | null
           delivery_fee?: number | null
-          delivery_location: Json
+          delivery_location?: Json | null
           driver_id?: string | null
           estimated_delivery_time?: string | null
           id?: string
-          items?: Json
+          items?: Json | null
+          notes?: string | null
           payment_method?: string | null
           payment_status?: string | null
-          picked_up_at?: string | null
-          pickup_location: Json
+          pickup_location?: Json | null
           restaurant_id?: string | null
-          service_type?: Database["public"]["Enums"]["service_type"]
+          service_type?: string
           special_instructions?: string | null
           status?: string
-          subtotal: number
-          total_amount: number
-          updated_at?: string | null
+          subtotal?: number | null
+          total_amount?: number | null
+          updated_at?: string
         }
         Update: {
-          created_at?: string | null
+          completed_at?: string | null
+          created_at?: string
           customer_id?: string
-          delivered_at?: string | null
           delivery_fee?: number | null
-          delivery_location?: Json
+          delivery_location?: Json | null
           driver_id?: string | null
           estimated_delivery_time?: string | null
           id?: string
-          items?: Json
+          items?: Json | null
+          notes?: string | null
           payment_method?: string | null
           payment_status?: string | null
-          picked_up_at?: string | null
-          pickup_location?: Json
+          pickup_location?: Json | null
           restaurant_id?: string | null
-          service_type?: Database["public"]["Enums"]["service_type"]
+          service_type?: string
           special_instructions?: string | null
           status?: string
-          subtotal?: number
-          total_amount?: number
-          updated_at?: string | null
+          subtotal?: number | null
+          total_amount?: number | null
+          updated_at?: string
         }
         Relationships: [
           {
@@ -281,105 +286,72 @@ export type Database = {
       }
       payment_methods: {
         Row: {
-          cardholder_name: string | null
           created_at: string
-          expiry_month: number | null
-          expiry_year: number | null
+          details: Json | null
           id: string
-          is_active: boolean | null
-          is_default: boolean | null
-          last_four: string | null
-          provider: string | null
+          is_active: boolean
+          is_default: boolean
           type: string
           updated_at: string
           user_id: string
-          wallet_id: string | null
         }
         Insert: {
-          cardholder_name?: string | null
           created_at?: string
-          expiry_month?: number | null
-          expiry_year?: number | null
+          details?: Json | null
           id?: string
-          is_active?: boolean | null
-          is_default?: boolean | null
-          last_four?: string | null
-          provider?: string | null
+          is_active?: boolean
+          is_default?: boolean
           type: string
           updated_at?: string
           user_id: string
-          wallet_id?: string | null
         }
         Update: {
-          cardholder_name?: string | null
           created_at?: string
-          expiry_month?: number | null
-          expiry_year?: number | null
+          details?: Json | null
           id?: string
-          is_active?: boolean | null
-          is_default?: boolean | null
-          last_four?: string | null
-          provider?: string | null
+          is_active?: boolean
+          is_default?: boolean
           type?: string
           updated_at?: string
           user_id?: string
-          wallet_id?: string | null
         }
         Relationships: []
       }
       payment_requests: {
         Row: {
           amount: number
-          completed_at: string | null
           created_at: string
+          currency: string
           description: string | null
-          expires_at: string
-          from_user_id: string
           id: string
+          recipient_id: string
+          sender_id: string
           status: string
-          to_user_id: string
           updated_at: string
         }
         Insert: {
           amount: number
-          completed_at?: string | null
           created_at?: string
+          currency?: string
           description?: string | null
-          expires_at?: string
-          from_user_id: string
           id?: string
+          recipient_id: string
+          sender_id: string
           status?: string
-          to_user_id: string
           updated_at?: string
         }
         Update: {
           amount?: number
-          completed_at?: string | null
           created_at?: string
+          currency?: string
           description?: string | null
-          expires_at?: string
-          from_user_id?: string
           id?: string
+          recipient_id?: string
+          sender_id?: string
           status?: string
-          to_user_id?: string
           updated_at?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "payment_requests_from_user_id_fkey"
-            columns: ["from_user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "payment_requests_to_user_id_fkey"
-            columns: ["to_user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -416,61 +388,154 @@ export type Database = {
       }
       restaurants: {
         Row: {
-          address: string
-          created_at: string | null
+          address: string | null
+          created_at: string
           cuisine_type: string | null
           delivery_fee: number | null
           description: string | null
+          email: string | null
           id: string
           image_url: string | null
-          is_active: boolean | null
-          location: Json
+          is_active: boolean
+          lat: number | null
+          lng: number | null
+          location: Json | null
           min_order: number | null
+          minimum_order: number | null
           name: string
-          operating_hours: Json | null
+          opening_hours: Json | null
+          owner_id: string | null
+          phone: string | null
           rating: number | null
-          updated_at: string | null
+          updated_at: string
         }
         Insert: {
-          address: string
-          created_at?: string | null
+          address?: string | null
+          created_at?: string
           cuisine_type?: string | null
           delivery_fee?: number | null
           description?: string | null
+          email?: string | null
           id?: string
           image_url?: string | null
-          is_active?: boolean | null
-          location: Json
+          is_active?: boolean
+          lat?: number | null
+          lng?: number | null
+          location?: Json | null
           min_order?: number | null
+          minimum_order?: number | null
           name: string
-          operating_hours?: Json | null
+          opening_hours?: Json | null
+          owner_id?: string | null
+          phone?: string | null
           rating?: number | null
-          updated_at?: string | null
+          updated_at?: string
         }
         Update: {
-          address?: string
-          created_at?: string | null
+          address?: string | null
+          created_at?: string
           cuisine_type?: string | null
           delivery_fee?: number | null
           description?: string | null
+          email?: string | null
           id?: string
           image_url?: string | null
-          is_active?: boolean | null
-          location?: Json
+          is_active?: boolean
+          lat?: number | null
+          lng?: number | null
+          location?: Json | null
           min_order?: number | null
+          minimum_order?: number | null
           name?: string
-          operating_hours?: Json | null
+          opening_hours?: Json | null
+          owner_id?: string | null
+          phone?: string | null
           rating?: number | null
-          updated_at?: string | null
+          updated_at?: string
         }
         Relationships: []
+      }
+      ride_cancellations: {
+        Row: {
+          cancelled_by: string
+          created_at: string
+          id: string
+          reason: string | null
+          ride_id: string
+          role: string | null
+        }
+        Insert: {
+          cancelled_by: string
+          created_at?: string
+          id?: string
+          reason?: string | null
+          ride_id: string
+          role?: string | null
+        }
+        Update: {
+          cancelled_by?: string
+          created_at?: string
+          id?: string
+          reason?: string | null
+          ride_id?: string
+          role?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ride_cancellations_ride_id_fkey"
+            columns: ["ride_id"]
+            isOneToOne: false
+            referencedRelation: "rides"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ride_disputes: {
+        Row: {
+          category: string
+          created_at: string
+          description: string
+          id: string
+          reporter_id: string
+          ride_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          description: string
+          id?: string
+          reporter_id: string
+          ride_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string
+          id?: string
+          reporter_id?: string
+          ride_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ride_disputes_ride_id_fkey"
+            columns: ["ride_id"]
+            isOneToOne: false
+            referencedRelation: "rides"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ride_messages: {
         Row: {
           created_at: string
           id: string
           message: string
-          read_at: string | null
           ride_id: string
           sender_id: string
         }
@@ -478,7 +543,6 @@ export type Database = {
           created_at?: string
           id?: string
           message: string
-          read_at?: string | null
           ride_id: string
           sender_id: string
         }
@@ -486,7 +550,6 @@ export type Database = {
           created_at?: string
           id?: string
           message?: string
-          read_at?: string | null
           ride_id?: string
           sender_id?: string
         }
@@ -503,42 +566,48 @@ export type Database = {
       ride_payments: {
         Row: {
           amount: number
-          completed_at: string | null
           created_at: string
           id: string
+          payee_id: string | null
           payer_id: string
           payment_method: string
+          reference_id: string | null
           ride_id: string
           status: string
-          transaction_id: string | null
+          tip_amount: number
+          updated_at: string
         }
         Insert: {
           amount: number
-          completed_at?: string | null
           created_at?: string
           id?: string
+          payee_id?: string | null
           payer_id: string
-          payment_method: string
+          payment_method?: string
+          reference_id?: string | null
           ride_id: string
           status?: string
-          transaction_id?: string | null
+          tip_amount?: number
+          updated_at?: string
         }
         Update: {
           amount?: number
-          completed_at?: string | null
           created_at?: string
           id?: string
+          payee_id?: string | null
           payer_id?: string
           payment_method?: string
+          reference_id?: string | null
           ride_id?: string
           status?: string
-          transaction_id?: string | null
+          tip_amount?: number
+          updated_at?: string
         }
         Relationships: [
           {
             foreignKeyName: "ride_payments_ride_id_fkey"
             columns: ["ride_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "rides"
             referencedColumns: ["id"]
           },
@@ -549,8 +618,8 @@ export type Database = {
           comment: string | null
           created_at: string
           id: string
-          rated_by: string
-          rated_user: string
+          ratee_id: string
+          rater_id: string
           rating: number
           ride_id: string
         }
@@ -558,8 +627,8 @@ export type Database = {
           comment?: string | null
           created_at?: string
           id?: string
-          rated_by: string
-          rated_user: string
+          ratee_id: string
+          rater_id: string
           rating: number
           ride_id: string
         }
@@ -567,8 +636,8 @@ export type Database = {
           comment?: string | null
           created_at?: string
           id?: string
-          rated_by?: string
-          rated_user?: string
+          ratee_id?: string
+          rater_id?: string
           rating?: number
           ride_id?: string
         }
@@ -623,9 +692,6 @@ export type Database = {
       }
       rides: {
         Row: {
-          actual_distance: number | null
-          actual_duration: number | null
-          arrived_at: string | null
           completed_at: string | null
           created_at: string
           destination_location: Json
@@ -635,21 +701,16 @@ export type Database = {
           estimated_duration: number | null
           fare_amount: number | null
           fare_breakdown: Json | null
-          final_fare: number | null
           id: string
-          passenger_id: string | null
+          otp_code: string | null
+          passenger_id: string
           passenger_notes: string | null
           payment_status: string | null
           pickup_location: Json
-          service_type: Database["public"]["Enums"]["service_type"] | null
-          started_at: string | null
           status: string
           updated_at: string
         }
         Insert: {
-          actual_distance?: number | null
-          actual_duration?: number | null
-          arrived_at?: string | null
           completed_at?: string | null
           created_at?: string
           destination_location: Json
@@ -659,21 +720,16 @@ export type Database = {
           estimated_duration?: number | null
           fare_amount?: number | null
           fare_breakdown?: Json | null
-          final_fare?: number | null
           id?: string
-          passenger_id?: string | null
+          otp_code?: string | null
+          passenger_id: string
           passenger_notes?: string | null
           payment_status?: string | null
           pickup_location: Json
-          service_type?: Database["public"]["Enums"]["service_type"] | null
-          started_at?: string | null
           status?: string
           updated_at?: string
         }
         Update: {
-          actual_distance?: number | null
-          actual_duration?: number | null
-          arrived_at?: string | null
           completed_at?: string | null
           created_at?: string
           destination_location?: Json
@@ -683,14 +739,12 @@ export type Database = {
           estimated_duration?: number | null
           fare_amount?: number | null
           fare_breakdown?: Json | null
-          final_fare?: number | null
           id?: string
-          passenger_id?: string | null
+          otp_code?: string | null
+          passenger_id?: string
           passenger_notes?: string | null
           payment_status?: string | null
           pickup_location?: Json
-          service_type?: Database["public"]["Enums"]["service_type"] | null
-          started_at?: string | null
           status?: string
           updated_at?: string
         }
@@ -700,34 +754,31 @@ export type Database = {
         Row: {
           address: string | null
           created_at: string
-          icon: string
           id: string
-          label: string
           lat: number
           lng: number
-          updated_at: string
+          name: string
+          type: string | null
           user_id: string
         }
         Insert: {
           address?: string | null
           created_at?: string
-          icon?: string
           id?: string
-          label: string
           lat: number
           lng: number
-          updated_at?: string
+          name: string
+          type?: string | null
           user_id: string
         }
         Update: {
           address?: string | null
           created_at?: string
-          icon?: string
           id?: string
-          label?: string
           lat?: number
           lng?: number
-          updated_at?: string
+          name?: string
+          type?: string | null
           user_id?: string
         }
         Relationships: []
@@ -735,6 +786,8 @@ export type Database = {
       saved_routes: {
         Row: {
           created_at: string
+          distance: number | null
+          duration: number | null
           end_location: Json
           id: string
           name: string
@@ -745,6 +798,8 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          distance?: number | null
+          duration?: number | null
           end_location: Json
           id?: string
           name: string
@@ -755,6 +810,8 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          distance?: number | null
+          duration?: number | null
           end_location?: Json
           id?: string
           name?: string
@@ -765,6 +822,41 @@ export type Database = {
         }
         Relationships: []
       }
+      station_photos: {
+        Row: {
+          caption: string | null
+          created_at: string
+          id: string
+          station_id: string
+          url: string
+          user_id: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          station_id: string
+          url: string
+          user_id: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          station_id?: string
+          url?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "station_photos_station_id_fkey"
+            columns: ["station_id"]
+            isOneToOne: false
+            referencedRelation: "stations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       station_reports: {
         Row: {
           created_at: string
@@ -773,7 +865,8 @@ export type Database = {
           station_id: string
           station_name: string | null
           status: string
-          user_id: string | null
+          updated_at: string
+          user_id: string
         }
         Insert: {
           created_at?: string
@@ -782,7 +875,8 @@ export type Database = {
           station_id: string
           station_name?: string | null
           status: string
-          user_id?: string | null
+          updated_at?: string
+          user_id: string
         }
         Update: {
           created_at?: string
@@ -791,11 +885,12 @@ export type Database = {
           station_id?: string
           station_name?: string | null
           status?: string
-          user_id?: string | null
+          updated_at?: string
+          user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "fk_station_reports_station_id"
+            foreignKeyName: "station_reports_station_id_fkey"
             columns: ["station_id"]
             isOneToOne: false
             referencedRelation: "stations"
@@ -843,51 +938,54 @@ export type Database = {
       }
       stations: {
         Row: {
-          address: string
-          amenities: string[] | null
+          address: string | null
+          amenities: Json | null
           brand: string | null
           created_at: string
           created_by: string | null
           fuel_prices: Json | null
-          fuel_types: string[] | null
+          fuel_types: Json | null
           id: string
           lat: number
           lng: number
           name: string
           operating_hours: Json | null
-          photos: string[] | null
+          photos: Json | null
+          status: string | null
           updated_at: string
         }
         Insert: {
-          address: string
-          amenities?: string[] | null
+          address?: string | null
+          amenities?: Json | null
           brand?: string | null
           created_at?: string
           created_by?: string | null
           fuel_prices?: Json | null
-          fuel_types?: string[] | null
+          fuel_types?: Json | null
           id: string
           lat: number
           lng: number
           name: string
           operating_hours?: Json | null
-          photos?: string[] | null
+          photos?: Json | null
+          status?: string | null
           updated_at?: string
         }
         Update: {
-          address?: string
-          amenities?: string[] | null
+          address?: string | null
+          amenities?: Json | null
           brand?: string | null
           created_at?: string
           created_by?: string | null
           fuel_prices?: Json | null
-          fuel_types?: string[] | null
+          fuel_types?: Json | null
           id?: string
           lat?: number
           lng?: number
           name?: string
           operating_hours?: Json | null
-          photos?: string[] | null
+          photos?: Json | null
+          status?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -895,90 +993,47 @@ export type Database = {
       transactions: {
         Row: {
           amount: number
-          completed_at: string | null
           created_at: string
-          currency: string | null
+          currency: string
           description: string | null
-          error_message: string | null
           id: string
-          metadata: Json | null
-          order_id: string | null
-          payment_method_id: string | null
-          payment_method_type: string | null
-          processor_response: Json | null
-          processor_transaction_id: string | null
-          ride_id: string | null
-          service_type: Database["public"]["Enums"]["service_type"]
+          reference_id: string | null
+          service_id: string | null
+          service_type: string | null
           status: string
-          transaction_type: string
-          updated_at: string
+          transaction_type: string | null
+          type: string
           user_id: string
         }
         Insert: {
           amount: number
-          completed_at?: string | null
           created_at?: string
-          currency?: string | null
+          currency?: string
           description?: string | null
-          error_message?: string | null
           id?: string
-          metadata?: Json | null
-          order_id?: string | null
-          payment_method_id?: string | null
-          payment_method_type?: string | null
-          processor_response?: Json | null
-          processor_transaction_id?: string | null
-          ride_id?: string | null
-          service_type: Database["public"]["Enums"]["service_type"]
+          reference_id?: string | null
+          service_id?: string | null
+          service_type?: string | null
           status?: string
-          transaction_type: string
-          updated_at?: string
+          transaction_type?: string | null
+          type: string
           user_id: string
         }
         Update: {
           amount?: number
-          completed_at?: string | null
           created_at?: string
-          currency?: string | null
+          currency?: string
           description?: string | null
-          error_message?: string | null
           id?: string
-          metadata?: Json | null
-          order_id?: string | null
-          payment_method_id?: string | null
-          payment_method_type?: string | null
-          processor_response?: Json | null
-          processor_transaction_id?: string | null
-          ride_id?: string | null
-          service_type?: Database["public"]["Enums"]["service_type"]
+          reference_id?: string | null
+          service_id?: string | null
+          service_type?: string | null
           status?: string
-          transaction_type?: string
-          updated_at?: string
+          transaction_type?: string | null
+          type?: string
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "transactions_order_id_fkey"
-            columns: ["order_id"]
-            isOneToOne: false
-            referencedRelation: "orders"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "transactions_payment_method_id_fkey"
-            columns: ["payment_method_id"]
-            isOneToOne: false
-            referencedRelation: "payment_methods"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "transactions_ride_id_fkey"
-            columns: ["ride_id"]
-            isOneToOne: false
-            referencedRelation: "rides"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       user_roles: {
         Row: {
@@ -1034,30 +1089,31 @@ export type Database = {
     }
     Functions: {
       add_wallet_funds: {
-        Args: {
-          p_amount: number
-          p_payment_method_id?: string
-          p_user_id: string
-        }
+        Args: { p_amount: number; p_transaction_id?: string; p_user_id: string }
         Returns: boolean
       }
       assign_additional_role: {
         Args: {
-          _role: Database["public"]["Enums"]["app_role"]
-          _user_id: string
+          p_role: Database["public"]["Enums"]["app_role"]
+          p_user_id: string
         }
         Returns: boolean
       }
-      assign_nearest_runner: { Args: { p_order_id: string }; Returns: string }
+      assign_nearest_runner: { Args: { p_order_id: string }; Returns: boolean }
+      calculate_distance: {
+        Args: { lat1: number; lat2: number; lng1: number; lng2: number }
+        Returns: number
+      }
       deduct_wallet_funds: {
         Args: { p_amount: number; p_user_id: string }
         Returns: boolean
       }
       get_safe_driver_profile: {
-        Args: { _driver_id: string }
+        Args: { _user_id: string }
         Returns: {
           current_location: Json
           is_active: boolean
+          license_plate: string
           rating: number
           total_rides: number
           user_id: string
@@ -1065,17 +1121,17 @@ export type Database = {
           vehicle_model: string
           vehicle_type: string
           verification_status: string
+          verified_at: string
+          verified_by: string
         }[]
       }
       get_safe_profile: {
-        Args: { profile_id: string }
+        Args: { _user_id: string }
         Returns: {
           avatar_url: string
-          created_at: string
           display_name: string
           id: string
           primary_role: Database["public"]["Enums"]["app_role"]
-          updated_at: string
         }[]
       }
       get_user_roles: {
@@ -1089,6 +1145,18 @@ export type Database = {
         }
         Returns: boolean
       }
+      settle_service_payment: {
+        Args: {
+          p_amount: number
+          p_reference_id?: string
+          p_service_id: string
+          p_service_type: string
+          p_user_id: string
+        }
+        Returns: boolean
+      }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
       transfer_wallet_funds: {
         Args: {
           p_amount: number
@@ -1101,7 +1169,6 @@ export type Database = {
     }
     Enums: {
       app_role: "user" | "driver" | "manager" | "admin" | "passenger"
-      service_type: "ride" | "food_delivery" | "package_delivery" | "errand"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1230,7 +1297,6 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["user", "driver", "manager", "admin", "passenger"],
-      service_type: ["ride", "food_delivery", "package_delivery", "errand"],
     },
   },
 } as const
