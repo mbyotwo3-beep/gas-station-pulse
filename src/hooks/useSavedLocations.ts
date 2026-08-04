@@ -31,7 +31,12 @@ export function useSavedLocations() {
         .order('created_at', { ascending: true });
 
       if (error) throw error;
-      setLocations((data as SavedLocation[]) || []);
+      setLocations(((data || []) as any[]).map((r) => ({
+        ...r,
+        label: r.name,
+        icon: r.type ?? 'map-pin',
+        updated_at: r.created_at,
+      })) as SavedLocation[]);
     } catch (err) {
       console.error('Error fetching saved locations:', err);
     } finally {
@@ -50,12 +55,15 @@ export function useSavedLocations() {
     }
 
     try {
+      await supabase
+        .from('saved_locations')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('name', label);
+
       const { error } = await supabase
         .from('saved_locations')
-        .upsert(
-          { user_id: user.id, label, icon, lat, lng, address: address || null },
-          { onConflict: 'user_id,label' }
-        );
+        .insert({ user_id: user.id, name: label, type: icon, lat, lng, address: address || null });
 
       if (error) throw error;
       toast.success(`"${label}" saved!`);

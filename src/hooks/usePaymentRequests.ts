@@ -13,7 +13,7 @@ export interface PaymentRequest {
   status: 'pending' | 'accepted' | 'declined' | 'cancelled' | 'expired';
   created_at: string;
   updated_at: string;
-  expires_at: string;
+  expires_at?: string;
   completed_at?: string;
   from_profile?: {
     display_name?: string;
@@ -24,6 +24,12 @@ export interface PaymentRequest {
     email?: string;
   };
 }
+
+const mapRequest = (row: any): PaymentRequest => ({
+  ...row,
+  from_user_id: row.sender_id,
+  to_user_id: row.recipient_id,
+});
 
 export const usePaymentRequests = () => {
   const { user } = useAuth();
@@ -54,7 +60,7 @@ export const usePaymentRequests = () => {
           event: '*',
           schema: 'public',
           table: 'payment_requests',
-          filter: `to_user_id=eq.${user.id}`
+          filter: `recipient_id=eq.${user.id}`
         },
         () => {
           fetchRequests();
@@ -66,7 +72,7 @@ export const usePaymentRequests = () => {
           event: '*',
           schema: 'public',
           table: 'payment_requests',
-          filter: `from_user_id=eq.${user.id}`
+          filter: `sender_id=eq.${user.id}`
         },
         () => {
           fetchRequests();
@@ -87,33 +93,27 @@ export const usePaymentRequests = () => {
     // Fetch incoming requests (requests TO this user)
     const { data: incoming, error: incomingError } = await supabase
       .from('payment_requests')
-      .select(`
-        *,
-        from_profile:profiles!payment_requests_from_user_id_fkey(display_name, email)
-      `)
-      .eq('to_user_id', user.id)
+      .select('*')
+      .eq('recipient_id', user.id)
       .order('created_at', { ascending: false });
 
     if (incomingError) {
       console.error('Error fetching incoming requests:', incomingError);
     } else {
-      setIncomingRequests((incoming || []) as PaymentRequest[]);
+      setIncomingRequests(((incoming || []) as any[]).map(mapRequest));
     }
 
     // Fetch outgoing requests (requests FROM this user)
     const { data: outgoing, error: outgoingError } = await supabase
       .from('payment_requests')
-      .select(`
-        *,
-        to_profile:profiles!payment_requests_to_user_id_fkey(display_name, email)
-      `)
-      .eq('from_user_id', user.id)
+      .select('*')
+      .eq('sender_id', user.id)
       .order('created_at', { ascending: false });
 
     if (outgoingError) {
       console.error('Error fetching outgoing requests:', outgoingError);
     } else {
-      setOutgoingRequests((outgoing || []) as PaymentRequest[]);
+      setOutgoingRequests(((outgoing || []) as any[]).map(mapRequest));
     }
 
     setLoading(false);
@@ -127,8 +127,8 @@ export const usePaymentRequests = () => {
     if (!user) return { success: false, error: 'Not authenticated' };
 
     const { error } = await supabase.from('payment_requests').insert({
-      from_user_id: user.id,
-      to_user_id: toUserId,
+      sender_id: user.id,
+      recipient_id: toUserId,
       amount,
       description
     });
@@ -166,7 +166,6 @@ export const usePaymentRequests = () => {
       .from('payment_requests')
       .update({
         status: 'accepted',
-        completed_at: new Date().toISOString()
       })
       .eq('id', requestId);
 
@@ -185,7 +184,6 @@ export const usePaymentRequests = () => {
       .from('payment_requests')
       .update({
         status: 'declined',
-        completed_at: new Date().toISOString()
       })
       .eq('id', requestId);
 
@@ -204,7 +202,6 @@ export const usePaymentRequests = () => {
       .from('payment_requests')
       .update({
         status: 'cancelled',
-        completed_at: new Date().toISOString()
       })
       .eq('id', requestId);
 
