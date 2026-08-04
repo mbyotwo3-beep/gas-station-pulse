@@ -128,6 +128,7 @@ export type Database = {
           image_url: string | null
           is_available: boolean
           name: string
+          preparation_time: number | null
           price: number
           restaurant_id: string
           updated_at: string
@@ -140,6 +141,7 @@ export type Database = {
           image_url?: string | null
           is_available?: boolean
           name: string
+          preparation_time?: number | null
           price: number
           restaurant_id: string
           updated_at?: string
@@ -152,6 +154,7 @@ export type Database = {
           image_url?: string | null
           is_available?: boolean
           name?: string
+          preparation_time?: number | null
           price?: number
           restaurant_id?: string
           updated_at?: string
@@ -172,6 +175,7 @@ export type Database = {
           created_at: string
           id: string
           order_id: string
+          rated_by: string | null
           rating: number
           user_id: string
         }
@@ -180,6 +184,7 @@ export type Database = {
           created_at?: string
           id?: string
           order_id: string
+          rated_by?: string | null
           rating: number
           user_id: string
         }
@@ -188,6 +193,7 @@ export type Database = {
           created_at?: string
           id?: string
           order_id?: string
+          rated_by?: string | null
           rating?: number
           user_id?: string
         }
@@ -218,6 +224,7 @@ export type Database = {
           pickup_location: Json | null
           restaurant_id: string | null
           service_type: string
+          special_instructions: string | null
           status: string
           subtotal: number | null
           total_amount: number | null
@@ -239,6 +246,7 @@ export type Database = {
           pickup_location?: Json | null
           restaurant_id?: string | null
           service_type?: string
+          special_instructions?: string | null
           status?: string
           subtotal?: number | null
           total_amount?: number | null
@@ -260,6 +268,7 @@ export type Database = {
           pickup_location?: Json | null
           restaurant_id?: string | null
           service_type?: string
+          special_instructions?: string | null
           status?: string
           subtotal?: number | null
           total_amount?: number | null
@@ -274,6 +283,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      payment_methods: {
+        Row: {
+          created_at: string
+          details: Json | null
+          id: string
+          is_active: boolean
+          is_default: boolean
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          details?: Json | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          details?: Json | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       payment_requests: {
         Row: {
@@ -353,14 +395,18 @@ export type Database = {
           description: string | null
           email: string | null
           id: string
+          image_url: string | null
           is_active: boolean
           lat: number | null
           lng: number | null
+          location: Json | null
+          min_order: number | null
           minimum_order: number | null
           name: string
           opening_hours: Json | null
           owner_id: string | null
           phone: string | null
+          rating: number | null
           updated_at: string
         }
         Insert: {
@@ -371,14 +417,18 @@ export type Database = {
           description?: string | null
           email?: string | null
           id?: string
+          image_url?: string | null
           is_active?: boolean
           lat?: number | null
           lng?: number | null
+          location?: Json | null
+          min_order?: number | null
           minimum_order?: number | null
           name: string
           opening_hours?: Json | null
           owner_id?: string | null
           phone?: string | null
+          rating?: number | null
           updated_at?: string
         }
         Update: {
@@ -389,14 +439,18 @@ export type Database = {
           description?: string | null
           email?: string | null
           id?: string
+          image_url?: string | null
           is_active?: boolean
           lat?: number | null
           lng?: number | null
+          location?: Json | null
+          min_order?: number | null
           minimum_order?: number | null
           name?: string
           opening_hours?: Json | null
           owner_id?: string | null
           phone?: string | null
+          rating?: number | null
           updated_at?: string
         }
         Relationships: []
@@ -651,6 +705,7 @@ export type Database = {
           otp_code: string | null
           passenger_id: string
           passenger_notes: string | null
+          payment_status: string | null
           pickup_location: Json
           status: string
           updated_at: string
@@ -669,6 +724,7 @@ export type Database = {
           otp_code?: string | null
           passenger_id: string
           passenger_notes?: string | null
+          payment_status?: string | null
           pickup_location: Json
           status?: string
           updated_at?: string
@@ -687,6 +743,7 @@ export type Database = {
           otp_code?: string | null
           passenger_id?: string
           passenger_notes?: string | null
+          payment_status?: string | null
           pickup_location?: Json
           status?: string
           updated_at?: string
@@ -944,6 +1001,7 @@ export type Database = {
           service_id: string | null
           service_type: string | null
           status: string
+          transaction_type: string | null
           type: string
           user_id: string
         }
@@ -957,6 +1015,7 @@ export type Database = {
           service_id?: string | null
           service_type?: string | null
           status?: string
+          transaction_type?: string | null
           type: string
           user_id: string
         }
@@ -970,6 +1029,7 @@ export type Database = {
           service_id?: string | null
           service_type?: string | null
           status?: string
+          transaction_type?: string | null
           type?: string
           user_id?: string
         }
