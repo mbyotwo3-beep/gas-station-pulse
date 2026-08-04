@@ -90,7 +90,7 @@ export function useStations() {
         }
       });
 
-      const stationData: Station[] = (stationsData || []).map(station => {
+      const stationData: Station[] = ((stationsData || []) as any[]).map((station: any) => {
         const latestReport = statusMap.get(station.id);
         return {
           id: station.id,

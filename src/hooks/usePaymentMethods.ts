@@ -68,7 +68,7 @@ export const usePaymentMethods = () => {
   const updatePaymentMethod = async (id: string, updates: Partial<PaymentMethod>) => {
     const { data, error } = await supabase
       .from('payment_methods')
-      .update(updates)
+      .update(updates as any)
       .eq('id', id)
       .select()
       .single();

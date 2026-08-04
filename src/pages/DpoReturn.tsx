@@ -8,6 +8,13 @@ import { usePageSeo } from '@/lib/seo';
 
 type Status = 'verifying' | 'success' | 'failed' | 'pending';
 
+const MESSAGES: Record<string, string> = {
+  DPO_DECLINED: 'Your payment was declined. Please try another payment method.',
+  DPO_TXN_NOT_FOUND: 'We could not match this payment to your account.',
+  DPO_SETTLEMENT_FAILED: 'Your payment went through but we could not finalise it. Support has been notified.',
+  DPO_VERIFY_FAILED: 'We could not verify your payment. Please try again.',
+};
+
 export default function DpoReturn() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
@@ -34,7 +41,7 @@ export default function DpoReturn() {
       });
       if (error) {
         setStatus('failed');
-        setMessage(error.message || 'Verification failed.');
+        setMessage('We could not verify your payment. Please try again.');
         return;
       }
       if (data?.credited) {
@@ -50,7 +57,7 @@ export default function DpoReturn() {
         setMessage('Payment is still pending. Refresh this page in a moment.');
       } else {
         setStatus('failed');
-        setMessage(data?.explanation || 'Payment was not completed.');
+        setMessage(MESSAGES[data?.code as string] || 'Payment was not completed.');
       }
     })();
   }, [params]);

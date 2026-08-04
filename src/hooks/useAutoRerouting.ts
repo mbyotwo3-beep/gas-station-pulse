@@ -17,8 +17,8 @@ export function useAutoRerouting(
 ) {
   const [isRerouting, setIsRerouting] = useState(false);
   const lastRerouteTime = useRef<number>(0);
-  const rerouteTimeout = useRef<NodeJS.Timeout | null>(null);
-  const checkIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const rerouteTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const checkIntervalRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const deviationThreshold = options.deviationThreshold || 50; // 50 meters default
   const checkInterval = options.checkInterval || 5000; // 5 seconds default
