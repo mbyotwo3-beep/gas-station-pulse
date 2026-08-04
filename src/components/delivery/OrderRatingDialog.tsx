@@ -38,7 +38,7 @@ export default function OrderRatingDialog({
     const { error } = await supabase.from('order_ratings').insert({
       order_id: orderId,
       rated_by: userData.user.id,
-      rated_user: driverId,
+      user_id: driverId,
       rating,
       comment: comment.trim() || null,
     });

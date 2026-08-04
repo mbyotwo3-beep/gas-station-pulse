@@ -82,8 +82,8 @@ export function useRoles() {
 
     try {
       const { error } = await supabase.rpc('assign_additional_role', {
-        _user_id: user.id,
-        _role: role
+        p_user_id: user.id,
+        p_role: role
       });
 
       if (error) throw error;

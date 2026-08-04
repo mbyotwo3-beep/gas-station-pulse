@@ -43,7 +43,7 @@ export default function StationPhotos({ photos, stationName, stationId }: Statio
       if (fetchError) throw fetchError;
 
       // Add new photo to array
-      const updatedPhotos = [...(station.photos || []), url];
+      const updatedPhotos = [...(((station.photos as unknown) as string[]) || []), url];
 
       // Update station with new photos array
       const { error: updateError } = await supabase

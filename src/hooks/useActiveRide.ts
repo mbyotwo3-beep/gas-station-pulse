@@ -169,9 +169,9 @@ export function useActiveRide() {
       .update({
         status: 'completed',
         completed_at: new Date().toISOString(),
-        actual_distance: payload.actual_distance ?? null,
-        actual_duration: payload.actual_duration ?? null,
-        final_fare: payload.final_fare,
+        estimated_distance: payload.actual_distance ?? null,
+        estimated_duration: payload.actual_duration ?? null,
+        fare_amount: payload.final_fare,
         fare_breakdown: payload.fare_breakdown as any,
       })
       .eq('id', rideId);

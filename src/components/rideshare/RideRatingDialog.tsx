@@ -40,8 +40,8 @@ export function RideRatingDialog({
         .from('ride_ratings')
         .insert({
           ride_id: rideId,
-          rated_by: user.id,
-          rated_user: ratedUserId,
+          rater_id: user.id,
+          ratee_id: ratedUserId,
           rating,
           comment: comment || null
         });
@@ -57,7 +57,7 @@ export function RideRatingDialog({
       const { data: ratings } = await supabase
         .from('ride_ratings')
         .select('rating')
-        .eq('rated_user', ratedUserId);
+        .eq('ratee_id', ratedUserId);
 
       if (ratings && ratings.length > 0) {
         const avgRating = ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length;

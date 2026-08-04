@@ -62,8 +62,7 @@ export function RidePaymentDialog({
             payer_id: user.id,
             amount,
             payment_method: 'wallet',
-            status: 'completed',
-            completed_at: new Date().toISOString()
+            status: 'completed'
           });
 
         if (paymentError) throw paymentError;

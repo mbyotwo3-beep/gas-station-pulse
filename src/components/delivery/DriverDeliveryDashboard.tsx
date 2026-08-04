@@ -158,7 +158,7 @@ export default function DriverDeliveryDashboard() {
           driver_id: user!.id,
           order_id: activeDelivery.id,
           amount: driverEarning,
-          service_type: activeDelivery.service_type as any,
+          type: activeDelivery.service_type as string,
           status: 'pending'
         });
       }
