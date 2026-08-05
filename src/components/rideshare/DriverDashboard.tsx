@@ -14,6 +14,8 @@ import { useDriverLocation } from '@/hooks/useDriverLocation';
 import ActiveRideTracker from './ActiveRideTracker';
 import RideHistory from './RideHistory';
 import DriverBenefitsCalculator from './DriverBenefitsCalculator';
+import DriverDocumentsPanel from './DriverDocumentsPanel';
+import DriverEarningsCard from './DriverEarningsCard';
 
 interface DriverProfile {
   id: string;
@@ -458,6 +460,12 @@ export default function DriverDashboard() {
           )}
         </CardContent>
       </Card>
+
+      {/* Verification documents */}
+      <DriverDocumentsPanel />
+
+      {/* Earnings */}
+      <DriverEarningsCard />
 
       {/* Driver Benefits Calculator */}
       <DriverBenefitsCalculator />
