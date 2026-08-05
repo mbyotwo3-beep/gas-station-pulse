@@ -10,6 +10,7 @@ import { toast } from '@/hooks/use-toast';
 import { Shield, Users, Car, Fuel, TrendingUp, Search } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import DriverVerificationPanel from './DriverVerificationPanel';
+import PlatformRevenueCard from './PlatformRevenueCard';
 
 interface UserWithRole {
   id: string;
@@ -283,7 +284,8 @@ export default function AdminPanel() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="drivers">
+        <TabsContent value="drivers" className="space-y-4">
+          <PlatformRevenueCard />
           <DriverVerificationPanel />
         </TabsContent>
       </Tabs>

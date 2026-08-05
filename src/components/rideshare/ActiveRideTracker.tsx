@@ -11,6 +11,7 @@ import { RideRatingDialog } from './RideRatingDialog';
 import { RidePaymentDialog } from './RidePaymentDialog';
 import { RideChatDialog } from './RideChatDialog';
 import DriverLocationMap from './DriverLocationMap';
+import DriverSafetyCard from './DriverSafetyCard';
 import RideSafetyPanel from './RideSafetyPanel';
 import RideVerificationOTP from './RideVerificationOTP';
 import RideCompletionSummary from './RideCompletionSummary';
@@ -296,6 +297,10 @@ export default function ActiveRideTracker() {
             </div>
           </div>
         </div>
+
+        {!isDriver && activeRide.driver_id && (
+          <DriverSafetyCard driverId={activeRide.driver_id} />
+        )}
 
         {!isDriver && activeRide.driver_id && (
           <DriverLocationMap

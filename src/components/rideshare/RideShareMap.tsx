@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import L, { Map as LeafletMapType } from 'leaflet';
-import 'leaflet/dist/leaflet.css';
-import { cn } from '@/lib/utils';
+import * as maplibregl from 'maplibre-gl';
+import MapLibreMap, { type MapLibreHandle } from '@/components/map/MapLibreMap';
 import { supabase } from '@/integrations/supabase/client';
 
 interface DriverLocation {
@@ -28,251 +27,177 @@ export interface RideShareMapProps {
   onRequestSelect?: (request: RideRequest) => void;
 }
 
-export default function RideShareMap({ 
-  className, 
-  focusPoint, 
-  onDriverSelect, 
-  onRequestSelect 
+const VEHICLE_EMOJI: Record<string, string> = {
+  car: '🚗',
+  motorcycle: '🏍️',
+  van: '🚐',
+  truck: '🚛',
+};
+
+function markerEl(content: string, color: string) {
+  const el = document.createElement('div');
+  el.textContent = content;
+  el.style.fontSize = '18px';
+  el.style.lineHeight = '28px';
+  el.style.width = '28px';
+  el.style.height = '28px';
+  el.style.textAlign = 'center';
+  el.style.borderRadius = '9999px';
+  el.style.background = color;
+  el.style.border = '2px solid white';
+  el.style.boxShadow = '0 1px 4px rgba(0,0,0,.35)';
+  el.style.cursor = 'pointer';
+  return el;
+}
+
+export default function RideShareMap({
+  className,
+  focusPoint,
+  onDriverSelect,
+  onRequestSelect,
 }: RideShareMapProps) {
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const mapRef = useRef<LeafletMapType | null>(null);
-  const driversLayerRef = useRef<L.LayerGroup | null>(null);
-  const requestsLayerRef = useRef<L.LayerGroup | null>(null);
-  const focusMarkerRef = useRef<L.CircleMarker | null>(null);
-  
+  const handleRef = useRef<MapLibreHandle | null>(null);
+  const driverMarkersRef = useRef<maplibregl.Marker[]>([]);
+  const requestMarkersRef = useRef<maplibregl.Marker[]>([]);
+  const focusMarkerRef = useRef<maplibregl.Marker | null>(null);
+
   const [drivers, setDrivers] = useState<DriverLocation[]>([]);
   const [rideRequests, setRideRequests] = useState<RideRequest[]>([]);
-
-  useEffect(() => {
-    if (!containerRef.current || mapRef.current) return;
-
-    mapRef.current = L.map(containerRef.current, {
-      center: [-15.3875, 28.3228], // Lusaka, Zambia
-      zoom: 12,
-      zoomControl: true,
-      scrollWheelZoom: true,
-      attributionControl: false,
-    });
-
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap contributors',
-    }).addTo(mapRef.current);
-
-    // Layer for driver markers
-    driversLayerRef.current = L.layerGroup().addTo(mapRef.current);
-    
-    // Layer for ride request markers
-    requestsLayerRef.current = L.layerGroup().addTo(mapRef.current);
-
-    // Fetch initial data
-    fetchActiveDrivers();
-    fetchRideRequests();
-
-    // Set up real-time subscriptions
-    const driversSubscription = supabase
-      .channel('driver_locations')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'driver_profiles'
-      }, () => {
-        fetchActiveDrivers();
-      })
-      .subscribe();
-
-    const requestsSubscription = supabase
-      .channel('ride_requests')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'ride_requests'
-      }, () => {
-        fetchRideRequests();
-      })
-      .subscribe();
-
-    return () => {
-      mapRef.current?.remove();
-      mapRef.current = null;
-      driversLayerRef.current = null;
-      requestsLayerRef.current = null;
-      focusMarkerRef.current = null;
-      supabase.removeChannel(driversSubscription);
-      supabase.removeChannel(requestsSubscription);
-    };
-  }, []);
 
   const fetchActiveDrivers = async () => {
     const { data, error } = await supabase
       .from('driver_profiles')
       .select('*')
       .eq('is_active', true)
+      .eq('is_suspended', false)
+      .eq('verification_status', 'approved')
       .not('current_location', 'is', null);
 
     if (error) {
       console.error('Error fetching drivers:', error);
-    } else {
-      const typedData = (data || []).map(item => ({
-        ...item,
-        current_location: item.current_location as { lat: number; lng: number }
-      }));
-      setDrivers(typedData);
+      return;
     }
+    setDrivers(
+      (data ?? []).map((item) => ({
+        ...item,
+        current_location: item.current_location as unknown as { lat: number; lng: number },
+      })) as DriverLocation[],
+    );
   };
 
   const fetchRideRequests = async () => {
-    const { data, error } = await supabase
-      .from('ride_requests')
-      .select('*')
-      .eq('status', 'active');
-
+    const { data, error } = await supabase.from('ride_requests').select('*').eq('status', 'active');
     if (error) {
       console.error('Error fetching ride requests:', error);
-    } else {
-      const typedData = (data || []).map(item => ({
-        ...item,
-        pickup_location: item.pickup_location as { lat: number; lng: number; address: string },
-        destination_location: item.destination_location as { lat: number; lng: number; address: string }
-      }));
-      setRideRequests(typedData);
+      return;
     }
+    setRideRequests(
+      (data ?? []).map((item) => ({
+        ...item,
+        pickup_location: item.pickup_location as unknown as RideRequest['pickup_location'],
+        destination_location:
+          item.destination_location as unknown as RideRequest['destination_location'],
+      })) as RideRequest[],
+    );
   };
 
-  // Update driver markers
   useEffect(() => {
-    const driversLayer = driversLayerRef.current;
-    const map = mapRef.current;
-    if (!driversLayer || !map || !(map as any)._loaded) return;
-    if (!map.hasLayer(driversLayer)) return;
+    fetchActiveDrivers();
+    fetchRideRequests();
 
-    driversLayer.clearLayers();
+    const driversSubscription = supabase
+      .channel('driver_locations')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'driver_profiles' }, () =>
+        fetchActiveDrivers(),
+      )
+      .subscribe();
 
-    drivers.forEach((driver) => {
-      if (!driver.current_location) return;
+    const requestsSubscription = supabase
+      .channel('ride_requests')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'ride_requests' }, () =>
+        fetchRideRequests(),
+      )
+      .subscribe();
 
-      const { lat, lng } = driver.current_location;
-      
-      // Different colors for different vehicle types
-      const getDriverColor = (vehicleType: string) => {
-        switch (vehicleType) {
-          case 'car': return 'hsl(var(--primary))';
-          case 'motorcycle': return 'hsl(var(--warning))';
-          case 'van': return 'hsl(var(--success))';
-          case 'truck': return 'hsl(var(--destructive))';
-          default: return 'hsl(var(--primary))';
-        }
-      };
+    return () => {
+      supabase.removeChannel(driversSubscription);
+      supabase.removeChannel(requestsSubscription);
+    };
+  }, []);
 
-      const marker = L.circleMarker([lat, lng], {
-        radius: 8,
-        color: getDriverColor(driver.vehicle_type),
-        fillColor: getDriverColor(driver.vehicle_type),
-        fillOpacity: 0.8,
-        weight: 2,
-      }).addTo(driversLayer);
+  // Driver markers
+  useEffect(() => {
+    const map = handleRef.current?.getMap();
+    if (!map) return;
 
-      const vehicleEmoji = {
-        car: '🚗',
-        motorcycle: '🏍️',
-        van: '🚐',
-        truck: '🚛'
-      }[driver.vehicle_type] || '🚗';
-
-      marker.bindTooltip(
-        `<div style="text-align: center;">
-          <div style="font-size: 16px;">${vehicleEmoji}</div>
-          <strong>${driver.vehicle_type.charAt(0).toUpperCase() + driver.vehicle_type.slice(1)}</strong><br>
-          ⭐ ${driver.rating.toFixed(1)} rating
-        </div>`,
-        { permanent: false, opacity: 1 }
-      );
-
-      marker.on('click', () => onDriverSelect?.(driver));
-    });
+    driverMarkersRef.current.forEach((m) => m.remove());
+    driverMarkersRef.current = drivers
+      .filter((d) => d.current_location)
+      .map((driver) => {
+        const el = markerEl(VEHICLE_EMOJI[driver.vehicle_type] ?? '🚗', 'hsl(var(--background))');
+        el.addEventListener('click', () => onDriverSelect?.(driver));
+        return new maplibregl.Marker({ element: el })
+          .setLngLat([driver.current_location.lng, driver.current_location.lat])
+          .setPopup(
+            new maplibregl.Popup({ offset: 14 }).setHTML(
+              `<strong>${driver.vehicle_type}</strong><br/>⭐ ${Number(driver.rating ?? 0).toFixed(1)}`,
+            ),
+          )
+          .addTo(map);
+      });
   }, [drivers, onDriverSelect]);
 
-  // Update ride request markers
+  // Ride request markers
   useEffect(() => {
-    const requestsLayer = requestsLayerRef.current;
-    const map = mapRef.current;
-    if (!requestsLayer || !map || !(map as any)._loaded) return;
-    if (!map.hasLayer(requestsLayer)) return;
+    const map = handleRef.current?.getMap();
+    if (!map) return;
 
-    requestsLayer.clearLayers();
-
-    rideRequests.forEach((request) => {
-      const { lat, lng } = request.pickup_location;
-      
-      const marker = L.circleMarker([lat, lng], {
-        radius: 10,
-        color: 'hsl(var(--warning))',
-        fillColor: 'hsl(var(--warning))',
-        fillOpacity: 0.9,
-        weight: 3,
-      }).addTo(requestsLayer);
-
-      marker.bindTooltip(
-        `<div>
-          <strong>🙋 Ride Request</strong><br>
-          👥 ${request.passenger_count} passenger${request.passenger_count > 1 ? 's' : ''}<br>
-          ${request.max_fare ? `💰 Max: $${request.max_fare}` : '💰 Fare negotiable'}<br>
-          📍 ${request.pickup_location.address.substring(0, 50)}...
-        </div>`,
-        { permanent: false, opacity: 1 }
-      );
-
-      marker.on('click', () => onRequestSelect?.(request));
+    requestMarkersRef.current.forEach((m) => m.remove());
+    requestMarkersRef.current = rideRequests.map((request) => {
+      const el = markerEl('🙋', 'hsl(var(--warning))');
+      el.addEventListener('click', () => onRequestSelect?.(request));
+      return new maplibregl.Marker({ element: el })
+        .setLngLat([request.pickup_location.lng, request.pickup_location.lat])
+        .setPopup(
+          new maplibregl.Popup({ offset: 14 }).setHTML(
+            `<strong>Ride request</strong><br/>👥 ${request.passenger_count}<br/>${
+              request.max_fare ? `💰 Max K${request.max_fare}` : '💰 Fare negotiable'
+            }`,
+          ),
+        )
+        .addTo(map);
     });
   }, [rideRequests, onRequestSelect]);
 
-  // Handle focus point
+  // Focus point
   useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !focusPoint || !(map as any)._loaded) return;
+    const map = handleRef.current?.getMap();
+    if (!map || !focusPoint) return;
 
-    // Remove previous focus marker
-    if (focusMarkerRef.current) {
-      map.removeLayer(focusMarkerRef.current);
-      focusMarkerRef.current = null;
-    }
+    focusMarkerRef.current?.remove();
+    focusMarkerRef.current = new maplibregl.Marker({ color: '#111111' })
+      .setLngLat([focusPoint.lng, focusPoint.lat])
+      .setPopup(new maplibregl.Popup({ offset: 14 }).setText(focusPoint.label ?? 'Selected location'))
+      .addTo(map);
 
-    const marker = L.circleMarker([focusPoint.lat, focusPoint.lng], {
-      radius: 12,
-      color: 'hsl(var(--primary))',
-      fillColor: 'hsl(var(--primary))',
-      fillOpacity: 0.9,
-      weight: 2,
-    }).addTo(map);
-
-    marker.bindTooltip(
-      `<strong>${focusPoint.label ?? 'Selected location'}</strong>`,
-      { permanent: false, opacity: 1 }
-    );
-    
-    focusMarkerRef.current = marker;
-
-    // Center map on focus point
-    map.setView([focusPoint.lat, focusPoint.lng], 14, { animate: true });
+    map.flyTo({ center: [focusPoint.lng, focusPoint.lat], zoom: 14 });
   }, [focusPoint]);
 
   return (
-    <div className={cn("relative", className ?? "h-[60vh]")}>
-      <div ref={containerRef} className="w-full h-full rounded-lg elevated overflow-hidden" />
-      
-      {/* Legend */}
-      <div className="absolute top-4 right-4 bg-background/95 backdrop-blur-sm border rounded-lg p-3 shadow-lg">
+    <MapLibreMap ref={handleRef} className={className ?? 'h-[60vh]'}>
+      <div className="absolute top-4 left-4 bg-background/95 backdrop-blur-sm border rounded-lg p-3 shadow-lg">
         <div className="text-sm font-semibold mb-2">Legend</div>
         <div className="space-y-1 text-xs">
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-primary"></div>
-            <span>🚗 Available Drivers</span>
+            <span>🚗</span>
+            <span>Verified drivers online</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-warning"></div>
-            <span>🙋 Ride Requests</span>
+            <span>🙋</span>
+            <span>Ride requests</span>
           </div>
         </div>
       </div>
-    </div>
+    </MapLibreMap>
   );
 }

@@ -15,7 +15,7 @@ import {
   Briefcase,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import EnhancedLocationSearch from "../map/EnhancedLocationSearch";
+import LocationPicker from "../map/LocationPicker";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useFareEstimation } from "@/hooks/useFareEstimation";
@@ -142,11 +142,11 @@ export default function ErrandsForm() {
         <div className="space-y-3">
           <div className="space-y-2">
             <Label>Pickup</Label>
-            <EnhancedLocationSearch onLocationSelect={setPickup} />
+            <LocationPicker onLocationSelect={setPickup} />
           </div>
           <div className="space-y-2">
             <Label>Drop-off</Label>
-            <EnhancedLocationSearch onLocationSelect={setDropoff} />
+            <LocationPicker onLocationSelect={setDropoff} />
           </div>
           <div>
             <Label htmlFor="notes">Instructions *</Label>
