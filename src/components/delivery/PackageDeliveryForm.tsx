@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import EnhancedLocationSearch from '../map/EnhancedLocationSearch';
+import LocationPicker from '../map/LocationPicker';
 import OrderHistory from './OrderHistory';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -125,12 +125,12 @@ export default function PackageDeliveryForm() {
       <CardContent className="space-y-4">
         <div className="space-y-2">
           <Label>Pickup Location</Label>
-          <EnhancedLocationSearch onLocationSelect={setPickupLocation} />
+          <LocationPicker onLocationSelect={setPickupLocation} />
         </div>
 
         <div className="space-y-2">
           <Label>Delivery Location</Label>
-          <EnhancedLocationSearch onLocationSelect={setDeliveryLocation} />
+          <LocationPicker onLocationSelect={setDeliveryLocation} />
         </div>
 
         <div className="space-y-2">
