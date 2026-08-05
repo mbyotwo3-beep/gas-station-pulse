@@ -1,5 +1,5 @@
 import { useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
-import maplibregl from 'maplibre-gl';
+import * as maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { cn } from '@/lib/utils';
 
