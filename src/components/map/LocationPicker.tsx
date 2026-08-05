@@ -32,9 +32,14 @@ export default function LocationPicker({ onLocationSelect, pinLabel }: LocationP
     onLocationSelect(loc);
   };
 
-  const handleSearch = (loc: PickedLocation) => {
-    setPicked(loc);
-    onLocationSelect(loc);
+  const handleSearch = (loc: { lat: number; lng: number; label?: string; address?: string }) => {
+    const picked = {
+      lat: loc.lat,
+      lng: loc.lng,
+      address: loc.address ?? loc.label ?? `${loc.lat.toFixed(5)}, ${loc.lng.toFixed(5)}`,
+    };
+    setPicked(picked);
+    onLocationSelect(picked);
   };
 
   return (
