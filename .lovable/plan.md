@@ -1,48 +1,45 @@
-You picked all four focus areas. That's a lot, so I'll ship it in 4 tight passes and check in after each. Each pass is scoped so you can stop at any point and still have a working app.
+# Yango-style platform: MapLibre + PostGIS + 6% commission + driver trust
 
-## Pass 1 — Payments end-to-end (server-enforced)
+## Goal
+Move mapping to MapLibre GL JS with free OpenFreeMap vector tiles, add PostGIS geospatial matching in the backend, take a 6% platform commission on every ride/delivery, and make sure only vetted, verified drivers can ever be assigned to a passenger or package.
 
-Goal: nothing marks itself paid on the client.
+## 1. Map rendering (MapLibre + OpenFreeMap)
+- Add `maplibre-gl`, keep Leaflet only until each screen is migrated.
+- New shared `MapLibreMap` component: OpenFreeMap "liberty" style (`https://tiles.openfreemap.org/styles/liberty`), centered on Lusaka (28.2833, -15.4167), no API key, no tile cost.
+- Migrate the three existing maps: main station map, rideshare map, live driver-tracking map.
+- Keep current behaviors: persistent selection highlight, no re-centering while the user pans, bold blue route line with dark navy outline, hidden attribution controls.
+- Manual "Drop a precise pin" mode for addresses OSM does not know (Lusaka outskirts).
 
-- Add SQL migration for a `enforce_ride_payment_completion` trigger on `ride_payments`:
-  - Reject client-side inserts/updates that set `status='completed'` for card/mobile_money without a matching wallet debit `transactions` row.
-  - Restrict cash `completed` to `service_role`.
-- Same pattern via `enforce_order_payment_completion` trigger for delivery/errand orders.
-- New edge function `dpo-charge-order` that starts a DPO token tied to a `ride_id` or `order_id` (not just wallet top-up).
-- Extend `dpo-verify-token`: on success, credit wallet AND (if `ride_id`/`order_id` present) atomically debit wallet + mark the ride/order payment `completed` via a `settle_service_payment` RPC.
-- UI: `RidePaymentDialog` and delivery checkout: "Pay with card / mobile money" routes through DPO instead of instantly marking completed. Wallet path stays instant (already server-enforced).
-- Refund path: `refund_service_payment` RPC (admin/service_role) that reverses wallet debit and flips payment to `refunded`.
+## 2. Geospatial backend (PostGIS)
+- Enable PostGIS; add a `geography(POINT,4326)` location column plus GiST index for drivers.
+- Keep driver location writes going to the existing driver profile record so nothing breaks; the point column is filled alongside.
+- Replace the current distance-loop matching with a radius search function that returns only online, approved, non-suspended drivers ordered by true distance.
+- Errand/food/ride auto-assignment all use that one function.
 
-## Pass 2 — Rideshare polish
+## 3. Routing and ETA
+- Keep the free OSRM route/ETA path as default.
+- Add Geoapify as a fallback through a backend function when OSRM fails or is rate-limited (key stored securely; only requested if you want the fallback).
 
-- Cancellation reasons enum + `ride_cancellations` table + dialog on cancel (rider & driver).
-- Driver tips: `tip_amount` column on `ride_payments` + tip prompt on `RideCompletionSummary` (adds a wallet debit, re-generates receipt).
-- Live ETA badge in `ActiveRideTracker` computed from OSRM `duration` + last driver ping.
-- Dispute flow: "Report an issue" from ride history → `ride_disputes` table (RLS: owner + admin).
+## 4. Commission (6%)
+- Every completed ride, food order, and errand splits: 6% platform fee, 94% to the driver/courier.
+- Fee is computed and recorded server-side at settlement time so it cannot be altered from the app.
+- Driver earnings rows store gross, commission, and net; drivers see the breakdown; admin sees platform revenue totals.
 
-## Pass 3 — Food & errands polish
-
-- Cart persistence in `localStorage` keyed by user id (survives refresh).
-- Courier chat: reuse `RideChatDialog` component against an `order_messages` table.
-- Delivery proof photo: courier uploads to `delivery-proofs` bucket at handoff; shown in `OrderHistory`.
-- Order tips (same pattern as ride tips).
-- Errand runner cancellation + auto-reassign via `assign_nearest_runner` if runner cancels within 2 min.
-
-## Pass 4 — Production readiness
-
-- Legal pages: `/terms`, `/privacy`, `/refunds` (Zambia-appropriate boilerplate, editable). Link from `Auth` and footer.
-- Global error tracking: lightweight `logError()` util writing to a `client_errors` table (RLS: insert-only for authenticated), wired into `ErrorBoundary`.
-- Push notifications (browser Web Push): service worker + `push_subscriptions` table + edge function `send-push`; triggers on ride status, order status, chat message.
-- Admin tools: `/manager` gets tabs for disputes, refunds, and error log (admin-only via `has_role`).
-- Final a11y/SEO pass: alt text audit on remaining images, per-route `usePageSeo` on `/terms`, `/privacy`, `/refunds`, `/manager`, DpoReturn.
+## 5. Driver trust and safety (no fake or criminal drivers)
+- Drivers stay `pending` and invisible to matching until an admin approves them.
+- Required before approval: government ID, driver licence, vehicle registration, licence plate, a clear selfie matching the ID, and a police clearance / criminal record certificate.
+- Documents stored in a private bucket, readable only by the driver and admins.
+- Admin verification panel gains document previews, an expiry date per document, and approve / reject-with-reason / suspend actions.
+- Auto-suspend on expired documents or on a confirmed serious dispute; suspended drivers are removed from matching immediately.
+- Passenger-side: driver photo, name, rating, plate and vehicle shown before pickup, plus the existing OTP start-ride check so the package or passenger never goes to the wrong car.
 
 ## Technical notes
+- Migrations: PostGIS extension, driver geography column + index, radius-search function, commission columns on earnings/settlement functions, driver document table with strict access rules, private storage bucket.
+- Settlement functions (`settle_service_payment`, ride payment completion trigger) are extended to write the commission split atomically.
+- No change to the DPO payment flow itself.
 
-- All new tables get explicit `GRANT` blocks + RLS + `WITH CHECK`.
-- All `SECURITY DEFINER` functions set `search_path = public` and revoke `EXECUTE` from `anon`.
-- No new paid APIs — Web Push, OSRM, and existing DPO only.
-- Each pass ends with a security scan; findings fixed before moving to the next pass.
-
-## Order of execution
-
-I'll do Pass 1 immediately after you approve, then check in before Pass 2. Reply "go" to start, or tell me to reorder / drop a pass.
+## Suggested order
+1. PostGIS + driver radius matching + verification/commission schema
+2. Commission split in settlement + earnings UI
+3. Driver document upload + upgraded admin verification panel
+4. MapLibre migration of the three maps + precise-pin mode
