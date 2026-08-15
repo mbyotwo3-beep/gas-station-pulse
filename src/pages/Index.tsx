@@ -600,18 +600,18 @@ export default function Index() {
           {/* Search pill — replaces the giant header search */}
           <button
             onClick={() => setShowSearch(true)}
-            className="flex-1 flex items-center gap-2 h-11 px-4 rounded-full bg-background/95 backdrop-blur-md border shadow-md text-left text-sm text-muted-foreground hover:bg-background transition-colors"
+            className="flex-1 flex items-center gap-3 h-12 px-4 rounded-xl bg-background border border-border shadow-md text-left text-[15px] font-medium text-foreground hover:bg-secondary transition-colors"
           >
-            <Search className="h-4 w-4 shrink-0" />
+            <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
             <span className="truncate">
               {selectedLocation?.label
-                ? `📍 ${selectedLocation.label}`
-                : `Where are you, ${tabMeta[activeTab].title.toLowerCase()}?`}
+                ? selectedLocation.label
+                : `Where to?`}
             </span>
             {locationSource === 'gps' && accuracy !== null && gpsQuality && (
               <span
                 className={cn(
-                  'ml-auto text-[10px] px-1.5 py-0.5 rounded-full font-mono border',
+                  'ml-auto text-[10px] px-1.5 py-0.5 rounded-md font-mono border',
                   gpsToneClasses[gpsQuality.tone].chip
                 )}
                 title={`${gpsQuality.label} — ${gpsQuality.hint}`}
@@ -620,6 +620,7 @@ export default function Index() {
               </span>
             )}
           </button>
+
 
           {/* Right-side circular controls */}
           <div className="flex items-center gap-1.5">
@@ -739,7 +740,7 @@ export default function Index() {
       {/* ── NON-MAP TABS: scrollable content area ───────────────────────── */}
       {!isMapTab && (
         <main
-          className="absolute inset-0 overflow-y-auto bg-gradient-to-b from-primary/5 via-background to-background"
+          className="absolute inset-0 overflow-y-auto bg-background"
           style={{
             paddingTop: 'calc(env(safe-area-inset-top) + 5rem)',
             paddingBottom: 'calc(env(safe-area-inset-bottom) + 80px)',
@@ -788,15 +789,16 @@ export default function Index() {
           header={
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
-                <h2 className="font-semibold text-base truncate">
+                <h2 className="font-bold text-xl tracking-tight truncate">
                   {tabMeta[activeTab].title}
                 </h2>
-                <p className="text-xs text-muted-foreground truncate">
+                <p className="text-[13px] text-muted-foreground truncate">
                   {activeTab === 'fuel'
                     ? `${filteredStations.length} stations near you`
                     : tabMeta[activeTab].subtitle}
                 </p>
               </div>
+
               <div className="flex items-center gap-1.5 shrink-0">
                 {activeTab === 'fuel' && (
                   <>
@@ -847,31 +849,41 @@ export default function Index() {
             <div className="space-y-4">
               {/* Compact stats */}
               <div className="grid grid-cols-3 gap-2">
-                <div className="rounded-xl bg-success/10 p-3 text-center">
-                  <div className="text-xl font-bold text-success">
+                <div className="rounded-xl border border-border p-3">
+                  <div className="flex items-center gap-1.5">
+                    <span className="h-2 w-2 rounded-full bg-success" />
+                    <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wide">
+                      Available
+                    </span>
+                  </div>
+                  <div className="mt-1 text-2xl font-bold tabular-nums">
                     {filteredStations.filter((s) => s.status === 'available').length}
                   </div>
-                  <div className="text-[10px] text-muted-foreground font-medium uppercase">
-                    Available
-                  </div>
                 </div>
-                <div className="rounded-xl bg-warning/10 p-3 text-center">
-                  <div className="text-xl font-bold text-warning">
+                <div className="rounded-xl border border-border p-3">
+                  <div className="flex items-center gap-1.5">
+                    <span className="h-2 w-2 rounded-full bg-warning" />
+                    <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wide">
+                      Low
+                    </span>
+                  </div>
+                  <div className="mt-1 text-2xl font-bold tabular-nums">
                     {filteredStations.filter((s) => s.status === 'low').length}
                   </div>
-                  <div className="text-[10px] text-muted-foreground font-medium uppercase">
-                    Low
-                  </div>
                 </div>
-                <div className="rounded-xl bg-destructive/10 p-3 text-center">
-                  <div className="text-xl font-bold text-destructive">
-                    {filteredStations.filter((s) => s.status === 'out').length}
+                <div className="rounded-xl border border-border p-3">
+                  <div className="flex items-center gap-1.5">
+                    <span className="h-2 w-2 rounded-full bg-destructive" />
+                    <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wide">
+                      Out
+                    </span>
                   </div>
-                  <div className="text-[10px] text-muted-foreground font-medium uppercase">
-                    Out
+                  <div className="mt-1 text-2xl font-bold tabular-nums">
+                    {filteredStations.filter((s) => s.status === 'out').length}
                   </div>
                 </div>
               </div>
+
 
               <TransportModeSelector
                 value={transportMode}

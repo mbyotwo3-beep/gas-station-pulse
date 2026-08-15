@@ -19,7 +19,7 @@ const TABS: { id: AppTab; label: string; icon: typeof Fuel }[] = [
 export default function AppBottomNav({ active, onChange }: AppBottomNavProps) {
   return (
     <nav
-      className="fixed bottom-0 inset-x-0 z-[60] border-t bg-background/95 backdrop-blur-xl shadow-elegant"
+      className="fixed bottom-0 inset-x-0 z-[60] border-t border-border bg-background"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       aria-label="Primary"
     >
@@ -28,39 +28,26 @@ export default function AppBottomNav({ active, onChange }: AppBottomNavProps) {
           const Icon = t.icon;
           const isActive = active === t.id;
           return (
-            <li key={t.id} className="relative">
-              {/* Top accent bar for active tab */}
-              <span
-                aria-hidden
-                className={cn(
-                  "absolute top-0 left-1/2 -translate-x-1/2 h-1 rounded-b-full transition-all duration-300",
-                  isActive ? "w-10 bg-primary opacity-100" : "w-0 bg-transparent opacity-0"
-                )}
-              />
+            <li key={t.id}>
               <button
                 type="button"
                 onClick={() => onChange(t.id)}
                 aria-current={isActive ? "page" : undefined}
                 aria-label={`${t.label}${isActive ? " (current)" : ""}`}
                 className={cn(
-                  "w-full flex flex-col items-center gap-0.5 pt-2.5 pb-2 transition-colors",
-                  "text-[10px] font-medium",
+                  "w-full flex flex-col items-center justify-center gap-1 pt-2.5 pb-2.5",
+                  "text-[11px] tracking-tight transition-colors duration-150 active:opacity-60",
                   isActive
-                    ? "text-primary"
-                    : "text-muted-foreground hover:text-foreground"
+                    ? "text-foreground font-semibold"
+                    : "text-muted-foreground font-medium"
                 )}
               >
-                <span
-                  className={cn(
-                    "flex items-center justify-center h-7 w-12 rounded-full transition-all duration-300",
-                    isActive
-                      ? "bg-primary text-primary-foreground shadow-md scale-105"
-                      : "bg-transparent"
-                  )}
-                >
-                  <Icon className={cn("h-5 w-5", isActive && "scale-110")} />
-                </span>
-                <span className={cn(isActive && "font-semibold")}>{t.label}</span>
+                <Icon
+                  className="h-6 w-6"
+                  strokeWidth={isActive ? 2.4 : 1.8}
+                  aria-hidden
+                />
+                <span>{t.label}</span>
               </button>
             </li>
           );
@@ -69,3 +56,4 @@ export default function AppBottomNav({ active, onChange }: AppBottomNavProps) {
     </nav>
   );
 }
+
