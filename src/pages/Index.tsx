@@ -600,18 +600,18 @@ export default function Index() {
           {/* Search pill — replaces the giant header search */}
           <button
             onClick={() => setShowSearch(true)}
-            className="flex-1 flex items-center gap-2 h-11 px-4 rounded-full bg-background/95 backdrop-blur-md border shadow-md text-left text-sm text-muted-foreground hover:bg-background transition-colors"
+            className="flex-1 flex items-center gap-3 h-12 px-4 rounded-xl bg-background border border-border shadow-md text-left text-[15px] font-medium text-foreground hover:bg-secondary transition-colors"
           >
-            <Search className="h-4 w-4 shrink-0" />
+            <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
             <span className="truncate">
               {selectedLocation?.label
-                ? `📍 ${selectedLocation.label}`
-                : `Where are you, ${tabMeta[activeTab].title.toLowerCase()}?`}
+                ? selectedLocation.label
+                : `Where to?`}
             </span>
             {locationSource === 'gps' && accuracy !== null && gpsQuality && (
               <span
                 className={cn(
-                  'ml-auto text-[10px] px-1.5 py-0.5 rounded-full font-mono border',
+                  'ml-auto text-[10px] px-1.5 py-0.5 rounded-md font-mono border',
                   gpsToneClasses[gpsQuality.tone].chip
                 )}
                 title={`${gpsQuality.label} — ${gpsQuality.hint}`}
@@ -620,6 +620,7 @@ export default function Index() {
               </span>
             )}
           </button>
+
 
           {/* Right-side circular controls */}
           <div className="flex items-center gap-1.5">
