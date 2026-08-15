@@ -740,7 +740,7 @@ export default function Index() {
       {/* ── NON-MAP TABS: scrollable content area ───────────────────────── */}
       {!isMapTab && (
         <main
-          className="absolute inset-0 overflow-y-auto bg-gradient-to-b from-primary/5 via-background to-background"
+          className="absolute inset-0 overflow-y-auto bg-background"
           style={{
             paddingTop: 'calc(env(safe-area-inset-top) + 5rem)',
             paddingBottom: 'calc(env(safe-area-inset-bottom) + 80px)',
