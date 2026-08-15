@@ -93,7 +93,7 @@ export default function Index() {
   const { suggestions, loading: optimizationLoading, analyzeRoutes, clearSuggestions } = useRouteOptimization();
   
   const [activeTab, setActiveTab] = useState<AppTab>('fuel');
-  const [sheetSnap, setSheetSnap] = useState<SheetSnap>('half');
+  const [sheetSnap, setSheetSnap] = useState<SheetSnap>('peek');
   const [adminOpen, setAdminOpen] = useState(false);
   const [rideShareMode, setRideShareMode] = useState<'passenger' | 'driver'>('passenger');
   const [selectedService, setSelectedService] = useState<'ride' | 'food_delivery' | 'package_delivery'>('ride');
