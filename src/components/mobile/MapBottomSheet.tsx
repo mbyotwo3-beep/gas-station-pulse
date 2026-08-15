@@ -96,7 +96,7 @@ export default function MapBottomSheet({
   return (
     <div
       className={cn(
-        "fixed left-0 right-0 z-40 bg-background border-t shadow-2xl rounded-t-3xl flex flex-col",
+        "fixed left-0 right-0 z-40 bg-background border-t border-border shadow-2xl rounded-t-2xl flex flex-col",
         "transition-[height] duration-300 ease-out will-change-[height]",
         dragHeight !== null && "transition-none"
       )}
@@ -109,7 +109,7 @@ export default function MapBottomSheet({
     >
       {/* Drag handle */}
       <div
-        className="flex justify-center pt-2 pb-1 cursor-grab touch-none select-none"
+        className="flex justify-center pt-2.5 pb-2 cursor-grab touch-none select-none"
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
@@ -121,14 +121,15 @@ export default function MapBottomSheet({
           setSnap(next);
         }}
       >
-        <div className="h-1.5 w-10 rounded-full bg-muted-foreground/30" />
+        <div className="h-1 w-9 rounded-full bg-foreground/20" />
       </div>
 
-      {header && <div className="px-4 pb-2 shrink-0">{header}</div>}
+      {header && <div className="px-5 pb-3 shrink-0">{header}</div>}
 
-      <div className="flex-1 overflow-y-auto overscroll-contain px-4 pb-6">
+      <div className="flex-1 overflow-y-auto overscroll-contain px-5 pb-6">
         {children}
       </div>
     </div>
   );
+
 }
