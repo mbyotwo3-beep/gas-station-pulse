@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState, ReactNode, useCallback } from "react";
 import { cn } from "@/lib/utils";
 
-export type SheetSnap = "peek" | "half" | "full";
+export type SheetSnap = "peek" | "full";
 
 interface MapBottomSheetProps {
   /** Pixel heights for each snap point. Computed from window height by default. */
-  snapPoints?: { peek: number; half: number; full: number };
+  snapPoints?: { peek: number; full: number };
   initial?: SheetSnap;
   snap?: SheetSnap; // controlled
   onSnapChange?: (s: SheetSnap) => void;
@@ -17,7 +17,7 @@ interface MapBottomSheetProps {
 
 export default function MapBottomSheet({
   snapPoints,
-  initial = "half",
+  initial = "peek",
   snap,
   onSnapChange,
   header,
@@ -35,8 +35,9 @@ export default function MapBottomSheet({
     [snap, onSnapChange]
   );
 
-  // Default snap heights based on viewport
-  const [points, setPoints] = useState({ peek: 120, half: 360, full: 600 });
+  // Default snap heights based on viewport. Only two stable states so the
+  // sheet never lingers in a middle position that hides map data.
+  const [points, setPoints] = useState({ peek: 120, full: 600 });
   useEffect(() => {
     if (snapPoints) {
       setPoints(snapPoints);
@@ -46,7 +47,6 @@ export default function MapBottomSheet({
       const h = window.innerHeight - bottomInset;
       setPoints({
         peek: Math.min(140, Math.round(h * 0.18)),
-        half: Math.round(h * 0.5),
         full: Math.round(h * 0.92),
       });
     };
@@ -57,13 +57,18 @@ export default function MapBottomSheet({
 
   const height = points[current];
 
-  // Drag handling
+  // Drag handling with velocity-aware snapping so the sheet always "sticks"
+  // cleanly to one of the two stable states.
   const startY = useRef<number | null>(null);
   const startHeight = useRef<number>(height);
+  const lastY = useRef<number | null>(null);
+  const lastTime = useRef<number>(0);
   const [dragHeight, setDragHeight] = useState<number | null>(null);
 
   const onPointerDown = (e: React.PointerEvent) => {
     startY.current = e.clientY;
+    lastY.current = e.clientY;
+    lastTime.current = performance.now();
     startHeight.current = height;
     (e.target as Element).setPointerCapture(e.pointerId);
   };
@@ -74,21 +79,38 @@ export default function MapBottomSheet({
       points.peek,
       Math.min(points.full, startHeight.current + dy)
     );
+    lastY.current = e.clientY;
+    lastTime.current = performance.now();
     setDragHeight(next);
   };
   const onPointerUp = () => {
     if (startY.current === null) return;
+
     const final = dragHeight ?? height;
-    // Snap to nearest
-    const dPeek = Math.abs(final - points.peek);
-    const dHalf = Math.abs(final - points.half);
-    const dFull = Math.abs(final - points.full);
-    const min = Math.min(dPeek, dHalf, dFull);
-    const next: SheetSnap =
-      min === dPeek ? "peek" : min === dHalf ? "half" : "full";
+    const now = performance.now();
+    const dt = now - lastTime.current || 16;
+    const dy = (lastY.current ?? startY.current) - startY.current;
+    const velocity = dy / dt; // px/ms, positive = upward drag
+
+    const midpoint = (points.peek + points.full) / 2;
+    const threshold = (points.full - points.peek) * 0.15; // 15% bias toward direction
+
+    let next: SheetSnap;
+    if (velocity > 0.6 || final > midpoint + threshold) {
+      // Dragged up / flicked up → expand
+      next = "full";
+    } else if (velocity < -0.6 || final < midpoint - threshold) {
+      // Dragged down / flicked down → collapse
+      next = "peek";
+    } else {
+      // Near midpoint: snap to closest stable state
+      next = final < midpoint ? "peek" : "full";
+    }
+
     setSnap(next);
     setDragHeight(null);
     startY.current = null;
+    lastY.current = null;
   };
 
   const visualHeight = dragHeight ?? height;
@@ -115,9 +137,8 @@ export default function MapBottomSheet({
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
         onClick={() => {
-          // Tap handle to cycle snap
-          const next: SheetSnap =
-            current === "peek" ? "half" : current === "half" ? "full" : "peek";
+          // Tap handle to toggle between peek and full
+          const next: SheetSnap = current === "peek" ? "full" : "peek";
           setSnap(next);
         }}
       >
