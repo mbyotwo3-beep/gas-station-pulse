@@ -848,31 +848,41 @@ export default function Index() {
             <div className="space-y-4">
               {/* Compact stats */}
               <div className="grid grid-cols-3 gap-2">
-                <div className="rounded-xl bg-success/10 p-3 text-center">
-                  <div className="text-xl font-bold text-success">
+                <div className="rounded-xl border border-border p-3">
+                  <div className="flex items-center gap-1.5">
+                    <span className="h-2 w-2 rounded-full bg-success" />
+                    <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wide">
+                      Available
+                    </span>
+                  </div>
+                  <div className="mt-1 text-2xl font-bold tabular-nums">
                     {filteredStations.filter((s) => s.status === 'available').length}
                   </div>
-                  <div className="text-[10px] text-muted-foreground font-medium uppercase">
-                    Available
-                  </div>
                 </div>
-                <div className="rounded-xl bg-warning/10 p-3 text-center">
-                  <div className="text-xl font-bold text-warning">
+                <div className="rounded-xl border border-border p-3">
+                  <div className="flex items-center gap-1.5">
+                    <span className="h-2 w-2 rounded-full bg-warning" />
+                    <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wide">
+                      Low
+                    </span>
+                  </div>
+                  <div className="mt-1 text-2xl font-bold tabular-nums">
                     {filteredStations.filter((s) => s.status === 'low').length}
                   </div>
-                  <div className="text-[10px] text-muted-foreground font-medium uppercase">
-                    Low
-                  </div>
                 </div>
-                <div className="rounded-xl bg-destructive/10 p-3 text-center">
-                  <div className="text-xl font-bold text-destructive">
-                    {filteredStations.filter((s) => s.status === 'out').length}
+                <div className="rounded-xl border border-border p-3">
+                  <div className="flex items-center gap-1.5">
+                    <span className="h-2 w-2 rounded-full bg-destructive" />
+                    <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wide">
+                      Out
+                    </span>
                   </div>
-                  <div className="text-[10px] text-muted-foreground font-medium uppercase">
-                    Out
+                  <div className="mt-1 text-2xl font-bold tabular-nums">
+                    {filteredStations.filter((s) => s.status === 'out').length}
                   </div>
                 </div>
               </div>
+
 
               <TransportModeSelector
                 value={transportMode}
