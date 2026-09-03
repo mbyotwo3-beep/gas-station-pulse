@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { toast } from "sonner";
-import LeafletMap, { type LeafletMapHandle } from "@/components/map/LeafletMap";
+import StationMap, { type StationMapHandle } from "@/components/map/StationMap";
 import RideShareMap from "@/components/rideshare/RideShareMap";
 import StationList from "@/components/StationList";
 import NearestStations from "@/components/NearestStations";
@@ -560,7 +560,7 @@ export default function Index() {
   // Whether the active tab is map-centric (full-screen map behind sheet)
   const isMapTab = activeTab === 'fuel' || activeTab === 'rides';
 
-  const mapHandleRef = useRef<LeafletMapHandle | null>(null);
+  const mapHandleRef = useRef<StationMapHandle | null>(null);
 
   const handleRecenterFab = () => {
     setLocationSource('gps');
@@ -706,7 +706,7 @@ export default function Index() {
             stationsLoading ? (
               <StationMapSkeleton />
             ) : (
-              <LeafletMap
+              <StationMap
                 ref={mapHandleRef}
                 stations={filteredStations}
                 onSelect={handleStationSelect}
