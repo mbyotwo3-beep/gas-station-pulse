@@ -276,7 +276,16 @@ export default function OrderHistory() {
                 packageOrders.map(order => <OrderCard key={order.id} order={order} />)
               )}
             </TabsContent>
+
+            <TabsContent value="errand" className="space-y-4 mt-4">
+              {errandOrders.length === 0 ? (
+                <p className="text-center text-muted-foreground py-8">No errands yet</p>
+              ) : (
+                errandOrders.map(order => <OrderCard key={order.id} order={order} />)
+              )}
+            </TabsContent>
           </Tabs>
+
         </CardContent>
       </Card>
 
