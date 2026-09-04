@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import RestaurantList from './RestaurantList';
 import MenuView from './MenuView';
 import OrderHistory from './OrderHistory';
+import RestaurantOrderQueue from './RestaurantOrderQueue';
 import EnhancedLocationSearch from '../map/EnhancedLocationSearch';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -173,6 +174,7 @@ export default function FoodDeliveryDashboard() {
 
   return (
     <div className="space-y-6">
+      <RestaurantOrderQueue />
       <Card>
         <CardHeader>
           <CardTitle>Order Food</CardTitle>
