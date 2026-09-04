@@ -232,6 +232,82 @@ export type Database = {
           },
         ]
       }
+      order_cancellations: {
+        Row: {
+          cancelled_by: string
+          created_at: string
+          id: string
+          order_id: string
+          reason: string | null
+          role: string | null
+        }
+        Insert: {
+          cancelled_by: string
+          created_at?: string
+          id?: string
+          order_id: string
+          reason?: string | null
+          role?: string | null
+        }
+        Update: {
+          cancelled_by?: string
+          created_at?: string
+          id?: string
+          order_id?: string
+          reason?: string | null
+          role?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_cancellations_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_disputes: {
+        Row: {
+          category: string
+          created_at: string
+          description: string
+          id: string
+          order_id: string
+          reporter_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          description: string
+          id?: string
+          order_id: string
+          reporter_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string
+          id?: string
+          order_id?: string
+          reporter_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_disputes_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_ratings: {
         Row: {
           comment: string | null

@@ -79,6 +79,7 @@ export default function OrderHistory() {
 
   const foodOrders = orders.filter(o => o.service_type === 'food_delivery');
   const packageOrders = orders.filter(o => o.service_type === 'package_delivery');
+  const errandOrders = orders.filter(o => o.service_type === 'errand');
 
   const getStatusVariant = (status: string) => {
     switch (status) {
@@ -249,10 +250,11 @@ export default function OrderHistory() {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="all" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="all">All ({orders.length})</TabsTrigger>
               <TabsTrigger value="food">Food ({foodOrders.length})</TabsTrigger>
               <TabsTrigger value="package">Packages ({packageOrders.length})</TabsTrigger>
+              <TabsTrigger value="errand">Errands ({errandOrders.length})</TabsTrigger>
             </TabsList>
 
             <TabsContent value="all" className="space-y-4 mt-4">
@@ -274,7 +276,16 @@ export default function OrderHistory() {
                 packageOrders.map(order => <OrderCard key={order.id} order={order} />)
               )}
             </TabsContent>
+
+            <TabsContent value="errand" className="space-y-4 mt-4">
+              {errandOrders.length === 0 ? (
+                <p className="text-center text-muted-foreground py-8">No errands yet</p>
+              ) : (
+                errandOrders.map(order => <OrderCard key={order.id} order={order} />)
+              )}
+            </TabsContent>
           </Tabs>
+
         </CardContent>
       </Card>
 

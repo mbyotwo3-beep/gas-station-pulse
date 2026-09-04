@@ -1,7 +1,15 @@
-import { Check, Clock, Package, Truck, Home, CircleDashed } from 'lucide-react';
+import { Check, Clock, Package, Truck, Home, CircleDashed, ChefHat } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export type DeliveryStatus = 'pending' | 'accepted' | 'picking_up' | 'in_transit' | 'delivered' | 'cancelled';
+export type DeliveryStatus =
+  | 'pending'
+  | 'accepted'
+  | 'preparing'
+  | 'ready_for_pickup'
+  | 'picking_up'
+  | 'in_transit'
+  | 'delivered'
+  | 'cancelled';
 
 interface Step {
   key: DeliveryStatus;
@@ -9,7 +17,7 @@ interface Step {
   Icon: typeof Clock;
 }
 
-const STEPS: Step[] = [
+const BASE_STEPS: Step[] = [
   { key: 'pending', label: 'Order placed', Icon: Clock },
   { key: 'accepted', label: 'Courier assigned', Icon: Check },
   { key: 'picking_up', label: 'Picking up', Icon: Package },
@@ -17,12 +25,27 @@ const STEPS: Step[] = [
   { key: 'delivered', label: 'Delivered', Icon: Home },
 ];
 
+/** Food orders pass through the kitchen before a courier collects them. */
+const FOOD_STEPS: Step[] = [
+  { key: 'pending', label: 'Order placed', Icon: Clock },
+  { key: 'accepted', label: 'Accepted', Icon: Check },
+  { key: 'preparing', label: 'Preparing', Icon: ChefHat },
+  { key: 'ready_for_pickup', label: 'Ready', Icon: Package },
+  { key: 'in_transit', label: 'On the way', Icon: Truck },
+  { key: 'delivered', label: 'Delivered', Icon: Home },
+];
+
 interface DeliveryStatusTimelineProps {
   status: string;
+  serviceType?: string;
   className?: string;
 }
 
-export default function DeliveryStatusTimeline({ status, className }: DeliveryStatusTimelineProps) {
+export default function DeliveryStatusTimeline({
+  status,
+  serviceType,
+  className,
+}: DeliveryStatusTimelineProps) {
   if (status === 'cancelled') {
     return (
       <div className={cn('rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive', className)}>
@@ -30,7 +53,14 @@ export default function DeliveryStatusTimeline({ status, className }: DeliverySt
       </div>
     );
   }
-  const currentIndex = Math.max(0, STEPS.findIndex((s) => s.key === status));
+  const STEPS = serviceType === 'food_delivery' ? FOOD_STEPS : BASE_STEPS;
+  const normalized = STEPS.some((s) => s.key === status)
+    ? status
+    : status === 'picking_up'
+      ? 'ready_for_pickup'
+      : status;
+  const currentIndex = Math.max(0, STEPS.findIndex((s) => s.key === normalized));
+
 
   return (
     <ol className={cn('flex items-stretch gap-1', className)}>
