@@ -64,9 +64,8 @@ export default function RideCancelDialog({
         .insert({
           ride_id: rideId,
           cancelled_by: user.id,
-          cancelled_by_role: isDriver ? 'driver' : 'passenger',
-          reason,
-          details: details.trim() || null,
+          role: isDriver ? 'driver' : 'passenger',
+          reason: details.trim() ? `${reason} — ${details.trim()}` : reason,
         });
       if (logError) console.error('Could not log cancellation reason:', logError);
 
