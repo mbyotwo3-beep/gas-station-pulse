@@ -15,6 +15,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useProfile } from "@/hooks/useProfile";
 import { useRoles } from "@/hooks/useRoles";
 import { toast } from "@/hooks/use-toast";
+import AccountSettings from "@/components/AccountSettings";
 import RoleBasedFeatures from "@/components/RoleBasedFeatures";
 import { PhotoUpload } from "@/components/PhotoUpload";
 
@@ -96,9 +97,10 @@ export default function ProfileDialog() {
         </DialogHeader>
         
         <Tabs defaultValue="profile" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="profile">Profile</TabsTrigger>
             <TabsTrigger value="roles">Roles</TabsTrigger>
+            <TabsTrigger value="account">Account</TabsTrigger>
           </TabsList>
           
           <TabsContent value="profile" className="space-y-4">
@@ -180,6 +182,10 @@ export default function ProfileDialog() {
           
           <TabsContent value="roles" className="space-y-4">
             <RoleBasedFeatures />
+          </TabsContent>
+
+          <TabsContent value="account" className="space-y-4">
+            <AccountSettings />
           </TabsContent>
         </Tabs>
       </DialogContent>
