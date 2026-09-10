@@ -15,6 +15,9 @@ const Auth = lazy(() => import("./pages/Auth"));
 const Manager = lazy(() => import("./pages/Manager"));
 const Payments = lazy(() => import("./pages/Payments"));
 const DpoReturn = lazy(() => import("./pages/DpoReturn"));
+const Terms = lazy(() => import("./pages/Terms"));
+const Privacy = lazy(() => import("./pages/Privacy"));
+const Help = lazy(() => import("./pages/Help"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -53,6 +56,9 @@ const App = () => (
               <Route path="/manager" element={wrap(<Manager />)} />
               <Route path="/payments" element={wrap(<Payments />)} />
               <Route path="/payments/dpo-return" element={wrap(<DpoReturn />)} />
+              <Route path="/terms" element={wrap(<Terms />)} />
+              <Route path="/privacy" element={wrap(<Privacy />)} />
+              <Route path="/help" element={wrap(<Help />)} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={wrap(<NotFound />)} />
             </Routes>

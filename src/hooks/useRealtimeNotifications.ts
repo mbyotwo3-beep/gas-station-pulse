@@ -121,7 +121,14 @@ export function useRealtimeNotifications(options: NotificationOptions = {}) {
               let message = "";
               switch (order.status) {
                 case "confirmed":
-                  message = "Your order has been confirmed!";
+                case "accepted":
+                  message = "Your order has been accepted!";
+                  break;
+                case "picking_up":
+                  message = "Your courier is collecting your order.";
+                  break;
+                case "in_transit":
+                  message = "Your order is on the way!";
                   break;
                 case "preparing":
                   message = "Your order is being prepared.";
