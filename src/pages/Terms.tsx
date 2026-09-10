@@ -1,13 +1,13 @@
 import { Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
-import { useSEO } from '@/lib/seo';
+import { usePageSeo } from '@/lib/seo';
 
 export default function Terms() {
-  useSEO({
-    title: 'Terms of Service | Rides, Food & Delivery in Lusaka',
+  usePageSeo({
+    title: 'Terms of Service | Rides, Food & Delivery',
     description:
       'The terms that govern your use of our ride-hailing, food delivery, package and errand services in Lusaka.',
-    canonical: '/terms',
+    path: '/terms',
   });
 
   return (
