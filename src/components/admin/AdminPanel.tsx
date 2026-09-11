@@ -11,6 +11,8 @@ import { Shield, Users, Car, Fuel, TrendingUp, Search } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import DriverVerificationPanel from './DriverVerificationPanel';
 import PlatformRevenueCard from './PlatformRevenueCard';
+import DriverEarningsOverview from './DriverEarningsOverview';
+import DisputeReviewPanel from './DisputeReviewPanel';
 
 interface UserWithRole {
   id: string;
@@ -186,10 +188,12 @@ export default function AdminPanel() {
       </div>
 
       <Tabs defaultValue="users" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="users">User Management</TabsTrigger>
-          <TabsTrigger value="drivers">Driver Verification</TabsTrigger>
-          <TabsTrigger value="system">System Health</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5">
+          <TabsTrigger value="users">Users</TabsTrigger>
+          <TabsTrigger value="drivers">Drivers</TabsTrigger>
+          <TabsTrigger value="earnings">Earnings</TabsTrigger>
+          <TabsTrigger value="disputes">Disputes</TabsTrigger>
+          <TabsTrigger value="system">System</TabsTrigger>
         </TabsList>
 
         <TabsContent value="users" className="space-y-4">
