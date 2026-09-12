@@ -94,7 +94,7 @@ export default function DriverDeliveryDashboard() {
       .select('*')
       .eq('driver_id', user.id)
       .in('status', ['accepted', 'picking_up', 'in_transit'])
-      .single();
+      .maybeSingle();
 
     if (!error && data) setActiveDelivery(data);
   };
