@@ -123,6 +123,7 @@ export type Database = {
           geo: unknown
           id: string
           is_active: boolean
+          is_demo: boolean
           is_suspended: boolean
           license_plate: string | null
           rating: number | null
@@ -144,6 +145,7 @@ export type Database = {
           geo?: unknown
           id?: string
           is_active?: boolean
+          is_demo?: boolean
           is_suspended?: boolean
           license_plate?: string | null
           rating?: number | null
@@ -165,6 +167,7 @@ export type Database = {
           geo?: unknown
           id?: string
           is_active?: boolean
+          is_demo?: boolean
           is_suspended?: boolean
           license_plate?: string | null
           rating?: number | null
@@ -1435,6 +1438,7 @@ export type Database = {
         Args: { lat1: number; lat2: number; lng1: number; lng2: number }
         Returns: number
       }
+      claim_owner_admin: { Args: never; Returns: boolean }
       deduct_wallet_funds: {
         Args: { p_amount: number; p_user_id: string }
         Returns: boolean
