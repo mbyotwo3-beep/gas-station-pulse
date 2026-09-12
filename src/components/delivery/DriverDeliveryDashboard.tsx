@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Package, UtensilsCrossed, Navigation, DollarSign, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import DeliveryStatusTimeline from './DeliveryStatusTimeline';
+import ActiveDeliveryMap from './ActiveDeliveryMap';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -206,7 +207,15 @@ export default function DriverDeliveryDashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <DeliveryStatusTimeline status={activeDelivery.status} />
+              <DeliveryStatusTimeline
+                status={activeDelivery.status}
+                serviceType={activeDelivery.service_type}
+              />
+
+              <ActiveDeliveryMap
+                pickup={activeDelivery.pickup_location}
+                dropoff={activeDelivery.delivery_location}
+              />
 
               <div className="space-y-2">
                 <div className="flex items-start gap-2">
