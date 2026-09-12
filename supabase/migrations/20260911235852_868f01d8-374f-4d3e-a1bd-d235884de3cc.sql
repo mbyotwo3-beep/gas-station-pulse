@@ -1,0 +1,1 @@
+REVOKE ALL ON FUNCTION public.guard_driver_verification_fields() FROM PUBLIC, anon, authenticated;
