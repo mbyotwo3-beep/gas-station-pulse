@@ -28,6 +28,9 @@ interface DriverProfile {
   total_rides: number;
   verification_status?: string;
   verified_at?: string;
+  is_suspended?: boolean;
+  suspension_reason?: string | null;
+  rejection_reason?: string | null;
 }
 
 interface RideRequest {
