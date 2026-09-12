@@ -79,7 +79,7 @@ export default function DriverDeliveryDashboard() {
       .from('orders')
       .select('*')
       .eq('status', 'pending')
-      .in('service_type', ['food_delivery', 'package_delivery'])
+      .in('service_type', ['food_delivery', 'package_delivery', 'errand'])
       .order('created_at', { ascending: false })
       .limit(20);
 
