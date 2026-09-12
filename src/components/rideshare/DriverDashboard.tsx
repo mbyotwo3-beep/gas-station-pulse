@@ -86,6 +86,16 @@ export default function DriverDashboard() {
             }
           }
         )
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'driver_profiles',
+            filter: `user_id=eq.${user.id}`
+          },
+          () => fetchDriverProfile()
+        )
         .subscribe();
 
       return () => {
@@ -168,7 +178,16 @@ export default function DriverDashboard() {
   const toggleDriverStatus = async () => {
     if (!driverProfile || !user) return;
     
-    // Prevent unverified drivers from going online
+    // Prevent unverified or suspended drivers from going online
+    if (!driverProfile.is_active && driverProfile.is_suspended) {
+      toast({
+        title: 'Account suspended',
+        description: driverProfile.suspension_reason || 'Contact support to have your account reinstated.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
     if (!driverProfile.is_active && driverProfile.verification_status !== 'approved') {
       toast({ 
         title: 'Cannot Go Online', 
@@ -228,7 +247,8 @@ export default function DriverDashboard() {
   }
 
   // Check verification status
-  const isVerified = driverProfile?.verification_status === 'approved';
+  const isSuspended = !!driverProfile?.is_suspended;
+  const isVerified = driverProfile?.verification_status === 'approved' && !isSuspended;
   const isPending = driverProfile?.verification_status === 'pending';
   const isRejected = driverProfile?.verification_status === 'rejected';
 
@@ -303,7 +323,24 @@ export default function DriverDashboard() {
   return (
     <div className="space-y-6">
       {/* Verification Status Banner */}
-      {isPending && (
+      {isSuspended && (
+        <Card className="border-destructive bg-destructive/10">
+          <CardContent className="py-4">
+            <div className="flex items-center gap-3">
+              <XCircle className="h-5 w-5 text-destructive" />
+              <div>
+                <p className="font-medium text-destructive">Account suspended</p>
+                <p className="text-sm text-muted-foreground">
+                  {driverProfile.suspension_reason ||
+                    'An administrator suspended your driver account. Contact support for details.'}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {isPending && !isSuspended && (
         <Card className="border-warning bg-warning/10">
           <CardContent className="py-4">
             <div className="flex items-center gap-3">
