@@ -289,8 +289,16 @@ export default function AdminPanel() {
         </TabsContent>
 
         <TabsContent value="drivers" className="space-y-4">
-          <PlatformRevenueCard />
           <DriverVerificationPanel />
+        </TabsContent>
+
+        <TabsContent value="earnings" className="space-y-4">
+          <PlatformRevenueCard />
+          <DriverEarningsOverview />
+        </TabsContent>
+
+        <TabsContent value="disputes" className="space-y-4">
+          <DisputeReviewPanel />
         </TabsContent>
       </Tabs>
     </div>
